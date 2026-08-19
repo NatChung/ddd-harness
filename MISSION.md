@@ -1,5 +1,9 @@
 # Mission: 用 DDD + BDD 建立 AI Agent 的 Development Harness
 
+> **這份是個人的專案定位文件,原樣發布、沒有為了公開而改寫。** 它用第三人稱寫,
+> 因為當初是寫給自己看的。「Nat」是作者 Nat Chung;「KC」是他任職公司的簡稱。
+> 想先看這個 repo 有什麼,請讀 [README.md](./README.md);這份講的是**為什麼做**。
+
 ## Why
 
 Nat 要建立一套 AI Agent 的開發 workflow(harness),讓 agent 產出的東西不隨著換模型而漂移。

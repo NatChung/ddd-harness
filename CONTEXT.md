@@ -26,7 +26,7 @@ _Avoid_:**失敗情境**——那個詞在訪談 prompt 裡指「GWT 的失敗�
 情境的 fixture **不包含**它的 Given/When 所描述的那個動作,改用別的東西近似它。
 實例:S10「商品事後調價,舊訂單金額不動」被編成「同一商品送兩筆不同單價的訂單」——
 沒有任何東西調過價,所以**那條斷言不可能因為它宣稱要測的原因而失敗**。
-指向:第 5 項待辦,`proxy_for` 欄位。
+指向:`proxy_for` 欄位(`tools/harness/schema.sql`),以及票 02 / 票 15。
 _Avoid_:把它歸進「假驗收」就不再細分——它是**規格層**的,前兩個已知陽性
 (HL1/HL2 恆真測試)是**斷言層**的,而 mutation testing 抓得到後者、抓不到前者。
 
@@ -88,9 +88,13 @@ _Avoid_:跟**驗收**(外圈)混用。驗收**刻意不 import 任何實作 clas
 斷言用跟程式碼同樣的方式重算期望值,因此**依構造必然通過,永遠不可能跟程式碼意見相左**。
 期望值必須來自獨立的真相來源——已知good的字面值、算過的例子、**規格**。
 (定義借自 `mattpocock-skills:tdd`,那份寫得比本 repo 任何一處都準。)
-已知陽性:分層實驗 HL1/HL2 的 `no-setter` 反射測試,掃不到任何真 setter,不管實作怎麼
+已知陽性:分層實驗 **HL1** 的 `no-setter` 反射測試,掃不到任何真 setter,不管實作怎麼
 寫都會綠。**標本與病因見 `examples/specimens/tautological-no-setter/`**(原始分支留在
 `kc-log`,沒有跟著匯出)。
+⚠️ **這條原本寫的是「HL1/HL2」,2026-08-19 查證後改掉**:HL2 那支是列舉
+`getDeclaredMethods()` 看到 `set*` 就 fail,真 setter **抓得到** —— 它的毛病是**過寬**
+(誤傷 private helper、漏掉不叫 `set*` 的 mutator),跟恆真剛好相反。
+把兩支併稱一類是原本的誤判。
 指向:`docs/adr/0006` §5,`tools/harness/vacuous_tests.py`。
 _Avoid_:跟**代理編碼**混用。恆真是**斷言層**的(mutation testing 抓得到),
 代理編碼是**規格層**的(抓不到)。也不要拿 `vacuous_tests` 的輸出當判決——
