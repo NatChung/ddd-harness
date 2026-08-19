@@ -15,8 +15,9 @@ LLM agent 有一模一樣的失效模式,只是它填補含糊的方式是**照�
 
 ## 一、教材(十一課)
 
-`lessons/` 底下是獨立的 HTML,不需要 build,瀏覽器直接開。
-目錄頁是 [`index.html`](./index.html)(GitHub 上不會 render,要 clone 下來開)。
+**線上直接讀:<https://natchung.github.io/ddd-harness/>**(GitHub Pages,不用 clone)。
+
+`lessons/` 底下是獨立的 HTML,不需要 build;clone 下來用瀏覽器開 `index.html` 也一樣。
 
 | 課 | 主題 |
 |---|---|
