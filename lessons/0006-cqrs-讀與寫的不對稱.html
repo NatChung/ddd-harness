@@ -71,10 +71,10 @@ Martin Fowler 一句話:</p>
   </tbody>
 </table>
 
-<p>陳建村講得更直接——<b>「針對不會改變系統狀態的 Query 不需要套用 DDD,
-甚至根本也不要設計領域物件,直接讀取資料庫然後產生前端需要的 View Model 即可。」</b></p>
+<p>推到底就是:<b>不會改變系統狀態的 Query,不需要套用 DDD,甚至根本不必設計領域物件</b>
+——直接讀資料庫、產生前端要的 View Model 就好。</p>
 
-<p>注意「甚至根本也不要」。這不是「可以偷懶」,是<b>刻意不做</b>。
+<p>注意「甚至根本不必」。這不是「可以偷懶」,是<b>刻意不做</b>。
 為查詢設計領域物件,得到的是維護成本,不是保護。</p>
 
 <h2>寫成 code 長這樣</h2>
@@ -289,11 +289,9 @@ CQRS 不需要 Event Sourcing 也成立。</p>
 <p><b>原始出處:</b><a href="https://martinfowler.com/bliki/CQRS.html">CQRS — Martin Fowler</a>。
 定義原句與「should be very cautious」的警告都出自這篇,免費、短。</p>
 
-<p><b>繁中:</b><a href="https://teddy-chen-tw.blogspot.com/2020/09/clean-architecturecqrs-pattern.html">Clean Architecture 之 CQRS Pattern — 搞笑談軟工</a>。
-本課的 Command/Query 兩側分工、以及「Query 側不要設計領域物件」的立場出自這篇。
-它處理的問題正好接續第 5 課:<b>為什麼簡潔架構在 CQRS 底下特意允許跨層參考。</b></p>
-
-<p>⚠️ <b>誠實標註:</b>上面兩篇我核對的是本課引用的那幾句,<b>沒有逐字讀完全文</b>。
+<p>⚠️ <b>誠實標註:</b>上面那篇我核對的是本課引用的那幾句,<b>沒有逐字讀完全文</b>。
+Command/Query 兩側的分工、以及「Query 側不要設計領域物件」這個立場,
+是<b>本教學自己的整理與主張</b>,不是引用來的。
 「分開模型 / 分開儲存」那張成本對照表是本教學的整理,不是 Fowler 的原文分類
 (頁中已標)。Java 範例是為教學寫的,不是從任何一篇抄來的。</p>
 

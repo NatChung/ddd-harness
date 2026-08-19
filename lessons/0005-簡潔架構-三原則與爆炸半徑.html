@@ -34,7 +34,7 @@ invariant 在 root 內強制。很好。</p>
 
 <h2>三條原則</h2>
 
-<p>陳建村把 Clean Architecture(<span class="term">簡潔架構</span>)收成三條原則。
+<p>把 Clean Architecture(<span class="term">簡潔架構</span>)收成三條原則。
 這一課就只有這三條。</p>
 
 <h3>一、分層原則</h3>
@@ -133,8 +133,6 @@ ORM mapping、repository 實作在 Interface Adapters。
 <blockquote>Source code dependencies can only point inwards.
 Nothing in an inner circle can know anything at all about something in an outer circle.</blockquote>
 <p class="bq-zh">原始碼的相依只能往內指。內圈裡的任何東西,都不准知道外圈有什麼。</p>
-
-<p>陳建村的版本:<b>「原始碼的依賴方向必須由外往內、由低層往高層。」</b></p>
 
 <div class="box warn">
   <span class="box-label">最常見的誤解</span>
@@ -350,9 +348,10 @@ import com.shop.adapter.OrderRepository;   // ❌ 內層 import 外層 —— �
 
 <div class="box inference">
   <span class="box-label">以下的對應是推論</span>
-  <p>三原則本身是既有共識(Uncle Bob 2012、陳建村的整理,連結在頁尾)。
-  但「分層 ≈ agent 的爆炸半徑上限」、「相依方向是可機械檢查的驗收條件」這兩個用法,
-  是本教學自己接上去的,不是引用來的。</p>
+  <p>四層與 Dependency Rule 是既有共識(Uncle Bob 2012,連結在頁尾);
+  <b>收成「分層 / 相依性 / 跨層」這三條的講法,是本教學自己的整理。</b>
+  而「分層 ≈ agent 的爆炸半徑上限」、「相依方向是可機械檢查的驗收條件」這兩個用法,
+  也是本教學自己接上去的,不是引用來的。</p>
 </div>
 
 <table>
@@ -449,14 +448,9 @@ import com.shop.adapter.OrderRepository;   // ❌ 內層 import 外層 —— �
 <a href="https://blog.cleancoder.com/uncle-bob/2012/08/13/the-clean-architecture.html">The Clean Architecture — Robert C. Martin(2012)</a>。
 四層名稱與 Dependency Rule 的原句出自這篇,免費、短。</p>
 
-<p><b>繁中:</b>
-<a href="https://teddy-chen-tw.blogspot.com/2020/08/clean-architecture.html">再談 Clean Architecture 三原則 — 搞笑談軟工</a>。
-本課的三原則架構與中文原句引自這篇。同系列還有
-<a href="https://teddy-chen-tw.blogspot.com/2018/07/clean-architecture5.html">相依性原則</a>、
-<a href="https://teddy-chen-tw.blogspot.com/2018/07/clean-architecture6.html">跨層原則</a> 兩篇專文。</p>
-
-<p>⚠️ <b>誠實標註:</b>上面兩篇我核對的是本課引用的那幾句(四層名稱、Dependency Rule 原句、
-三原則的中文定義),<b>沒有逐字讀完全文</b>。要拿去跟別人論辯前請自己看原文。
+<p>⚠️ <b>誠實標註:</b>上面那篇我核對的是本課引用的那幾句(四層名稱、Dependency Rule 原句),
+<b>沒有逐字讀完全文</b>。要拿去跟別人論辯前請自己看原文。
+三原則的中文定義與分法是本教學的整理,不是原文的分類。
 本課的 Java 範例是為了教學寫的,不是從任何一篇文章抄來的。</p>
 
 <h2>本課相關</h2>

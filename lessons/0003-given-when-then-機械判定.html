@@ -78,39 +78,6 @@
 「顯示正確的折扣後金額」——「正確」是誰說了算?
 「顯示 NT$1,710」——這個沒得吵。</p>
 
-<h2>ezSpec:同一件事寫在 Java 裡</h2>
-
-<p>陳建村(Teddy)的 <span class="term">ezSpec</span> 是這套東西的 Java 版本。
-它是 <b>Internal DSL</b>——把 Gherkin 的 Given-When-Then 內容<b>直接放進 lambda</b>,
-不用另外開 <code>.feature</code> 檔、不用寫 Step Definition、不用正規表示式。
-沒實作的步驟用 <code>pending()</code> 標。</p>
-
-<p>領域模型跟上面完全一樣,只是多了幾層組織:</p>
-
-<table>
-  <thead><tr><th>元素</th><th>用途</th></tr></thead>
-  <tbody>
-    <tr><td><b>Feature</b></td><td>一個使用者價值單位</td></tr>
-    <tr><td><b>Story</b></td><td>把需求切片(User Story)</td></tr>
-    <tr><td><b>Scenario</b></td><td>一個具體例子</td></tr>
-    <tr><td><b>Scenario Outline</b></td><td>步驟一樣、只有資料不同時,參數化成一張表</td></tr>
-    <tr><td><b>Background</b></td><td>共用的前置步驟</td></tr>
-    <tr><td><b>Steps</b></td><td>Given / When / Then / And / But</td></tr>
-    <tr><td><b>Concurrent Group</b></td><td>描述併發行為</td></tr>
-  </tbody>
-</table>
-
-<div class="box inference">
-  <span class="box-label">誠實標註</span>
-  <p>上面的<b>領域模型</b>是從 Teddy 的原文查證來的,但<b>實際的 Java API 寫法我沒查到</b>
-  ——他部落格裡的程式碼都是截圖,抓不到文字,我不編。
-  要寫真的 ezSpec code 時,直接看
-  <a href="https://teddy-chen-tw.blogspot.com/2023/03/ezspec1.html">他的系列文</a>
-  (共 10 篇,含 Scenario Outline、Background、自訂報表)。</p>
-  <p>好消息是:<b>這一課要練的技能跟 API 無關。</b>寫得出好的 Given-When-Then,
-  換哪個工具都成立;寫不出來,API 背再熟也沒用。</p>
-</div>
-
 <h2>抓錯練習</h2>
 
 <p>下面每一句驗收都有問題(或沒有)。問題出在哪?</p>
@@ -134,7 +101,7 @@
 
 <div class="box inference">
   <span class="box-label">以下第二點是推論</span>
-  <p>BDD 本身是既有實踐(Dan North 提出,Teddy 的 ezSpec 是其中一種工具)。
+  <p>BDD 本身是既有實踐(Dan North 提出)。
   但「把 agent 的錯誤轉成 scenario 來累積 harness」這個用法,是本教學自己接上去的。</p>
 </div>
 
@@ -227,15 +194,15 @@ Scenario: (失敗)
 
 <h2>下一步該讀什麼</h2>
 
-<p><b>主要來源:</b>
-<a href="https://teddy-chen-tw.blogspot.com/2023/03/ezspec1.html">使用 ezSpec 落實行為驅動開發與實例化需求(1):領域模型介紹</a>
-——陳建村的系列文第一篇,繁中。這一課的領域模型就是從這裡查證來的。
-系列共 10 篇,後面幾篇有 Scenario Outline、Background、以及用 Visitor pattern 自訂報表。
-想寫真的 ezSpec code,直接從這裡開始。</p>
+<p><b>Gherkin 的 Given-When-Then 語法規格:</b>
+<a href="https://cucumber.io/docs/gherkin/reference/">Gherkin Reference — Cucumber</a>。
+Scenario Outline、Background、Data Table 這些元素的正式定義在這裡。</p>
 
-<p><b>次要:</b><a href="https://teddy-chen-tw.blogspot.com/2013/07/bdd2cucumber.html">BDD(2):大家來吃小黃瓜之 Cucumber 運作原理</a>
-——同一位作者 2013 年寫的,講 Cucumber 那套 feature 檔 + Step Definition 是怎麼運作的。
-知道 ezSpec 拿掉了什麼,才知道它為什麼值得。</p>
+<p><b>BDD 的出處:</b><a href="https://dannorth.net/introducing-bdd/">Introducing BDD — Dan North</a>。
+「為什麼要用 Given-When-Then 而不是直接寫測試」的原始論證。</p>
+
+<p>⚠️ <b>誠實標註:</b>這兩篇是<b>延伸閱讀,不是本課的來源</b>——本課的內容是自己整理的,
+沒有逐字讀完這兩篇。</p>
 
 <h2>本課相關</h2>
 <ul>

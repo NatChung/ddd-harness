@@ -12,9 +12,7 @@ DDD 處理的核心問題是「人跟人之間語言含糊,做出來的軟體就
 失效模式,只是它填補含糊的方式是「照訓練分佈猜一個看起來合理的」。所以 DDD 的語言與邊界,
 加上 BDD 的可執行驗收,就是這個 harness 的骨架。
 
-**能力目標對標**:陳建村(Teddy)的「馴服 AI 寫出可維護的系統:模式語言驅動開發工作坊」課綱。
-Nat **不打算去上這門課**,但那份課綱精準描述了他想自己做到的事,所以拿它當本教學的驗收清單。
-課綱的能力項:
+**能力目標**(本教學的驗收清單):
 
 1. Top-down 設計、把 context 的限制用盡、**多層次 pattern language** 的運用
 2. 用 pattern language 指揮 AI 完成真實任務
@@ -43,17 +41,17 @@ Nat **不打算去上這門課**,但那份課綱精準描述了他想自己做�
   所以 DDD 可以直接架在他已有的知識上教(例:Aggregate 對比他熟的物件封裝與 invariant),
   不必從程式設計基礎鋪起,節奏可以快。
 - 教材用**繁體中文**,DDD/BDD 術語保留英文原文(Bounded Context、Aggregate、Given/When/Then)。
-- 術語的中文用法對齊 Teddy 體系(例:寫「簡潔架構」而非「整潔架構」),
-  範例語言可直接用 Java —— 這樣他讀 Teddy 的部落格與 ezSpec 系列文時無縫接軌。
+- 術語的中文用法:寫「**簡潔架構**」而非「整潔架構」(繁中社群較通行的譯法),
+  範例語言可直接用 Java。
 - 每堂課要短、能很快做完。
 
-## In scope(因對標課綱而納入)
+## In scope
 
 - **Clean Architecture(簡潔架構)分層** 與 **CQRS** ——不是為了考試,是因為 pattern language
   的上層就長在架構層,少了它就只剩領域層的詞彙,指揮不動 agent 做整個 feature。
 - **Event Storming** —— 產出 Ubiquitous Language 與邊界的實際方法。
-- **Design by Contract** —— 課綱把它跟 BDD 並列為品質保證手段。
-- **ezSpec 的 BDD 模型**(Feature / Story / Scenario / Steps),而非 Cucumber 的 feature 檔那套。
+- **Design by Contract** —— 跟 BDD 並列的品質保證手段。
+- **BDD 的領域模型**(Feature / Story / Scenario / Steps),而非 Cucumber 的 feature 檔那套。
 
 ## Out of scope
 

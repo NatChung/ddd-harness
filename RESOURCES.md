@@ -34,64 +34,7 @@
   台灣社群的繁中入門文章。Use for:術語的中文對照。
   ⚠️ 社群文章,非第一手,引用前需交叉查核。
 
-## Knowledge — 陳建村(Teddy)體系 ★ 最高優先
-
-> 2026-08-09 確認:Nat **不打算報名這些課**,但 Teddy 的課綱精準描述了他想自己做到的能力,
-> 所以拿課綱當驗收清單、拿 Teddy 的免費著作當主力教材。
-> **這一節的來源優先於其他所有來源**——術語與寫法都以 Teddy 的用法為準
-> (他寫「簡潔架構」而非「整潔架構」),這樣讀他的部落格與 ezSpec 系列文時無縫接軌。
-> 課程頁只當**課綱參考**看,不要再提報名、費用、日期。
-
-- [課綱:馴服 AI 寫出可維護的系統 — 模式語言驅動開發工作坊](https://teddysoft.tw/courses/ai-coding-pl/)
-  **本教學的能力目標對標對象。** 內容:top-down 設計、把 context 限制用盡、
-  **多層次 pattern language**、sub-agent prompt template、自動化 workflow pipeline、
-  **從 AI 犯的錯演化出新 pattern**、品質保證(BDD、Design by Contract、測試、code review)。
-  用 Java + Claude Code。它假設讀者已有 Clean Architecture / DDD / CQRS 基礎
-  ——這就是為什麼那三項在本教學裡是 in scope。
-
-- [課綱:領域驅動設計與簡潔架構入門實作班](https://teddysoft.tw/courses/clean-architecture/)
-  上面那份課綱假設的基礎。用 Event Storming 建領域模型與統一語言,再用 Clean Architecture
-  + TDD 實作看板系統(ezKanban)。Use for:排本教學前半段的內容順序。
-
-- [部落格:搞笑談軟工 — DDD 標籤](http://teddy-chen-tw.blogspot.com/search/label/DDD)
-  Teddy 的部落格,2007 年寫到現在。**免費,繁中,跟課程同一套術語。**
-  Use for:自學路線的主力來源。
-
-- [使用 ezSpec 落實行為驅動開發與實例化需求(系列文,共 10 篇)](https://teddy-chen-tw.blogspot.com/2023/03/ezspec1.html)
-  ezSpec 是 Teddy 2021 年做 ezKanban 時開發的 Java internal DSL,
-  拿掉 Cucumber/JBehave 那套 feature 檔 + Step Definition + 正規表示式的麻煩,
-  **把 Given-When-Then 內容直接放進 lambda**;未實作的步驟用 `pending()` 標。
-  領域模型:Feature / Story / Scenario / Scenario Outline / Steps / Background / Concurrent Group。
-  自訂報表走 Visitor pattern。
-  **已用於第 3 課(領域模型部分已查證)。**
-  ⚠️ **注意:文章裡的 Java 程式碼全是截圖,抓不到文字。** 需要實際 API 寫法時要人工看圖,
-  不要憑記憶編。各篇網址:
-  [2 Feature/Story](https://teddy-chen-tw.blogspot.com/2023/03/ezspec2featurestory.html) ·
-  [3](https://teddy-chen-tw.blogspot.com/2023/03/ezspec3scenario.html) ·
-  [4 Scenario](https://teddy-chen-tw.blogspot.com/2023/03/ezspec4scenario.html) ·
-  [5](https://teddy-chen-tw.blogspot.com/2023/03/ezspec5scenario-outline.html) ·
-  [6 Scenario Outline](https://teddy-chen-tw.blogspot.com/2023/03/ezspec6scenario-outline.html) ·
-  [7 Background](https://teddy-chen-tw.blogspot.com/2023/03/ezspec7background.html) ·
-  [8](https://teddy-chen-tw.blogspot.com/2023/03/ezspec8.html) ·
-  [9](https://teddy-chen-tw.blogspot.com/2023/03/ezspec9.html) ·
-  [10 自訂報表](https://teddy-chen-tw.blogspot.com/2023/03/ezspec10.html)
-
-- [BDD(2):大家來吃小黃瓜之 Cucumber 運作原理](https://teddy-chen-tw.blogspot.com/2013/07/bdd2cucumber.html)
-  同作者 2013 年的文章,講 feature 檔 + Step Definition 那套怎麼運作。
-  Use for:理解 ezSpec 拿掉了什麼。
-
-- [課綱:實例化規格與行為驅動開發實作班](https://teddysoft.tw/courses/sbe-bdd/)
-  Teddy 的 SBE/BDD 課綱。Use for:排第 3 課之後的 BDD 深化內容。⚠️ 尚未查核內容。
-
-- [再談 Clean Architecture 三原則 — 搞笑談軟工(2020-08)](https://teddy-chen-tw.blogspot.com/2020/08/clean-architecture.html)
-  ★ **第 5 課的主結構來源。** 把 Clean Architecture 收成三條原則,已核對的原句:
-  **分層原則**「Clean Architecture 有四層:Entities、Use Cases、Interface Adapters、
-  Frameworks & Drivers」;**相依性原則**「原始碼的依賴方向必須由外往內、由低層往高層」;
-  **跨層原則**「當 Entities 層的物件跨越離開 Use Case 層往外傳遞時,不要直接把 Entities 層的
-  物件傳出 Use Case 層,而是要在 Use Cases 層定義往外傳遞的介面與資料結構」。
-  同系列專文:[相依性原則](https://teddy-chen-tw.blogspot.com/2018/07/clean-architecture5.html) ·
-  [跨層原則](https://teddy-chen-tw.blogspot.com/2018/07/clean-architecture6.html)。
-  ⚠️ **只核對了上面這三句,全文未逐字讀完。**
+## Knowledge — Clean Architecture / CQRS
 
 - [The Clean Architecture — Robert C. Martin(2012)](https://blog.cleancoder.com/uncle-bob/2012/08/13/the-clean-architecture.html)
   四層與 Dependency Rule 的原始出處,免費、短。已核對的原句:
@@ -112,26 +55,6 @@
   [SSENSE Tech](https://medium.com/ssense-tech/domain-driven-design-everything-you-always-wanted-to-know-about-it-but-were-afraid-to-ask-a85e7b74497a)。
   多個來源說法一致,但要正式引用得回去查書。同樣未查證的還有
   「Evans 把 Repository 放 Domain 層、Clean Architecture 這派放 Use Cases 層」這個差異。
-
-- [Clean Architecture 之 CQRS Pattern — 搞笑談軟工](https://teddy-chen-tw.blogspot.com/2020/09/clean-architecturecqrs-pattern.html)
-  ★ **第 6 課的主來源,已用於第 6 課。** 它處理的問題是「為什麼 CQRS 架構中特意允許跨層參考」
-  ——正好接續第 5 課的跨層原則。Query 側的做法:`GetUserUseCase` 用 `UserQueryRepository`
-  查 DB、直接回 `UserDto` 給前端,不經領域物件;代價是重複,他認為值得。 已核對的原句:「領域驅動設計(Domain-Driven Design;DDD)只需要應用在
-  那些會改變系統狀態的 Command。換句話說,只需要在 Command 套用 DDD 與 Clean Architecture」;
-  Query 側則「不需要套用 DDD,甚至根本也不要設計領域物件,直接讀取資料庫然後產生前端需要的
-  View Model 即可」。⚠️ 只核對這兩句,全文未逐字讀完。
-
-- **術語確認(2026-08-10)**:[簡潔架構入門實作班課綱](https://teddysoft.tw/courses/clean-architecture/)
-  頁面同時出現兩種譯法——課程內文用「**簡潔架構**」(「在實作階段,套用簡潔架構,採用測試驅動
-  開發方法」),提到書名時才寫「《Clean Architecture》(中文版《整潔的軟體設計與架構》)」。
-  → MISSION.md 的「寫簡潔架構、不寫整潔架構」這條慣例**已查證屬實**。
-
-- [影片:[2020 DDDTW 年會] DDD + Clean Architecture 從需求到實作 — 陳建村](https://www.youtube.com/watch?v=5THBVeKtJr8)
-  **免費、繁中、同一位講師,講的正是 DDD 接到 Clean Architecture 的完整路徑。**
-  Use for:想一次看完全貌時。⚠️ 尚未看過,需查核長度與涵蓋範圍。
-
-- [領域驅動設計與整潔架構基礎課程筆記 — Miles' Blog](https://mileschou.me/blog/ddd-and-ca-started-day-2/)
-  他人上完該課的筆記。Use for:對照本教學有沒有漏掉重要環節。⚠️ 二手,尚未查核。
 
 - [CQRS — Martin Fowler](https://martinfowler.com/bliki/CQRS.html)
   **已用於第 6 課。**已核對的原句:定義「you can use a different model to update information
@@ -164,14 +87,6 @@
   Hotspot(鮮粉紅)、System(寬粉紅)。
   ⚠️ 注意:它把 **Aggregate 標為 legacy 用法**,改用大張黃色的 **Constraint**
   ——Brandolini 原文與多數繁中材料仍用 Aggregate,第 4 課與第 7 課都照舊,只加註說明。
-
-- 陳建村的 Event Storming 系列(繁中,術語:**事件風暴 / 領域事件**,
-  Command / Aggregate / Policy 保留英文,與本教學一致):
-  [領域事件幫你切割使用案例](http://teddy-chen-tw.blogspot.com/2020/02/blog-post.html)
-  (已核對原句:「使用 Event Storming,依據時間軸來思考領域事件,再寫出相對應的 Command,
-  系統的行為就會慢慢浮現出來。」——他用這方法發現一個 use case 該拆成兩個)、
-  [Event Storming 與 User Story](https://teddy-chen-tw.blogspot.com/2020/12/12event-storminguser-story.html)、
-  [幫 Event Storming 加上使用者介面](https://teddy-chen-tw.blogspot.com/2020/12/13event-storming.html)。
 
 > ⚠️ **沒有實際參與或帶過 Event Storming 工作坊。**第 7 課只能講方法宣稱怎麼運作,
 > 「現場實際會發生什麼」答不了。若之後 Nat 真的跑一場,回來補一則 learning record。
@@ -272,25 +187,6 @@
   軟體界拿走了 pattern,大致沒有拿走 language,那個落差本身值得讀。
   第 9 課頁尾已把這兩項列為「還沒補的」。
 
-- [用模式語言解決設計問題 — 搞笑談軟工(2016)](http://teddy-chen-tw.blogspot.com/2016/05/cc-agile-sprint-45.html)
-  ★ **繁中定義的來源。**已核對:「模式語言由一群相互關聯的模式所組成」;
-  目的是達到 Alexander 的「Quality Without A Name(**無名特質**)」;
-  作用是「提供了溝通的共同基礎,讓一般人可以使用模式語言來解決複雜的設計問題」。
-
-- [領域驅動設計學習筆記(2)— 搞笑談軟工](https://teddy-chen-tw.blogspot.com/2016/08/2.html)
-  ★ **第 9 課「分層」那張表的靈感來源。**已核對:「這個共通語言可以是 Alexander 的
-  Pattern Language,或是 DDD 所提到的 Ubiquitous Language」;他列的 pattern 層次
-  「process pattern、analysis pattern、architecture pattern、design pattern、test pattern、
-  implementation pattern、CI/CD pattern、HCI pattern」;
-  「DDD 用 Pattern Language 的方法來打通任督二脈…可以在同一個舞台上形成開發團隊的
-  Ubiquitous Language」。**這正是 MISSION 課綱裡「多層次 pattern language」的出處。**
-  ⚠️ 只核對引用句,全文未逐字讀完。
-
-- [搞笑談軟工 — Patterns 標籤](http://teddy-chen-tw.blogspot.com/search/label/Patterns)
-  他從 1997 年就在寫 pattern,博士研究也是 pattern 相關。要深挖繁中材料從這裡開始。
-
-## Knowledge — Design by Contract
-
 - ★ [Applying "Design by Contract" — Bertrand Meyer, IEEE Computer, Oct 1992](https://se.inf.ethz.ch/~meyer/publications/computer/contract.pdf)
   **第 8 課的主來源,而且是本 workspace 目前唯一「真的讀過原文」的第一手來源**
   ——前五頁(概念部分)已用 Read 逐頁讀過,不是靠摘要。已核對的原句:
@@ -306,14 +202,6 @@
   快遞合約例(Table 1)與 `put_child` 的 Eiffel require/ensure 例(Figure 2)。
   ⚠️ **後半(例外處理、rescue clause、繼承與 subcontracting)沒讀**,第 8 課也沒講。
   PDF 已下載於本 session 的 tool-results,要深挖再讀後半。
-
-- [領域驅動設計學習筆記(14):透過合約讓領域模型與通用語言更精確 — 搞笑談軟工](https://teddy-chen-tw.blogspot.com/2021/03/14.html)
-  繁中,術語:**依合約設計**、**前置條件**。已核對的重點:看板系統裡 `Card.move()` 的
-  precondition 需要「目標 Stage 的卡片總數」,但 `Card` 這個 Aggregate 沒有那個資訊
-  → 結論是方法該搬到 `Workflow`。結論句「透過撰寫合約讓領域模型與通用語言更加完整」。
-  **這是第 8 課「契約是一種診斷工具」那一節的來源。**⚠️ 只核對引用句,全文未逐字讀完。
-
-## Knowledge — BDD / 可執行驗收
 
 - [Epic-Organized vs. Requirement-Aligned Gherkin: An Empirical Evaluation of LLM-Based
   Acceptance Criteria Generation(SEET 2026)](https://arxiv.org/html/2607.01980v1)
