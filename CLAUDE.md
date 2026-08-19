@@ -55,10 +55,9 @@ DDD × AI Agent 的 development harness(五幕管線)+ 十一課教材。立論�
 - **`tools/harness/interview-prompt.md` 是第一幕的正本**。改了它,要回頭同步
   `.claude/skills/spec-authoring/SKILL.md` —— 兩份散文講同一條規則會漂。
   兩邊講到同一件事時**以 `interview-prompt.md` 為準**。
-  ⚠️ **這個 skill 的凍結狀態,`NOTES.md` 自己講兩套,還沒裁決**:L638(2026-08-17)寫
-  「題 3 當天稍晚補完(`spec-authoring` 因此**解凍**)」,L770 卻還寫著「解凍動作**還沒做**,
-  而且題 3 還欠」。SKILL.md 本身沒有任何凍結標記(只有 `disable-model-invocation: true`,
-  那是叫用政策不是凍結)。**動它之前先問人**,不要自己選一邊。
+  ⚠️ **skill 目前落後於正本,而且是刻意的**:它已經解凍(可以改),但把
+  `interview-prompt.md` 的內容同步進去這件事**排在最後才做**。所以兩邊對不上是已知狀態,
+  不是 bug —— **不要為了「讓它們一致」就自己去改 skill**。
 - **`examples/returns/interview-prompt.md` 一個字都不要動** —— 那是跨模型實驗的凍結受測品
   (blob `71c1eb7d6eb6`)。改它會毀掉實驗基準。
 - **`examples/shop/harness/runs/` 底下是歷史素材,不要改**。要跑新的就開新的 run 目錄。

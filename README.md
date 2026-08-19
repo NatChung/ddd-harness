@@ -126,6 +126,12 @@ cd tools/harness && python3 -m pytest      # 229 passed
 
 ---
 
+## License
+
+[MIT](./LICENSE) —— code 與教材都是。拿去用、改、教都可以,保留版權聲明就好。
+
+---
+
 *匯出自 `kc-log` repo 的 `DDD-2` 分支 @ `8aecc08`(2026-08-19)。原 repo 是私人工作筆記,
 DDD 的部分拆出來獨立成本 repo;完整的逐 commit 歷史留在原處。*
 

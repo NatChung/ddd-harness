@@ -774,8 +774,10 @@ acceptance 7 項全過、pytest 26 passed、drift check 綠。
 —— 它點名 14 條必填欄裡的 6 條並附「前幾輪漏掉這個」,對一個產出是欄位排序的實驗來說
 是差別放大器)。
 
-**`.claude/skills/spec-authoring/` 的凍結:這份定案就是解凍條件。** 但解凍動作還沒做,
-而且題 3 還欠 —— 動 skill 前先把那筆誠實債清掉。
+**`.claude/skills/spec-authoring/` 的凍結:這份定案就是解凍條件。**
+→ **已解凍**(題 3 於 2026-08-17 補完,見上面該日條目)。
+**但把 `interview-prompt.md` 的內容同步進 skill 這件事還沒做,刻意排在最後** ——
+正本是 `tools/harness/interview-prompt.md`,skill 落後於它是已知且可接受的狀態。
 
 
 **從刪掉的第 7 課學到的(2026-08-11,見 LR 0008)**:
