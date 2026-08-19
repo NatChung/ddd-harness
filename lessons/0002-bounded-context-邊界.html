@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>第 2 課 — Bounded Context:一個詞可以有兩個意思,只要你畫得出那條線</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+</head>
+<body>
+
+<p class="lesson-meta">第 2 課 · DDD × Agent Harness</p>
+<h1>Bounded Context</h1>
+<p class="subtitle">一個詞可以有兩個意思 —— 只要你畫得出那條線。</p>
+
+<h2>從你上一課撞到的東西開始</h2>
+
+<p>上一課你寫「訂單完成」,我改成「訂單成立」,理由是那是兩個不同時刻。
+但這個修法其實只解了一半。真正的問題不是你選錯字,是——</p>
+
+<div class="box key">
+  <span class="box-label">這一課的核心</span>
+  <p>「訂單完成」在<b>結帳</b>眼裡是付款授權成立,在<b>倉儲</b>眼裡是已出貨,
+  在<b>財務</b>眼裡是已入帳對帳完畢。<b>三個都對。</b>
+  它們不是三個錯誤解讀等你去挑一個,是三個部門真的各自需要那個詞指向不同時刻。</p>
+  <p>所以修法不是逼所有人同意一個定義(做不到,而且不該做),
+  而是<b>畫出邊界</b>:在這條線裡面,這個詞只有一個意思;跨過線,就翻譯。</p>
+</div>
+
+<h2>Fowler 的說法</h2>
+
+<p>Fowler 舉的例子是一家電力公司:「meter」這個字在不同部門是不同的東西——
+裝機部門講的是實體電表,計費部門講的是計費點,兩者不對應。
+日常對話可以糊過去,軟體不行。他的結論很短:</p>
+
+<blockquote>
+  you need a different model when the language changes
+  <cite>Martin Fowler, <a href="https://martinfowler.com/bliki/BoundedContext.html">bliki: BoundedContext</a></cite>
+</blockquote>
+<p class="bq-zh">語言變了,你就需要另一個模型。</p>
+
+<p>反過來讀更有用:<b>語言在哪裡變,邊界就在哪裡。</b>
+你不用先想清楚系統該怎麼切模組——你去聽人講話,
+聽到同一個詞被兩群人用成不同意思,那裡就是一條邊界。</p>
+
+<p>而 <span class="term">Bounded Context</span>(限界上下文)就是那條線圍出來的範圍:
+<b>一個模型有效的範圍</b>。在裡面,每個詞剛好一個意思。</p>
+
+<h2>看程式碼比較快</h2>
+
+<p>大部分系統的樣子,一個 <code>Order</code> 統治全部:</p>
+
+<pre><code>// ❌ 誰都需要它,所以誰都往裡面加欄位
+public class Order {
+    private String orderNo;
+
+    private List&lt;CartItem&gt; items;          // 結帳要的
+    private Coupon coupon;
+    private String paymentAuthCode;
+
+    private String warehouseCode;          // 倉儲要的
+    private List&lt;PickTask&gt; pickTasks;
+    private BigDecimal volumetricWeight;
+
+    private String invoiceNo;              // 財務要的
+    private BigDecimal taxAmount;
+    private BigDecimal exchangeRate;
+
+    private OrderStatus status;            // ← 這是誰的 status?
+    // ⋯ 再 30 個欄位
+}</code></pre>
+
+<p>那個 <code>status</code> 就是你上一課的「訂單完成」。<b>一個欄位,三個部門搶。</b>
+加一個 <code>SHIPPED</code>,財務的 switch 少一個 case;
+加一個 <code>INVOICED</code>,倉儲的狀態機多一條不該存在的邊。</p>
+
+<p>切開之後:</p>
+
+<pre><code>// checkout/Order.java —— 結帳的 Order
+public class Order {
+    private final OrderNo orderNo;
+    private final List&lt;CartItem&gt; items;
+    private final Coupon coupon;
+    private PaymentAuthorization authorization;
+    private CheckoutStatus status;   // 只講「成立 / 未成立」
+    // 結帳不知道儲位,也不需要知道
+}
+
+// fulfillment/Shipment.java —— 倉儲眼裡它根本不叫 Order
+public class Shipment {
+    private final OrderNo orderNo;   // ← 唯一的接點
+    private final Address shipTo;
+    private final List&lt;PickTask&gt; pickTasks;
+    private ShipmentStatus status;   // 只講「揀貨 → 出貨」
+}
+
+// billing/Invoice.java —— 財務眼裡它是 Invoice
+public class Invoice {
+    private final OrderNo orderNo;   // ← 唯一的接點
+    private final Money taxAmount;
+    private final InvoiceNo invoiceNo;
+    private InvoiceStatus status;    // 只講「開立 → 入帳」
+}</code></pre>
+
+<p>三個 <code>status</code>,三個獨立的 enum,誰也改不到誰。
+三個 context 之間唯一共用的是 <code>OrderNo</code>——<b>它是翻譯的接點,不是共用的模型。</b></p>
+
+<div class="box warn">
+  <span class="box-label">直覺會抗拒這件事</span>
+  <p>看起來像是「同一筆訂單存了三份,重複」。但它們不是同一個東西的三份拷貝,
+  是<b>三個不同的東西,剛好由同一筆生意產生</b>。倉儲永遠不會需要優惠券折抵金額;
+  財務永遠不會需要儲位。硬合在一起省下的那點「不重複」,
+  代價是三個部門的變更永遠互相牽動。</p>
+</div>
+
+<h2>分分看</h2>
+
+<p>下面每一項,你會放進哪個 context?</p>
+
+<div class="sorter" data-buckets="結帳|倉儲|財務|三邊都有">
+  <div class="sorter-item" data-answer="0"
+    data-why="只有結帳需要算它。倉儲揀貨不看折扣,財務看的是最終金額,不是折抵的過程。">優惠券折抵金額</div>
+  <div class="sorter-item" data-answer="1"
+    data-why="結帳完全不需要知道貨放在哪一層架子上。把它塞進共用的 Order,只會讓結帳的模型無故變胖 —— 而且每次倉庫改儲位規則,結帳的程式碼就跟著被碰。">揀貨儲位</div>
+  <div class="sorter-item" data-answer="0"
+    data-why="授權碼是結帳完成付款流程的產物。財務對帳看的是請款(capture)的結果,不是授權碼本身 —— 這正是你上一課追到一半停下來的那個區別。">金流授權碼</div>
+  <div class="sorter-item" data-answer="2"
+    data-why="跨幣別結算才需要。結帳顯示的是使用者付的那個幣別的金額,倉儲根本不碰錢。">匯率</div>
+  <div class="sorter-item" data-answer="3"
+    data-why="三邊都要,而且意思完全一樣 —— 這正是它的價值。它是三個 context 之間唯一的接點,是翻譯用的 key。能當接點的東西必須跨界後意思不變,所以它通常是識別碼,而不是狀態或金額。">訂單編號</div>
+  <div class="sorter-item" data-answer="3"
+    data-why="三邊都有這個詞,但指向三個不同時刻:結帳的「已完成」= 付款授權成立;倉儲的 = 已出貨;財務的 = 已入帳對帳完畢。跟訂單編號剛好相反 —— 它跨界後意思會變,所以它絕對不能當接點,必須在每個 context 各自定義。這就是你上一課那則條目真正撞到的東西。">「已完成」這個狀態</div>
+</div>
+
+<h2>這跟你的 harness 有什麼關係</h2>
+
+<div class="box inference">
+  <span class="box-label">以下是推論,不是引用</span>
+  <p>DDD 講 Bounded Context 時,對象是人跟團隊。「Bounded Context 可以拿來界定 agent 的作業範圍」
+  是本教學自己建立的對應,不是 Evans 或 Fowler 說的。理由站得住(失效模式相同),
+  但你對外講的時候值得把這層標清楚。</p>
+</div>
+
+<p>邊界對 harness 的用處有三個,而且都很具體:</p>
+
+<table>
+  <thead><tr><th>邊界決定</th><th>沒有邊界會怎樣</th></tr></thead>
+  <tbody>
+    <tr>
+      <td><b>一次任務載入多少</b><br>context 只放這個 context 的模型與詞彙</td>
+      <td>整個 repo 倒給 agent,它在 40 個欄位裡猜哪些跟任務有關</td>
+    </tr>
+    <tr>
+      <td><b>agent 可以改到哪</b><br>越界的修改直接視為錯誤</td>
+      <td>改結帳的 bug,順手動了倉儲的狀態機,你在 review 時才發現</td>
+    </tr>
+    <tr>
+      <td><b>詞彙表該掛在哪一層</b><br>每個 context 一份,不是全 repo 一份</td>
+      <td>全域詞彙表裡「完成」只能有一個定義 —— 於是三個部門有兩個要被迫講錯話</td>
+    </tr>
+  </tbody>
+</table>
+
+<p>一句話:<b>一個 Bounded Context ≈ 一次 agent 任務的作用半徑。</b>
+上一課的 Ubiquitous Language 是詞彙,這一課的 Bounded Context 是那份詞彙表的<b>有效範圍</b>。
+兩個合起來才是完整的一句:「在這個範圍裡,這些詞是這些意思。」</p>
+
+<h2>換你了</h2>
+
+<div class="quiz" data-answer="0">
+  <p class="quiz-q">為什麼 Bounded Context 對指揮 agent 有用?</p>
+  <div class="quiz-opts">
+    <button class="quiz-opt">因為它界定了一次任務該載入與可改的範圍</button>
+    <button class="quiz-opt">因為它能讓模型產生完全相同的實作程式碼</button>
+    <button class="quiz-opt">因為它可以完全取代測試與驗收條件的設計</button>
+  </div>
+  <div class="quiz-fb"
+    data-right="範圍是可以檢查的:超出邊界的修改就是錯的,不需要人主觀判斷。這跟第 1 課的主軸一致 —— 你不是在讓模型變乖,你是在讓「越界了沒」變成一個機械式的判定。"
+    data-wrong="回到第 1 課的主軸:你不可能讓兩個模型產出相同的程式碼,也不該用邊界去取代驗收。邊界解決的是「該看哪些、能改哪些」,驗收是另一道獨立的閘門(第 3 課)。"></div>
+</div>
+
+<div class="quiz" data-answer="1">
+  <p class="quiz-q">結帳與倉儲都需要「訂單編號」,正確的做法是?</p>
+  <div class="quiz-opts">
+    <button class="quiz-opt">兩邊共用同一個訂單類別藉此避免資料重複儲存</button>
+    <button class="quiz-opt">兩邊各自保有自己的模型僅用訂單編號互相對應</button>
+    <button class="quiz-opt">改由結帳維護唯一一份訂單資料供其他模組讀取</button>
+  </div>
+  <div class="quiz-fb"
+    data-right="訂單編號跨界後意思不變,所以它能當接點。其他東西各自留在自己那側。判斷一個欄位能不能當接點,就問:它跨過邊界之後,意思會不會變?"
+    data-wrong="兩個都是「讓某一邊擁有共用模型」的變形。結果一樣:倉儲的需求會逼著結帳的類別長出它不該有的欄位,而且每次任一邊變更,另一邊都被迫跟著動。共用識別碼可以,共用模型不行。"></div>
+</div>
+
+<h3>動手練習</h3>
+
+<p>在你自己的系統裡找<b>一條真的邊界</b>。方法照 Fowler 那句:去想哪兩群人(或哪兩個模組)
+把同一個詞用成不同意思。填完這五格:</p>
+
+<div class="drill">
+<textarea spellcheck="false">邊界兩側: A =            B =
+
+同一個詞,兩側意思不同:
+  詞:
+  在 A 這側的意思:
+  在 B 這側的意思:
+
+兩側唯一該共用的東西(翻譯接點):
+
+如果硬把兩側合成一個模型,第一個壞掉的會是:
+</textarea>
+</div>
+
+<div class="box good">
+  <span class="box-label">自我檢查</span>
+  <ul>
+    <li>那個詞在兩側的意思,是不是<b>真的都對</b>?如果其中一側其實是誤用,那不是邊界,那是該修的 bug。</li>
+    <li>你填的「翻譯接點」,<b>跨過邊界後意思會變嗎</b>?會變就不能當接點——再找一個。</li>
+    <li>最後一格填得出具體東西嗎?填不出來,可能這條線不重要,換一條。</li>
+    <li>上一課的老毛病:<b>你的描述裡有沒有又用到一個沒定義的詞?</b></li>
+  </ul>
+</div>
+
+<footer>
+
+<h2>下一步該讀什麼</h2>
+
+<p><b>主要來源:</b><a href="https://martinfowler.com/bliki/BoundedContext.html">Martin Fowler — Bounded Context</a>。
+上一課就推薦過,這次請真的讀完——電力公司那個 meter 的例子講得比我這裡完整,
+而且他有談到 context 之間怎麼對應(Context Map),那是這一課刻意沒展開的部分。</p>
+
+<p><b>繁中、同一套術語:</b><a href="http://teddy-chen-tw.blogspot.com/search/label/DDD">搞笑談軟工 — DDD 標籤</a>。
+陳建村的部落格。他的用詞(「簡潔架構」等)就是我們這套教材對齊的對象。</p>
+
+<h2>本課相關</h2>
+<ul>
+  <li><a href="./0001-ubiquitous-language-第一道閘門.html">第 1 課:Ubiquitous Language</a> —— 詞彙本身</li>
+  <li><a href="../MISSION.md">MISSION.md</a> · <a href="../RESOURCES.md">RESOURCES.md</a></li>
+  <li><a href="./0003-given-when-then-機械判定.html">第 3 課:Given-When-Then</a> —— 把「做對了沒」變成機械判定,擋掉最後一種漂移</li>
+  <li><a href="../reference/0001-該畫邊界還是該拆詞.html">參考卡 01:該畫邊界還是該拆詞</a></li>
+</ul>
+
+<div class="ask-teacher">
+  <b>有不清楚的地方,直接問我。</b>練習的五格填完貼給我,我會特別看「翻譯接點」那一格——
+  那是最容易填錯、也最能看出邊界畫得對不對的地方。
+</div>
+
+</footer>
+
+<script src="../assets/quiz.js"></script>
+<script src="../assets/sorter.js"></script>
+</body>
+</html>

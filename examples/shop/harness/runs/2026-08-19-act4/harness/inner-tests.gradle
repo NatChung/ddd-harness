@@ -1,0 +1,38 @@
+// 由 harness 提供,實作者不得修改。
+//
+// 內圈測試(你自己寫的那些)住 src/innerTest/java,用 ./gradlew innerTest 跑。
+// `test` task 只跑生成的那三個 class —— 那是完成的定義,內圈**不算進去**。
+sourceSets {
+    innerTest {
+        java.srcDir 'src/innerTest/java'
+        resources.srcDir 'src/innerTest/resources'
+        compileClasspath += sourceSets.main.output
+        runtimeClasspath += sourceSets.main.output
+    }
+}
+
+configurations {
+    innerTestImplementation.extendsFrom testImplementation
+    innerTestRuntimeOnly.extendsFrom testRuntimeOnly
+}
+
+tasks.register('innerTest', Test) {
+    group = 'verification'
+    description = '內圈測試(實作者自己寫的)—— 不算進完成的定義'
+    testClassesDirs = sourceSets.innerTest.output.classesDirs
+    classpath = sourceSets.innerTest.runtimeClasspath
+    useJUnitPlatform()
+    testLogging {
+        events 'passed', 'failed', 'skipped'
+        exceptionFormat = 'short'
+    }
+}
+
+// 完成的定義按 class 名釘死,不是按目錄。
+tasks.named('test') {
+    filter {
+        includeTestsMatching 'acceptance.OrderAcceptanceTest'
+        includeTestsMatching 'acceptance.OrderProxyAcceptanceTest'
+        includeTestsMatching 'architecture.ArchitectureTest'
+    }
+}

@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>第 7 課 — Event Storming:前六課那些產物,到底從哪來</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+</head>
+<body>
+
+<p class="lesson-meta">第 7 課 · DDD × Agent Harness</p>
+<h1>Event Storming</h1>
+<p class="subtitle">前六課都假設你已經知道要建模什麼。這一課補那個假設。</p>
+
+<h2>一個一直沒回答的問題</h2>
+
+<p>第 1 課要你列詞彙表——<b>你怎麼知道要列哪些詞?</b><br>
+第 2 課要你畫邊界——<b>你怎麼知道邊界在哪裡?</b></p>
+
+<p>前六課教的都是<b>產物長什麼樣、以及怎麼檢查它對不對</b>。沒有一課告訴你那張表上的
+第一個詞是怎麼冒出來的。</p>
+
+<p>而且這件事不能靠坐著想。你在第 2 課的練習裡填的那個歧義——PM 的「完成」跟 RD 的「完成」
+不一樣——那不是想出來的,是<b>兩個人講話的時候撞出來的</b>。
+問題在於:大部分時候沒有人會撞,大家各自用各自的意思,一路用到上線。</p>
+
+<p><span class="term">Event Storming</span>(事件風暴)就是一個<b>刻意製造那種碰撞</b>的方法。</p>
+
+<div class="box warn">
+  <span class="box-label">為什麼這一課排在第七,而不是第一</span>
+  <p><b>實際做事的順序,這一課是第一步</b>——先開工作坊撞出東西,才有詞彙表可列、有邊界可畫。
+  順序是 7 → 1 → 2 → 3 → 4。</p>
+  <p><b>學習的順序刻意反過來</b>,理由有兩個:</p>
+  <ul>
+    <li>這一課最後那張「牆上的東西 → 前六課的產物」對照表,是它真正的價值。
+      但你得先知道 Aggregate 是什麼、邊界是什麼、Given-When-Then 是什麼,
+      那張表才成立。否則牆上就只是一堆彩色便利貼。</li>
+    <li>「hotspot 是產物」這句話要有份量,得先知道<b>一個沒被發現的歧義有多貴</b>
+      ——那是第 1、2 課的內容。</li>
+  </ul>
+  <p>通則:<b>先給判準,再給生成方法。</b>否則你沒有能力評估自己產出了什麼。</p>
+</div>
+
+<h2>它是什麼</h2>
+
+<p>Alberto Brandolini 的原始定義,一句話:</p>
+
+<blockquote>a flexible workshop format for collaborative exploration of complex business domains</blockquote>
+<p class="bq-zh">一種彈性的工作坊形式,用來協作地探索複雜的業務領域。</p>
+
+<p>實體形式:一面很長的牆、一大堆便利貼、6–8 個背景不同的人(業務、RD、PM、客服⋯⋯)站在牆前面。
+沒有投影片,沒有輪流發言,大家同時貼。</p>
+
+<h3>一、從「已經發生的事」開始</h3>
+
+<p>第一步只做一件事:<b>把所有「已經發生過的事」寫成橘色便利貼,貼上牆。</b>
+名字一律用過去式:<code>訂單已建立</code>、<code>付款已授權</code>、<code>庫存不足</code>。</p>
+
+<p>Brandolini 對<span class="term">Domain Event</span>(領域事件)的說明:</p>
+
+<blockquote>A <b>Domain Event</b> is something meaningful happened in the domain.
+It can be easily translated into <i>software</i>, but the real value here is that it could be
+quickly grasped from non-technical people.</blockquote>
+<p class="bq-zh">Domain Event 是領域裡發生過的、有意義的一件事。它很容易翻譯成軟體,但它真正的價值在於:非技術背景的人也能立刻看懂。</p>
+
+<div class="box key">
+  <span class="box-label">為什麼是事件,不是名詞</span>
+  <p>因為<b>名詞可以各自想像,發生過的事不行。</b></p>
+  <p>你說「訂單」,五個人腦中有五種東西,而且他們都覺得自己懂了,沒有人會發問。
+  你說「<b>訂單已成立</b>」,馬上就會有人問:<b>「成立是指授權成功,還是錢真的進來?」</b></p>
+  <p>同一個含糊,包在名詞裡是隱形的,包在過去式的事件裡會當場現形。
+  這就是為什麼第一步不是列詞彙表——<b>列表會列出大家都同意的詞,貼事件會逼出大家不同意的詞。</b></p>
+</div>
+
+<h3>二、排上時間軸,讓熱點浮出來</h3>
+
+<p>橘色貼滿之後,依<b>時間順序</b>排。這時候三件事會自動發生:漏掉的步驟被看見、
+順序爭議浮上檯面、以及最重要的——<b>吵起來</b>。</p>
+
+<p>吵起來的地方貼一張<span class="term">Hotspot</span>(鮮粉紅)。ddd-crew 的定義是拿它來</p>
+
+<blockquote>visualise and capture hot conflicts. Conflicts caused by inconsistencies (in language),
+frictions, questions, dissent, objections, issues.</blockquote>
+<p class="bq-zh">把激烈的衝突呈現出來並記錄下來——那些由(語言的)不一致、摩擦、疑問、分歧、反對、爭議所引起的衝突。</p>
+
+<p>注意第一項:<b>inconsistencies in language</b>——語言的不一致。那正是第 1、2 課在處理的東西,
+只是這裡它不是被「找出來」的,是自己<b>跳出來</b>的。</p>
+
+<p>Brandolini 對這種場面的建議很具體:討論變熱的時候,就去
+<b>「define a clear acceptance test」</b>——把爭議變成一條可判定的驗收。
+<b>那就是第 3 課。</b></p>
+
+<div class="box warn">
+  <span class="box-label">熱點不是失敗,是產物</span>
+  <p>工作坊結束時牆上還留著五張 hotspot,<b>那五張就是最有價值的產出</b>——
+  它們是本來就存在、只是從來沒被說出口的分歧。今天不撞,就會在上線後撞。</p>
+  <p>Brandolini 自己的說法:<b>「Embracing incompleteness will make the workshop
+  less boring and more fruitful.」</b>(接受它就是不完整的,會讓工作坊少一點無聊、多一點收穫。)
+  目標不是把牆填滿,是把不知道的東西<b>留在牆上、看得見</b>。</p>
+</div>
+
+<h3>三、往回推,前幾課的東西自己長出來</h3>
+
+<p>橘色事件排好之後,往回問:<b>這件事為什麼會發生?</b>答案只有三種——
+有人下了指令(藍色 <span class="term">Command</span>)、
+某條規則自動觸發(紫色 <span class="term">Policy</span>)、
+或是外部系統送進來的。</p>
+
+<p>標記法(顏色與定義引自 <a href="https://github.com/ddd-crew/eventstorming-glossary-cheat-sheet">ddd-crew 的 cheat sheet</a>):</p>
+
+<table>
+  <thead><tr><th>便利貼</th><th>顏色</th><th>是什麼</th></tr></thead>
+  <tbody>
+    <tr><td><b>Domain Event</b></td><td>橘</td>
+      <td>領域裡發生過、而且對領域專家有意義的事</td></tr>
+    <tr><td><b>Command / Action</b></td><td>藍</td>
+      <td>「decisions, actions or intent」——人下的指令,或自動流程觸發的</td></tr>
+    <tr><td><b>Actor</b></td><td>小張黃</td>
+      <td>圍繞著某組事件的人:一群人、一個部門、一個具體的人</td></tr>
+    <tr><td><b>Policy</b></td><td>紫</td>
+      <td>「whenever X happens, we do Y」——接在事件與下一個 command 之間的反應</td></tr>
+    <tr><td><b>Query Model</b></td><td>綠</td>
+      <td>actor 要做決定時需要看到的資訊</td></tr>
+    <tr><td><b>Hotspot</b></td><td>鮮粉紅</td><td>衝突、疑問、講不攏的地方</td></tr>
+    <tr><td><b>System</b></td><td>寬粉紅</td><td>外部的、已經部署的 IT 系統</td></tr>
+  </tbody>
+</table>
+
+<p>(小註:ddd-crew 的 cheat sheet 把 <b>Aggregate 標為 legacy 用法</b>,改用大張黃色的
+<b>Constraint</b>。Brandolini 的原文與多數繁中材料仍用 Aggregate,第 4 課也是——
+知道有這回事就好,不影響你理解。)</p>
+
+<h2>走一遍</h2>
+
+<p>小型電商的下單流程,牆上大概長這樣(→ 是時間順序):</p>
+
+<pre><code>[顧客]  ─ 送出結帳(藍) ─→  訂單已建立(橘)
+                                  │
+                    policy(紫):每當訂單已建立,就預留庫存
+                                  ↓
+                          預留庫存(藍) ─→ 庫存已預留(橘)
+                                       └→ 庫存不足(橘)  ← 這條分支一開始沒人想到
+                                                  ↓
+                                         付款已授權(橘)
+                                                  ↓
+                                          訂單已成立(橘)
+                                                  ↑
+        🔥 Hotspot:「訂單已成立」是授權成功,還是錢真的入帳?
+           業務說前者、財務說後者、客服說的「處理完」又是第三個時間點</code></pre>
+
+<p>那張 hotspot 就是第 2 課那個練習的真實版本。<b>沒有人是故意含糊的</b>——
+三個部門各自的說法在自己的脈絡裡都完全正確,只是從來沒有人把它們並排放在同一面牆上。</p>
+
+<h2>牆上的東西怎麼變成前六課的產物</h2>
+
+<table>
+  <thead><tr><th>牆上</th><th>變成</th></tr></thead>
+  <tbody>
+    <tr><td>橘色事件的名字</td>
+      <td><b>第 1 課</b>的詞彙表——而且是動詞形式,比名詞難含糊</td></tr>
+    <tr><td>🔥 hotspot</td>
+      <td><b>第 1 課</b>要拆的詞 + <b>第 3 課</b>要寫的驗收(Brandolini 自己這樣建議)</td></tr>
+    <tr><td>名字開始改變的位置</td>
+      <td><b>第 2 課</b>的 Bounded Context。第 2 課引的 Fowler 那句
+        ——語言在哪裡變,邊界就在哪裡——在這面牆上是<b>看得見的</b></td></tr>
+    <tr><td>藍 command → 橘 event 的每一組</td>
+      <td><b>第 4 課</b>:哪些東西必須在這一瞬間同時正確 → Aggregate 邊界</td></tr>
+    <tr><td>紫色 policy「whenever X, we do Y」</td>
+      <td><b>第 3 課</b>的 Given-When-Then 骨架,幾乎是逐字對應</td></tr>
+    <tr><td>藍色那一側 vs 綠色 Query Model</td>
+      <td><b>第 6 課</b>的 Command / Query 兩側,在牆上是兩種不同顏色的貼紙</td></tr>
+  </tbody>
+</table>
+
+<p>陳建村還指出一個很實際的用途:</p>
+
+<blockquote>使用 Event Storming,依據時間軸來思考領域事件,再寫出相對應的 Command,
+系統的行為就會慢慢浮現出來。</blockquote>
+
+<p>他用這個方法發現原本設計的一個 use case 其實該拆成兩個——
+<b>事件會告訴你 use case 的天然切法,連帶告訴你票該怎麼切。</b></p>
+
+<h2>這對 harness 的用途</h2>
+
+<div class="box inference">
+  <span class="box-label">以下的對應是推論</span>
+  <p>Event Storming 是既有方法(Brandolini 2013)。但下面「發散 vs 收斂」這個角度,
+  以及「agent 做不了這件事」的判斷,是本教學自己接上去的,不是引用來的。</p>
+</div>
+
+<p>這一課跟前六課有個根本差異:<b>前六課都在收斂(把東西講清楚),這一課刻意發散(把分歧攤開)。</b>
+而這正是 agent 做不到的部分。</p>
+
+<div class="box key">
+  <span class="box-label">為什麼「叫 agent 幫我做 event storming」基本上是矛盾的</span>
+  <p>LLM 天生只會收斂。你要它產出一面事件牆,它會給你一面<b>整齊、完整、沒有 hotspot 的牆</b>
+  ——所有含糊的地方都被「照訓練分佈猜一個合理的」抹平了。</p>
+  <p><b>而 hotspot 才是產物。</b>一面沒有 hotspot 的牆,不代表沒有分歧,
+  只代表分歧被藏起來了——這比沒做還糟,因為你會以為自己對齊了。</p>
+</div>
+
+<p>所以分工是這樣:</p>
+
+<table>
+  <thead><tr><th>agent 可以</th><th>agent 不可以</th></tr></thead>
+  <tbody>
+    <tr>
+      <td>產生候選事件、補你漏掉的分支(「庫存不足」那條通常是它想到的)</td>
+      <td>替你決定 hotspot 怎麼解——那需要領域裡的人做決定,不是需要一個合理答案</td>
+    </tr>
+    <tr>
+      <td>把貼好的牆整理成詞彙表、驗收條件、票</td>
+      <td>假裝沒有 hotspot</td>
+    </tr>
+  </tbody>
+</table>
+
+<p>實務上最有用的一條規矩:<b>要 agent 產出任何規格或事件流時,規定它「凡是需要猜的地方,
+一律標成問題,不要填答案」。</b>這跟 hotspot 是同一件事——
+把「我不知道」變成一個看得見的物件,而不是一個看起來很合理的句子。
+(<a href="https://github.com/github/spec-kit">Spec Kit</a> 之類的 SDD 工具包也用同一招,
+它們的模板明令 LLM 標記歧義而不是自行假設。)</p>
+
+<h2>分分看</h2>
+
+<p>下面每一張便利貼,該是什麼顏色?</p>
+
+<div class="sorter" data-buckets="Domain Event（橘）|Command（藍）|Policy（紫）|Hotspot（粉紅）">
+  <div class="sorter-item" data-answer="0"
+    data-why="過去式、已經發生、對領域有意義 → Domain Event。">訂單已建立</div>
+  <div class="sorter-item" data-answer="1"
+    data-why="這是「意圖」——有人想做這件事,但還沒發生、而且可能失敗。Command 用祈使句,Event 用過去式,時態就是判準。">取消訂單</div>
+  <div class="sorter-item" data-answer="2"
+    data-why="「whenever X happens, we do Y」的標準形狀 → Policy。順帶一提,這句話幾乎可以逐字翻成 Given-When-Then。">每當訂單成立,就去預留庫存</div>
+  <div class="sorter-item" data-answer="3"
+    data-why="語言上的不一致(inconsistencies in language)—— ddd-crew 定義裡 hotspot 的第一種用途。這種東西不解決,它會活到上線。">「訂單成立」到底是授權成功還是入帳?業務跟財務講的不一樣</div>
+  <div class="sorter-item" data-answer="0"
+    data-why="失敗也是事件。只貼順利的路徑是最常見的錯誤 —— 分支通常藏在「這裡如果不成功會怎樣」裡。">付款已失敗</div>
+  <div class="sorter-item" data-answer="3"
+    data-why="「沒人知道」就是 hotspot 的定義。注意它跟上一張 hotspot 的差別:那張是「兩邊講不一樣」,這張是「兩邊都沒想過」。兩種都算。">庫存不足的時候該怎麼辦,現場沒人知道</div>
+  <div class="sorter-item" data-answer="1"
+    data-why="祈使句、由 actor(顧客)發出、還沒發生 → Command。它成功之後才會產生「訂單已建立」那張橘色的。">送出結帳</div>
+  <div class="sorter-item" data-answer="2"
+    data-why="一樣是「每當 X 就 Y」,只是 X 是時間條件。Policy 不一定由人觸發 —— 這也是它跟 Command 的差別。">每當付款逾時 30 分鐘,就自動取消訂單</div>
+</div>
+
+<h2>換你了</h2>
+
+<div class="quiz" data-answer="1">
+  <p class="quiz-q">為什麼 Event Storming 從「已經發生的事」開始,而不是從名詞或資料表開始?</p>
+  <div class="quiz-opts">
+    <button class="quiz-opt">因為事件比較容易翻譯成程式碼與資料庫欄位</button>
+    <button class="quiz-opt">因為名詞可以各自想像而不衝突,過去式的事件會逼出大家不同意的地方</button>
+    <button class="quiz-opt">因為事件的數量比名詞少,貼起來比較快</button>
+  </div>
+  <div class="quiz-fb"
+    data-right="說「訂單」,五個人腦中五種東西而且都覺得自己懂了;說「訂單已成立」,馬上有人問「成立是指授權成功還是錢進來」。同一個含糊,包在名詞裡是隱形的。"
+    data-wrong="第一個把因果搞反了 —— Brandolini 說事件確實容易翻成軟體,但他強調「the real value here」是非技術的人也能立刻看懂。第三個不成立:一個名詞底下往往掛著十幾個事件,事件通常更多。"></div>
+</div>
+
+<div class="quiz" data-answer="2">
+  <p class="quiz-q">工作坊結束,牆上還留著五張 hotspot。這代表什麼?</p>
+  <div class="quiz-opts">
+    <button class="quiz-opt">這場失敗了,應該繼續開到全部解決為止</button>
+    <button class="quiz-opt">那五個是小問題,可以留給實作的人自己判斷</button>
+    <button class="quiz-opt">那五張就是最有價值的產出之一</button>
+  </div>
+  <div class="quiz-fb"
+    data-right="它們是本來就存在、只是從來沒被說出口的分歧。今天不撞,就會在上線後撞。Brandolini:「Embracing incompleteness will make the workshop less boring and more fruitful.」"
+    data-wrong="第一個把「牆填滿」當成目標,但目標是「把不知道的東西留在牆上、看得見」。第二個最危險 —— 留給實作的人判斷,等於把領域決策交給當時手上最忙的那個人(或交給 agent 猜)。"></div>
+</div>
+
+<h3>動手練習</h3>
+
+<p>不用揪人開會,自己一個人也做得起來(效果打折,但足夠看出東西)。
+挑<b>你系統裡一條真實的流程</b>,只做第一步與第二步:</p>
+
+<div class="drill">
+<textarea spellcheck="false">流程名稱:
+
+把已經發生的事寫成過去式,一行一個,照時間排
+(先不管完不完整,寫得出來的都寫):
+1.
+2.
+3.
+4.
+5.
+
+哪幾行你寫的時候猶豫了、或覺得「這樣講好像不太精確」?
+(那些就是 hotspot,標出來)
+
+失敗的分支呢?上面有幾行是「沒成功」的事?
+
+如果找一個不同部門的人來看這張表,你猜他會在哪一行說「不是這樣吧」?
+</textarea>
+</div>
+
+<div class="box good">
+  <span class="box-label">自我檢查</span>
+  <ul>
+    <li><b>全部都是過去式嗎?</b>寫成「建立訂單」而不是「訂單已建立」的那幾行,
+      多半其實是 Command 混進來了——那代表你在寫<b>系統該做什麼</b>,
+      而不是<b>發生了什麼</b>,方向反了。</li>
+    <li><b>第三格是 0 嗎?</b>那幾乎一定是你只寫了順利的路徑。
+      真實流程裡失敗分支通常跟成功路徑一樣多。</li>
+    <li><b>第二格是 0 嗎?</b>比第三格更可疑。一個人做的時候不會吵架,
+      所以 hotspot 只能靠「我自己都覺得怪」來抓——完全沒有,通常是抓得不夠用力。</li>
+    <li>最後一格如果答得出具體的人跟具體的行,<b>那就是你下一步該去談的對話。</b></li>
+  </ul>
+</div>
+
+<footer>
+
+<h2>下一步該讀什麼</h2>
+
+<p><b>原始出處:</b>
+<a href="https://ziobrando.blogspot.com/2013/11/introducing-event-storming.html">Introducing Event Storming — Alberto Brandolini(2013)</a>
+(本課的 Domain Event 定義、「define a clear acceptance test」、
+「embracing incompleteness」都出自這篇)、
+<a href="https://www.eventstorming.com/">eventstorming.com</a>(方法的官方站,定義出自這裡)、
+<a href="https://github.com/ddd-crew/eventstorming-glossary-cheat-sheet">ddd-crew 的標記法 cheat sheet</a>
+(顏色與各元素定義出自這裡,免費、可直接印出來當工作坊用)。</p>
+
+<p><b>繁中:</b>陳建村的
+<a href="http://teddy-chen-tw.blogspot.com/2020/02/blog-post.html">領域事件幫你切割使用案例</a>、
+<a href="https://teddy-chen-tw.blogspot.com/2020/12/12event-storminguser-story.html">Event Storming 與 User Story</a>、
+<a href="https://teddy-chen-tw.blogspot.com/2020/12/13event-storming.html">幫 Event Storming 加上使用者介面</a>。
+術語對照:<b>事件風暴 / 領域事件</b>,Command、Aggregate、Policy 他保留英文——跟本教學一致。</p>
+
+<p>⚠️ <b>誠實標註:</b>上述來源都只核對了本課引用的句子,<b>沒有逐字讀完</b>。
+而且<b>我沒有實際參與或帶過 Event Storming 工作坊</b>——
+「現場實際會發生什麼」這件事本課答不了。
+「發散 vs 收斂」與「agent 做不了這件事」那一段是本教學的推論,頁中已標。</p>
+
+<h2>本課相關</h2>
+<ul>
+  <li><a href="./0001-ubiquitous-language-第一道閘門.html">第 1 課:Ubiquitous Language</a>
+    —— 這一課產出的就是那張表</li>
+  <li><a href="./0002-bounded-context-邊界.html">第 2 課:Bounded Context</a>
+    —— 「語言在哪裡變,邊界就在哪裡」在牆上是看得見的</li>
+  <li><a href="./0003-given-when-then-機械判定.html">第 3 課:Given-When-Then</a>
+    —— hotspot 的解法,以及 policy 的天然形狀</li>
+  <li><a href="./0006-cqrs-讀與寫的不對稱.html">第 6 課:CQRS</a>
+    —— 藍色 Command 與綠色 Query Model,牆上就是兩種顏色</li>
+  <li><a href="../reference/0001-該畫邊界還是該拆詞.html">參考卡 01:該畫邊界還是該拆詞</a>
+    —— hotspot 抓出歧義之後,用它判斷該拆詞還是該畫邊界</li>
+  <li><a href="./0008-design-by-contract-這是誰的錯.html">第 8 課:Design by Contract</a>
+    —— 讓「這是誰的錯」有明確答案</li>
+</ul>
+
+<div class="ask-teacher">
+  <b>那張時間軸貼給我,我只看兩件事:</b>時態,以及失敗分支的數量。
+  這兩個是一個人做 Event Storming 時最容易漏的,而且漏掉的方式很固定
+  ——<b>人會不自覺地寫「系統應該做什麼」而不是「發生了什麼」,而且只寫順利的那條路。</b>
+</div>
+
+</footer>
+
+<script src="../assets/quiz.js"></script>
+<script src="../assets/sorter.js"></script>
+</body>
+</html>

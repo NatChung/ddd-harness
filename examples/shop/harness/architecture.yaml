@@ -1,0 +1,168 @@
+# shop 的架構規則 —— 結構化來源(store 的輸入)
+#
+# ⚠️ 這份是**轉寫**,不是新的訪談產出。它把凍結的 examples/shop/spec/ARCHITECTURE.md
+#    逐條搬成結構化資料,用途是讓第一個生成器有東西可吃、有現成的對照物可比。
+#    所以每一條的來源都是 `推導自 <該檔行號>` —— 這是轉寫這件事的性質,
+#    不是訪談出來的。真正跑第一、二幕時,來源會是 [Qn] / 本案自決 等。
+#
+# ⚠️ `模板既定` 一筆都沒有,而且**寫不進去**:authorized_templates 是空的,
+#    schema 的 trigger 會 ABORT。本案沒有被授權為架構模板的文件
+#    —— ARCHITECTURE.md 是這個案子自己的產出,不是可重用的模板。
+#    歷史上模型兩輪把自決偽裝成既定,這條規則現在住第 1 階。
+#
+# enforcement=none 的 ladder_note 就是**搬階清單的原料**:
+# 寫明為什麼還住第 4 階、搬得上去的話搬去哪。
+
+authorized_templates: []
+
+architecture_rules:
+  # ── 第 2 階:生成得出 ArchUnit ──────────────────────────────────────────
+  - id: A1
+    rule: domain/ 不得 import 任何框架(Spring、JPA、Jackson)
+    provenance: 推導自
+    provenance_ref: examples/shop/spec/ARCHITECTURE.md L19
+    enforcement: archunit_forbidden_dependency
+    forbidden_dependencies:
+      from: com.shop.domain..
+      to:
+        - org.springframework..
+        - jakarta.persistence..
+        - jakarta.transaction..
+        - com.fasterxml.jackson..
+
+  - id: A2
+    rule: usecase/ 不得 import 任何框架(Spring、JPA、Jackson)
+    provenance: 推導自
+    provenance_ref: examples/shop/spec/ARCHITECTURE.md L20
+    enforcement: archunit_forbidden_dependency
+    forbidden_dependencies:
+      from: com.shop.usecase..
+      to:
+        - org.springframework..
+        - jakarta.persistence..
+        - jakarta.transaction..
+        - com.fasterxml.jackson..
+
+  - id: A3
+    rule: domain/ 不得 import usecase/ 或 adapter/(內層不知道外層)
+    provenance: 推導自
+    provenance_ref: examples/shop/spec/ARCHITECTURE.md L21
+    enforcement: archunit_forbidden_dependency
+    forbidden_dependencies:
+      from: com.shop.domain..
+      to:
+        - com.shop.usecase..
+        - com.shop.adapter..
+
+  - id: A4
+    rule: usecase/ 不得 import adapter/(介面宣告在內層,實作在外層 —— 相依性倒轉)
+    provenance: 推導自
+    provenance_ref: examples/shop/spec/ARCHITECTURE.md L22-23
+    enforcement: archunit_forbidden_dependency
+    forbidden_dependencies:
+      from: com.shop.usecase..
+      to:
+        - com.shop.adapter..
+
+  # ── 第 4 階:目前只住散文,ladder_note 說明搬不搬得上去 ─────────────────
+  - id: A5
+    rule: 頂層 package 固定為 domain / usecase / adapter 三個,不得增減
+    provenance: 推導自
+    provenance_ref: examples/shop/spec/ARCHITECTURE.md L3-13
+    enforcement: none
+    ladder_note: >-
+      搬得上第 2 階。ArchUnit 查得出「com.shop 底下出現了清單外的子 package」,
+      但那需要一種新的 rule kind(allowed_top_level_packages),本生成器只支援
+      forbidden_dependency。列為第二個生成器的候選。
+
+  # ⚠️ 實測發現(2026-08-17,acceptance_archunit.py):**A6 對 domain/ 被 A1 蓋住。**
+  #    在 domain/ 的欄位上掛 @jakarta.persistence.Column,A1 與 A6 同時變紅
+  #    —— annotation 本身就是一條依賴,不寫 import 也一樣。所以 A6 目前不增加
+  #    任何偵測力,只是把錯誤訊息從「domain 依賴了 jakarta.persistence」
+  #    變成「Order.totalCents is annotated with jakarta.persistence.Column」。
+  #
+  #    留著的理由有兩個,都不是「多一層保險」:
+  #      1. A1 的清單若哪天收窄(例如允許 domain 用某個框架的工具類),A6 仍然守著。
+  #      2. 錯誤訊息指得出**是哪個成員**,review 時省一步。
+  #
+  #    ARCHITECTURE.md L28-30 真正 A1 蓋不到的那半句是「adapter 層建立自己的
+  #    持久化模型並負責對映」—— 那是「必須存在什麼」,ArchUnit 查不到,見 A12。
+  - id: A6
+    rule: 領域物件不得直接作為 JPA entity —— domain/ 的類別與其成員不得掛任何 JPA/Jackson annotation
+    provenance: 推導自
+    provenance_ref: examples/shop/spec/ARCHITECTURE.md L28-30
+    enforcement: archunit_forbidden_annotation
+    forbidden_annotations:
+      from: com.shop.domain..
+      annotations:
+        - jakarta.persistence..
+        - com.fasterxml.jackson..
+
+  - id: A12
+    rule: adapter 層必須建立自己的持久化模型(如 OrderEntity),並負責與 Order 之間的對映
+    provenance: 推導自
+    provenance_ref: examples/shop/spec/ARCHITECTURE.md L29-30
+    enforcement: none
+    ladder_note: >-
+      搬不上去(跟 A7 同型)。這是一條「必須存在什麼」的規則,ArchUnit 查得到
+      「不該有的東西出現了」,查不到「該有的東西沒出現」。只有驗收測試或 review
+      抓得到。這條原本藏在 A6 的後半句裡,是 A6 實測被 A1 蓋住之後才拆出來的
+      —— A6 能機械化的那半跟不能機械化的那半,本來混在同一句。
+
+  - id: A7
+    rule: customers 表由 harness 建好,不得為它建立領域物件;Query 側可直接查它
+    provenance: 推導自
+    provenance_ref: examples/shop/spec/ARCHITECTURE.md L31-32
+    enforcement: none
+    ladder_note: >-
+      搬不上去。「不要為某個表建領域物件」是一個關於「不存在什麼」的規則,
+      ArchUnit 查不到未來可能被建立的類別。只有 review 抓得到。留第 4 階。
+
+  - id: A8
+    rule: GET /orders 走 Query 側,OrderQueryRepository 直接組出 OrderListItem,不得經由 Order Aggregate 再轉換
+    provenance: 推導自
+    provenance_ref: examples/shop/spec/ARCHITECTURE.md L36-37
+    enforcement: none
+    ladder_note: >-
+      部分搬得上去。「OrderQueryRepository 不得依賴 Order」可以寫成
+      forbidden_dependency(類別層級,不是 package 層級 —— 需要擴充 kind);
+      但「不要 findAll 再逐筆 map」是實作方式,ArchUnit 查不到。
+      輪 1 的洞正好落在這條的沉默處。
+
+  - id: A9
+    rule: OrderListItem 定義在 usecase 層,是往外傳的資料結構,不是領域模型
+    provenance: 推導自
+    provenance_ref: examples/shop/spec/ARCHITECTURE.md L38
+    enforcement: none
+    ladder_note: >-
+      搬得上第 2 階。ArchUnit 查得到「叫這個名字的類別必須住在這個 package」
+      (需要新的 kind:required_location)。跟 GLOSSARY 的命名檢查同一個生成器。
+
+  # 這條是第一個**確定不會被依賴規則蓋住**的機械檢查:adapter 層本來就允許依賴
+  # domain(它要做對映),所以「Controller 回傳了 Order」不會觸發任何 dependency 規則。
+  # A6 被 A1 蓋住之後,這條是用來證明「新 kind 真的增加偵測力」的目標。
+  #
+  # ⚠️ 它擋不到的:回傳一個名字不像 domain、但裡面包著 domain 物件的 wrapper
+  #    (例:`ApiResponse<Order>` —— raw return type 是 ApiResponse)。
+  #    那要查泛型參數,ArchUnit 的 haveRawReturnType 只看 raw type。留給 review。
+  - id: A10
+    rule: Controller 的 public 方法不得回傳 domain/ 型別;HTTP 回應一律用 usecase 的 View Model 或 adapter 自己的 response 物件
+    provenance: 推導自
+    provenance_ref: examples/shop/spec/ARCHITECTURE.md L42-43
+    enforcement: archunit_forbidden_return_type
+    forbidden_return_types:
+      from: com.shop.adapter..
+      class_name_suffix: Controller
+      return_packages:
+        - com.shop.domain..
+
+  - id: A11
+    rule: 持久化用 Spring Data JPA + H2,不得新增依賴
+    provenance: 推導自
+    provenance_ref: examples/shop/spec/ARCHITECTURE.md L27
+    enforcement: none
+    ladder_note: >-
+      已經住第 1/2 階,但不是靠 ArchUnit:build.gradle 在凍結清單裡,
+      實作 agent 動了它就是收件驗證的紅燈。這條的正確處置是
+      「指向凍結清單」,不是生成一條 ArchUnit —— 列在這裡是為了讓它現形,
+      不要因為沒有 ArchUnit 就以為它沒人管。

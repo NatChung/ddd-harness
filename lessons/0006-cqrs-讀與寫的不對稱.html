@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>第 6 課 — CQRS:讀跟寫的風險不對稱</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+</head>
+<body>
+
+<p class="lesson-meta">第 6 課 · DDD × Agent Harness</p>
+<h1>CQRS</h1>
+<p class="subtitle">前五課的規矩,有一半的程式碼其實不需要遵守。</p>
+
+<h2>一個你早該問的問題</h2>
+
+<p>第 4 課要你把 <code>Order</code> 收成 Aggregate,只持有 <code>CustomerId</code>,不持有
+<code>Customer</code> 物件。第 5 課要你把 Entity 擋在 Use Case 層裡面,往外傳要另外定義資料結構。</p>
+
+<p>那麼——<b>訂單列表頁要顯示顧客姓名,怎麼辦?</b></p>
+
+<p>照前五課的規矩走,你會做出這種東西:載入 <code>Order</code> Aggregate、
+拿它的 <code>CustomerId</code> 再去載入 <code>Customer</code> Aggregate、
+組成 DTO、一頁 20 筆做 20 次。慢、囉唆,而且你心裡知道哪裡不對。</p>
+
+<p>更糟的是,這種痛會逼人做出錯誤的修正:<b>把 <code>Customer</code> 塞回 <code>Order</code>
+的 Aggregate 裡</b>——這正是第 4 課明講的錯誤判準(「常常一起查詢」不是判準)。
+規矩本身把人逼向違反規矩。</p>
+
+<div class="box key">
+  <span class="box-label">這一課的核心</span>
+  <p><b>因為那些規矩從一開始就不是為「讀」訂的。</b></p>
+  <p>Aggregate、invariant、分層、跨層轉資料結構——每一條都在防同一件事:
+  <b>把資料寫壞</b>。而查詢不會把資料寫壞。</p>
+  <p>拿防寫壞的規矩去管讀取,就是在付一筆完全沒有對價的成本。</p>
+</div>
+
+<h2>CQRS 就是把這件事講白</h2>
+
+<p><span class="term">CQRS</span>(Command Query Responsibility Segregation)的主張,
+Martin Fowler 一句話:</p>
+
+<blockquote>you can use a different model to update information than the model you use to read information</blockquote>
+<p class="bq-zh">你可以用一套模型來改資料,用另一套模型來讀資料。</p>
+
+<p><b>改資料用一套模型,讀資料用另一套。</b>就這樣——沒有更多了。</p>
+
+<table>
+  <thead><tr><th></th><th>Command 側(會改狀態)</th><th>Query 側(只讀)</th></tr></thead>
+  <tbody>
+    <tr>
+      <td><b>走哪些規矩</b></td>
+      <td>前五課全套:Aggregate、invariant、分層、跨層</td>
+      <td>幾乎都不走</td>
+    </tr>
+    <tr>
+      <td><b>有沒有領域物件</b></td>
+      <td>有,而且是核心</td>
+      <td><b>沒有,而且刻意不要有</b></td>
+    </tr>
+    <tr>
+      <td><b>回傳什麼</b></td>
+      <td>成功 / 失敗,或一個 id</td>
+      <td>畫面要的形狀,直接就是 View Model</td>
+    </tr>
+    <tr>
+      <td><b>做錯的後果</b></td>
+      <td>資料永久壞掉,而且之後每次讀都跟著錯</td>
+      <td>這一次的答案錯,改完就對了</td>
+    </tr>
+  </tbody>
+</table>
+
+<p>陳建村講得更直接——<b>「針對不會改變系統狀態的 Query 不需要套用 DDD,
+甚至根本也不要設計領域物件,直接讀取資料庫然後產生前端需要的 View Model 即可。」</b></p>
+
+<p>注意「甚至根本也不要」。這不是「可以偷懶」,是<b>刻意不做</b>。
+為查詢設計領域物件,得到的是維護成本,不是保護。</p>
+
+<h2>寫成 code 長這樣</h2>
+
+<pre><code>// ---------- Command 側:全套 ----------
+public class CancelOrderUseCase {
+    private final OrderRepository orders;          // 回傳 Aggregate
+
+    public void execute(CancelOrderInput in) {
+        Order order = orders.findById(new OrderId(in.orderId()));
+        order.cancel(in.reason());                 // invariant 在 Order 裡守
+        orders.save(order);
+    }
+}
+
+// ---------- Query 側:沒有 Aggregate,沒有領域物件 ----------
+public class OrderListUseCase {
+    private final OrderQueryRepository query;      // 專給查詢用的另一個介面
+
+    public List&lt;OrderListItem&gt; execute(OrderListFilter filter) {
+        return query.search(filter);               // 一次查詢,直接回畫面要的東西
+    }
+}
+
+// 這就是畫面要的形狀,不是領域模型
+public record OrderListItem(
+    String orderId, String customerName, String statusLabel,
+    long totalCents, LocalDate placedAt) { }</code></pre>
+
+<p>看 <code>customerName</code> 這個欄位。Command 側的 <code>Order</code> 只有
+<code>CustomerId</code>——那條規矩沒有鬆動。Query 側直接 join 出名字就好,
+<b>不需要為了顯示一個名字,去動 Aggregate 的邊界</b>。</p>
+
+<p>兩邊各有各的 repository 介面,這是重點:<code>OrderRepository</code> 回傳 Aggregate、
+給 Command 用;<code>OrderQueryRepository</code> 回傳 View Model、給 Query 用。
+同一張表,兩條路。</p>
+
+<div class="box warn">
+  <span class="box-label">這裡確實違反了第 5 課</span>
+  <p>Query 側從 Use Case 直接吐畫面要的資料結構、繞過領域模型——
+  這是<b>刻意允許的跨層捷徑</b>,不是你忘了守規矩。</p>
+  <p>代價是<b>重複</b>:同一份資料在 Command 側與 Query 側各有一套表示法,
+  欄位改了兩邊都要動。這筆代價是你明知道而且接受的,不是意外。</p>
+  <p><b>能這樣抄近路的唯一理由,是這條路不會把資料寫壞。</b>
+  哪天有人在 Query 側偷偷加了一行 UPDATE,這個豁免立刻失效——
+  那已經不是 Query 了。</p>
+</div>
+
+<h2>Fowler 叫你不要用</h2>
+
+<p>這一課到目前為止聽起來太順了,所以必須把警告原話放上來:</p>
+
+<blockquote>You should be very cautious about using CQRS. […]
+for most systems CQRS adds risky complexity.</blockquote>
+<p class="bq-zh">你應該非常謹慎地使用 CQRS。……對大多數系統來說,CQRS 增加的是有風險的複雜度。</p>
+
+<p>他說他看過不少團隊(而且是能力好的團隊)因為用了 CQRS 而變慢。
+這不衝突——要分清楚兩件常被混為一談的事:</p>
+
+<table>
+  <thead><tr><th></th><th>做什麼</th><th>成本</th></tr></thead>
+  <tbody>
+    <tr>
+      <td><b>分開模型</b></td>
+      <td>同一個資料庫,查詢走自己的路、不經過 Aggregate</td>
+      <td><b>很低。</b>本課教的就是這個,大部分系統都該做</td>
+    </tr>
+    <tr>
+      <td><b>分開儲存</b></td>
+      <td>寫入與讀取用不同的資料庫,靠同步機制對上</td>
+      <td><b>很高。</b>從此要處理「讀到舊資料」這件事,以及它引發的一整排問題</td>
+    </tr>
+  </tbody>
+</table>
+
+<p>Fowler 警告的主要是第二種。第一種只是承認「讀跟寫不一樣」,
+你就算不叫它 CQRS 也早就該做了。</p>
+
+<div class="box inference">
+  <span class="box-label">這個兩層區分是本教學的整理</span>
+  <p>Fowler 原文談的是 CQRS 整體的風險(尤其與 event-based 模型、分離儲存搭配時),
+  他並沒有寫成上面這張「分開模型 / 分開儲存」的兩層表。
+  這個切法是本教學為了讓你分辨「該做的那一半」而做的整理,不是引用來的。</p>
+</div>
+
+<p><b>Event Sourcing 這一課完全不碰。</b>它常跟 CQRS 綁在一起講
+(Fowler 也提到兩者搭配得好),但那是另一個決定、另一組代價。
+CQRS 不需要 Event Sourcing 也成立。</p>
+
+<h2>Command 還是 Query?</h2>
+
+<p>下面每一項,判斷它屬於哪一側:</p>
+
+<div class="sorter" data-buckets="Command 側|Query 側|兩者都有,要拆">
+  <div class="sorter-item" data-answer="1"
+    data-why="純讀取。篩選、排序、分頁全部是 Query 側的事,直接一次 SQL 查出畫面要的形狀就好。">訂單列表頁,支援依日期與狀態篩選</div>
+  <div class="sorter-item" data-answer="0"
+    data-why="改狀態,而且改錯會壞資料(退了兩次錢)。全套規矩都要:Aggregate、invariant、Given-When-Then 驗收。">取消訂單並退款</div>
+  <div class="sorter-item" data-answer="0"
+    data-why="陷阱題。「標記為已讀」聽起來跟閱讀有關,但它改變系統狀態 —— 判準永遠是「會不會改狀態」,不是那句話裡有沒有「讀」這個字。">把通知標記為已讀</div>
+  <div class="sorter-item" data-answer="1"
+    data-why="跨訂單、退款、運費算毛利 —— 正是那種照 Aggregate 一個個載入會死得很慘、直接下一句 SQL 卻很輕鬆的東西。這種報表是 Query 側存在意義最明顯的地方。">後台月結報表,跨訂單/退款/運費算毛利</div>
+  <div class="sorter-item" data-answer="1"
+    data-why="只是顯示給前台看,沒有改任何東西 → Query。注意這跟下一題長得很像,差別只在有沒有動到狀態。">查詢可用庫存,顯示在商品頁</div>
+  <div class="sorter-item" data-answer="0"
+    data-why="預留 = 把庫存標成不可再賣,是狀態變更。而且它有 invariant(可售庫存不得小於 0)要守 → Command。跟上一題成對:同一個「庫存」,讀是 Query、預留是 Command。">預留庫存</div>
+  <div class="sorter-item" data-answer="2"
+    data-why="陷阱題。匯出本身是 Query,但「記錄誰在什麼時候匯出過」是 Command —— 一張票包了兩側。這就是該拆票的訊號(第 4 課、第 5 課各給過一個拆票判準,這是第三個)。">匯出對帳檔,並記錄誰在什麼時候匯出過</div>
+  <div class="sorter-item" data-answer="1"
+    data-why="搜尋是 Query 側的極端案例 —— 它的資料形狀跟寫入模型差最遠,常常整份索引另外存一套。要注意的是:一旦另外存一套,就進入 Fowler 警告的「分開儲存」領域,得處理索引落後的問題。">商品搜尋結果頁</div>
+</div>
+
+<h2>這對 harness 的用途</h2>
+
+<div class="box inference">
+  <span class="box-label">以下的對應是推論</span>
+  <p>CQRS 本身是既有 pattern(Fowler 在文中寫明這個 pattern 他是先從
+  <b>Greg Young</b> 那裡聽來的;繁中的落地整理見頁尾)。
+  但「先判 Command / Query 來決定驗收要多嚴」這個用法,是本教學自己接上去的。</p>
+</div>
+
+<p>前五課都在<b>加規矩</b>。這一課第一次告訴你<b>哪裡可以不加</b>——
+而這比加規矩更有用,因為到處都嚴格的 harness 沒有人會遵守。</p>
+
+<table>
+  <thead><tr><th>性質</th><th>對 agent 的意義</th></tr></thead>
+  <tbody>
+    <tr>
+      <td><b>風險不對稱</b></td>
+      <td><b>每張票開工前先問一句:這是 Command 還是 Query?</b>
+        Command 側:詞彙表、invariant、Given-When-Then 一個都不能少。
+        Query 側:主要看形狀對不對、快不快——錯了改掉就好,不會留下壞資料。</td>
+    </tr>
+    <tr>
+      <td><b>Query 側沒有 invariant</b></td>
+      <td><b>那一側可以放手讓 agent 跑。</b>沒有規則要守,就沒有規則會被繞過;
+        最壞的情況是查出來的東西不對,而那一眼就看得出來。</td>
+    </tr>
+    <tr>
+      <td><b>兩側各有 repository 介面</b></td>
+      <td>「這張票只該碰 <code>OrderQueryRepository</code>」是一句<b>可檢查</b>的界線。
+        agent 動到 <code>OrderRepository</code> 就是越界——不用讀它的程式碼也知道。</td>
+    </tr>
+  </tbody>
+</table>
+
+<p>這也順便解釋了一個你大概已經觀察到的現象:
+<b>讓 agent 做查詢、報表、列表頁,通常又快又準;做業務流程,常常出事。</b>
+不是它在後者比較笨,是後者有 invariant 而前者沒有——
+<b>錯誤在 Query 側會當場現形,在 Command 側會沉到資料裡。</b></p>
+
+<h2>換你了</h2>
+
+<div class="quiz" data-answer="0">
+  <p class="quiz-q">CQRS 的核心主張是什麼?</p>
+  <div class="quiz-opts">
+    <button class="quiz-opt">讀資料跟改資料,可以用兩套不同的模型</button>
+    <button class="quiz-opt">讀跟寫要拆成兩個服務、兩個資料庫,各自擴充</button>
+    <button class="quiz-opt">所有狀態變更都要存成事件,再由事件重建出目前狀態</button>
+  </div>
+  <div class="quiz-fb"
+    data-right="就這一句,沒有更多。分開儲存、分開部署都是後續可選的加碼,不是 CQRS 本身。"
+    data-wrong="第二個是「分開儲存」——CQRS 的一種高成本用法,正是 Fowler 警告的那種,不是它的定義。第三個是 Event Sourcing:常跟 CQRS 一起出現,但完全是另一個決定,本課刻意不碰。把這兩個當成 CQRS,就會覺得它貴得不合理而整套放棄。"></div>
+</div>
+
+<div class="quiz" data-answer="1">
+  <p class="quiz-q">為什麼 Query 側可以不套 DDD、甚至不設計領域物件?</p>
+  <div class="quiz-opts">
+    <button class="quiz-opt">因為查詢的程式碼比較單純,不值得花力氣建模</button>
+    <button class="quiz-opt">因為它不改變狀態,沒有 invariant 要守,那些規矩防的事不會發生</button>
+    <button class="quiz-opt">因為查詢的效能比較重要,正確性可以放寬一點</button>
+  </div>
+  <div class="quiz-fb"
+    data-right="規矩是為了防「寫壞」而存在的。沒有寫,就沒有東西要防 —— 這是豁免的唯一根據,也是它的界線:哪天 Query 側偷加了一行 UPDATE,豁免立刻失效。"
+    data-wrong="第一個不成立:月結報表比多數 Command 複雜得多,但它照樣不需要領域物件 —— 判準是有沒有改狀態,不是難不難。第三個是危險的誤讀:查詢當然要正確。差別在後果不對稱 —— 查錯是這一次答案錯,寫壞是資料永久錯,而且之後每一次查詢都跟著錯。"></div>
+</div>
+
+<h3>動手練習</h3>
+
+<p>拿你自己系統裡<b>最近三張票</b>,一張一張過:</p>
+
+<div class="drill">
+<textarea spellcheck="false">票 1 —— 標題 / Command 還是 Query / 判斷理由:
+票 2 ——
+票 3 ——
+
+有沒有哪一張其實兩側都碰到了?那張該怎麼拆:
+
+你現在的程式碼裡,查詢是不是也走 Aggregate?
+(例:列表頁載入 N 個 Aggregate 再組成畫面資料)
+
+如果只挑一支查詢改成直接產 View Model,你會挑哪一支、為什麼:
+</textarea>
+</div>
+
+<div class="box good">
+  <span class="box-label">自我檢查</span>
+  <ul>
+    <li><b>判斷理由寫的是「會不會改狀態」嗎?</b>如果寫的是「這張比較單純」
+      或「這張主要是撈資料」,那是感覺不是判準——重看「標記為已讀」那題。</li>
+    <li><b>最後一格挑的那支,最好是「痛得最明顯」的那支</b>(最慢、或程式碼最扭曲的),
+      不是最好改的那支。CQRS 值不值得,要用真的有痛的地方來驗證。</li>
+    <li>如果三張票全是 Command,很正常——但也表示你手上還沒有可以放手給 agent 跑的活。</li>
+    <li>老毛病:<b>你上面寫的東西裡,有沒有又用到一個沒定義的詞?</b></li>
+  </ul>
+</div>
+
+<footer>
+
+<h2>下一步該讀什麼</h2>
+
+<p><b>原始出處:</b><a href="https://martinfowler.com/bliki/CQRS.html">CQRS — Martin Fowler</a>。
+定義原句與「should be very cautious」的警告都出自這篇,免費、短。</p>
+
+<p><b>繁中:</b><a href="https://teddy-chen-tw.blogspot.com/2020/09/clean-architecturecqrs-pattern.html">Clean Architecture 之 CQRS Pattern — 搞笑談軟工</a>。
+本課的 Command/Query 兩側分工、以及「Query 側不要設計領域物件」的立場出自這篇。
+它處理的問題正好接續第 5 課:<b>為什麼簡潔架構在 CQRS 底下特意允許跨層參考。</b></p>
+
+<p>⚠️ <b>誠實標註:</b>上面兩篇我核對的是本課引用的那幾句,<b>沒有逐字讀完全文</b>。
+「分開模型 / 分開儲存」那張成本對照表是本教學的整理,不是 Fowler 的原文分類
+(頁中已標)。Java 範例是為教學寫的,不是從任何一篇抄來的。</p>
+
+<h2>本課相關</h2>
+<ul>
+  <li><a href="./0004-aggregate-一次任務的大小.html">第 4 課:Aggregate</a>
+    ——「常常一起查詢」不是判準;這一課才給了你拒絕它的底氣</li>
+  <li><a href="./0005-簡潔架構-三原則與爆炸半徑.html">第 5 課:簡潔架構</a>
+    —— Query 側的捷徑,違反的正是那課的跨層原則</li>
+  <li><a href="../practice/0001-交錯練習-前四課.html">交錯練習 01:前四課混合</a></li>
+  <li><a href="../reference/0001-該畫邊界還是該拆詞.html">參考卡 01:該畫邊界還是該拆詞</a></li>
+  <li><a href="./0007-event-storming-產物從哪來.html">第 7 課:Event Storming</a> ——
+    前六課教了詞彙表與邊界長什麼樣,這一課教怎麼把它們生出來</li>
+</ul>
+
+<div class="ask-teacher">
+  <b>三張票判完貼給我。</b>我最想看的是<b>判斷理由</b>那一欄——
+  分得出 Command / Query 不難,難的是分完之後真的敢在 Query 側鬆手。
+</div>
+
+</footer>
+
+<script src="../assets/quiz.js"></script>
+<script src="../assets/sorter.js"></script>
+</body>
+</html>

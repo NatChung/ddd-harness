@@ -1,0 +1,12 @@
+{"event": "asked", "round": 1, "who": "interviewer", "session_id": "48bf2778-5df3-46c9-b5cd-52e7908b200c", "chars": 652, "file": "rounds/r1-questions.md"}
+{"event": "answered", "round": 1, "who": "stakeholder", "session_id": "db2f8bca-3d26-493c-adfc-790300104123", "chars": 368, "file": "rounds/r1-answers.md"}
+{"event": "relayed", "round": 1, "from": "stakeholder", "to": "interviewer", "chars": 368}
+{"event": "asked", "round": 2, "who": "interviewer", "session_id": "48bf2778-5df3-46c9-b5cd-52e7908b200c", "chars": 552, "file": "rounds/r2-questions.md"}
+{"event": "answered", "round": 2, "who": "stakeholder", "session_id": "db2f8bca-3d26-493c-adfc-790300104123", "chars": 510, "file": "rounds/r2-answers.md"}
+{"event": "relayed", "round": 2, "from": "stakeholder", "to": "interviewer", "chars": 510}
+{"event": "asked", "round": 3, "who": "interviewer", "session_id": "48bf2778-5df3-46c9-b5cd-52e7908b200c", "chars": 831, "file": "rounds/r3-questions.md"}
+{"event": "answered", "round": 3, "who": "stakeholder", "session_id": "db2f8bca-3d26-493c-adfc-790300104123", "chars": 545, "file": "rounds/r3-answers.md"}
+{"event": "relayed", "round": 3, "from": "stakeholder", "to": "interviewer", "chars": 545}
+{"event": "asked", "round": 4, "who": "interviewer", "session_id": "48bf2778-5df3-46c9-b5cd-52e7908b200c", "chars": 860, "file": "rounds/r4-questions.md"}
+{"event": "answered", "round": 4, "who": "stakeholder", "session_id": "db2f8bca-3d26-493c-adfc-790300104123", "chars": 530, "file": "rounds/r4-answers.md"}
+{"event": "relayed", "round": 4, "from": "stakeholder", "to": "interviewer", "chars": 530}

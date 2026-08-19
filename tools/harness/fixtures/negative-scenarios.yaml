@@ -1,0 +1,146 @@
+wire_contract:
+  name: shop-interview-v1
+  req_customer_field: customerId
+  req_items_field: items
+  req_product_field: productId
+  req_quantity_field: quantity
+  req_price_field: unitPriceCents
+  req_currency_field: currency
+  req_total_field: totalCents
+  res_order_id_field: orderId
+  res_customer_id_field: customerId
+  res_total_field: totalCents
+  list_fields:
+  - orderId
+  - customerId
+  - statusLabel
+  - totalCents
+  - placedAt
+# 第五幕 (a) 的驗收套件:2026-08-18 量到「12 條進去、4 條出來」時,
+# 落不了檔的那 5 條(S3–S7)。**它們 import 得進去,才算這一輪做完。**
+# S1 是對照組 —— 放寬只發生在負面那組表,正面情境的 CHECK 要照舊擋得住。
+#
+# ⚠️ **S7 的殘骸檢查比其他四條弱,不要當成同等覆蓋。**
+#    它的 customer_id 是空字串,而 list_no_row_for_customer 比對的是字串。
+#    實作若把「沒有下單者」存成 null,列表那一欄會 stringify 成 "null",
+#    跟 "" 對不上 —— **訂單真的落地了,這條斷言還是綠的。**
+#    要修得靠「未登入」有自己的表達方式(不是借用空的 customer_id),
+#    那屬於動詞/請求層建模,見 .scratch/ddd-harness/issues/01。
+acceptance_scenarios:
+- id: S1
+  given_when: 客人 C-001 送出一筆含單一明細的訂單
+  then_expect: 訂單成立,回 201
+  provenance: Qn
+  provenance_ref: '[Q1] SPEC.md L41'
+  steps:
+  - alias: order1
+    customer_id: C-001
+    items:
+    - product_id: blue-mug
+      quantity: 1
+      unit_price_cents: 15000
+      currency: TWD
+  assertions:
+  - kind: status_is
+    target: order1
+    expected_number: 201
+- id: S4
+  given_when: 客人 C-004 送出空單,一項商品都沒有
+  then_expect: 系統拒絕,不產生任何訂單紀錄
+  provenance: Qn
+  provenance_ref: '[Q11] SPEC.md L62'
+  expects_rejection: true
+  rejected_requests:
+  - alias: emptyOrder
+    customer_id: C-004
+    items: []
+  rejected_assertions:
+  - kind: status_is
+    target: emptyOrder
+    expected_number: 400
+  - kind: list_no_row_for_customer
+    target: emptyOrder
+- id: S5
+  given_when: 客人 C-005 送出數量為 0 的明細
+  then_expect: 系統拒絕,不產生任何訂單紀錄
+  provenance: Qn
+  provenance_ref: '[Q11] SPEC.md L69'
+  expects_rejection: true
+  rejected_requests:
+  - alias: zeroQty
+    customer_id: C-005
+    items:
+    - product_id: blue-mug
+      quantity: 0
+      unit_price_cents: 15000
+      currency: TWD
+  rejected_assertions:
+  - kind: status_is
+    target: zeroQty
+    expected_number: 400
+  - kind: list_no_row_for_customer
+    target: zeroQty
+- id: S6
+  given_when: 客人 C-006 送出數量為 -1 的明細
+  then_expect: 系統拒絕,不產生任何訂單紀錄
+  provenance: Qn
+  provenance_ref: '[Q11] SPEC.md L76'
+  expects_rejection: true
+  rejected_requests:
+  - alias: negQty
+    customer_id: C-006
+    items:
+    - product_id: blue-mug
+      quantity: -1
+      unit_price_cents: 15000
+      currency: TWD
+  rejected_assertions:
+  - kind: status_is
+    target: negQty
+    expected_number: 400
+  - kind: list_no_row_for_customer
+    target: negQty
+- id: S7
+  given_when: 未登入的訪客送出訂單
+  then_expect: 系統拒絕,不產生任何訂單紀錄
+  provenance: Qn
+  provenance_ref: '[Q12] SPEC.md L83'
+  expects_rejection: true
+  rejected_requests:
+  - alias: anonymous
+    customer_id: ''
+    items:
+    - product_id: blue-mug
+      quantity: 1
+      unit_price_cents: 15000
+      currency: TWD
+  rejected_assertions:
+  - kind: status_is
+    target: anonymous
+    expected_number: 401
+  - kind: list_no_row_for_customer
+    target: anonymous
+- id: S3
+  given_when: 客人 C-003 送出訂單,請求中夾帶一個總金額 TWD 50.00
+  then_expect: 該指定值一律被忽略;成立的訂單總金額為 TWD 89.50
+  provenance: Qn
+  provenance_ref: '[Q8] SPEC.md L55'
+  steps:
+  - alias: tampered
+    customer_id: C-003
+    claimed_total_cents: 5000
+    items:
+    - product_id: cotton-tote
+      quantity: 1
+      unit_price_cents: 8950
+      currency: TWD
+  assertions:
+  - kind: status_is
+    target: tampered
+    expected_number: 201
+  - kind: list_row_exists
+    target: tampered
+  - kind: list_field_equals_number
+    target: tampered
+    field: totalCents
+    expected_number: 8950

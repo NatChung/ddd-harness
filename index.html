@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DDD × Agent Harness — 教學目錄</title>
+<link rel="stylesheet" href="assets/lesson.css">
+<style>
+  /* 目錄頁專用:課程清單。其餘一律沿用 lesson.css */
+  .toc { list-style: none; padding: 0; margin: 1.5rem 0 2.5rem; }
+  .toc > li {
+    padding: 0.9rem 0 0.9rem 0;
+    border-top: 1px solid var(--rule);
+  }
+  .toc > li:last-child { border-bottom: 1px solid var(--rule); }
+  .toc .no {
+    font-family: var(--mono);
+    font-size: 0.8rem;
+    color: var(--ink-faint);
+    letter-spacing: 0.04em;
+  }
+  .toc .name { font-weight: 700; }
+  .toc .name a { text-decoration: none; }
+  .toc .name a:hover { text-decoration: underline; }
+  .toc .desc {
+    display: block;
+    font-size: 0.94rem;
+    color: var(--ink-soft);
+    line-height: 1.6;
+    margin-top: 0.15rem;
+  }
+  .toc .blocks {
+    display: block;
+    font-family: var(--sans);
+    font-size: 0.8rem;
+    color: var(--accent);
+    margin-top: 0.3rem;
+  }
+  .layer {
+    font-family: var(--sans);
+    font-size: 0.72rem;
+    color: var(--ink-faint);
+    border: 1px solid var(--rule);
+    border-radius: 2px;
+    padding: 0.05rem 0.4rem;
+    margin-left: 0.4rem;
+    white-space: nowrap;
+  }
+  .todo {
+    font-family: var(--sans);
+    font-size: 0.72rem;
+    color: var(--warn);
+    background: var(--warn-bg);
+    border-radius: 2px;
+    padding: 0.05rem 0.4rem;
+    margin-left: 0.4rem;
+    white-space: nowrap;
+  }
+  .files { font-size: 0.94rem; line-height: 1.9; }
+  .files code { font-size: 0.85em; }
+</style>
+</head>
+<body>
+
+<p class="lesson-meta">DDD × Agent Harness · 目錄</p>
+<h1>教材目錄</h1>
+<p class="subtitle">十課、三張參考卡、一份交錯練習。</p>
+
+<div class="box key">
+  <span class="box-label">這套教材在解什麼問題</span>
+  <p>DDD 處理的核心問題是<b>「人跟人之間語言含糊,做出來的軟體就跟著含糊」</b>——
+  LLM agent 有一模一樣的失效模式,只是它填補含糊的方式是「照訓練分佈猜一個看起來合理的」。</p>
+  <p>所以這裡學 DDD 不是為了學 DDD,是為了組出一套 <b>agent 的 development harness</b>:
+  讓產出不隨著換模型而漂移,讓「對不對」不需要人來主觀判斷。
+  完整目標與範圍見 <a href="MISSION.md" target="_blank" rel="noopener"><code>MISSION.md</code></a>。</p>
+</div>
+
+<h2>怎麼讀</h2>
+
+<ul>
+  <li><b>課照順序讀。</b>課與課之間是<b>接續</b>不是並列——每一課的開場都是
+    「上一課的產出被戳破」(第 5 課拆掉第 4 課守住的 Aggregate、第 6 課戳破第 5 課的分層規矩)。
+    跳著讀會少掉那個因果。</li>
+  <li><b>卡不用照順序。</b>踩到了才翻,翻完回原本那課。</li>
+  <li><b>每課結尾有「換你了」與「動手練習」。</b>寫完貼回來批改——
+    你答錯的題目是這套教材唯一的修正來源,錯題會被寫成 <code>learning-records/</code>,
+    同型錯誤出現第三次就抽成一張新的參考卡。</li>
+</ul>
+
+<h2>開場(不算在十課裡)</h2>
+
+<p>這一頁是<b>拿來投影的地圖</b>,不教任何工具怎麼用,只回答「為什麼最後走到 DDD」。
+它跟十課的關係是:十課教工具,它說明<b>那些工具各自補掉了前一代做法的哪個洞</b>。
+自己讀教材的話可以先跳過,直接從第 1 課開始;<b>要講給別人聽的話,從這裡開場。</b></p>
+
+<ul class="toc">
+  <li>
+    <span class="no">開場</span> <span class="layer">地圖</span><br>
+    <span class="name"><a href="lessons/0000-五級演化-從照抄流程到機械驗收.html" target="_blank" rel="noopener">五級演化:從照抄流程到機械驗收</a></span>
+    <span class="desc">照抄組織圖 → 照抄 Scrum → 把判定交給機器 → 把工具切小 → 把提問清單變成你的。</span>
+    <span class="blocks">給誰聽:會寫 code、用過 AI、沒碰過 DDD 的人 · 40 分鐘 · 講稿備忘在 <code>docs/working-notes/2026-08-19-第0課教學備忘.md</code></span>
+  </li>
+</ul>
+
+<h2>十課</h2>
+
+<p>右邊的標籤是它在 <b>pattern language 裡的層</b>(第 9 課那張表)。
+讀的順序是 1→10,但用的時候是按層取用——兩種排法都對,別混起來。<br>
+第 10 課不教新工具,是拿前九課走一次完整的線,所以放最後。</p>
+
+<ol class="toc">
+  <li>
+    <span class="no">第 1 課</span> <span class="layer">語言層</span><br>
+    <span class="name"><a href="lessons/0001-ubiquitous-language-第一道閘門.html" target="_blank" rel="noopener">Ubiquitous Language</a></span>
+    <span class="desc">擋掉模型漂移的第一道閘門 —— 也是最便宜的一道。</span>
+    <span class="blocks">擋掉:語言漂移</span>
+  </li>
+  <li>
+    <span class="no">第 2 課</span> <span class="layer">語言層</span><br>
+    <span class="name"><a href="lessons/0002-bounded-context-邊界.html" target="_blank" rel="noopener">Bounded Context</a></span>
+    <span class="desc">一個詞可以有兩個意思 —— 只要你畫得出那條線。</span>
+    <span class="blocks">擋掉:範圍漂移</span>
+  </li>
+  <li>
+    <span class="no">第 3 課</span> <span class="layer">驗收層</span><br>
+    <span class="name"><a href="lessons/0003-given-when-then-機械判定.html" target="_blank" rel="noopener">Given-When-Then</a></span>
+    <span class="desc">把「做對了沒」從你的判斷,變成機器的判斷。</span>
+    <span class="blocks">擋掉:判定漂移</span>
+  </li>
+  <li>
+    <span class="no">第 4 課</span> <span class="layer">模型層</span><br>
+    <span class="name"><a href="lessons/0004-aggregate-一次任務的大小.html" target="_blank" rel="noopener">Aggregate</a></span>
+    <span class="desc">把規則從提示詞搬進程式碼 —— 順便決定一次任務該多大。</span>
+    <span class="blocks">擋掉:一致性破口、任務大小沒有判準</span>
+  </li>
+  <li>
+    <span class="no">第 5 課</span> <span class="layer">架構層</span><br>
+    <span class="name"><a href="lessons/0005-簡潔架構-三原則與爆炸半徑.html" target="_blank" rel="noopener">簡潔架構</a></span>
+    <span class="desc">三條原則,決定 agent 改一行的爆炸半徑有多大。</span>
+    <span class="blocks">擋掉:爆炸半徑不明</span>
+  </li>
+  <li>
+    <span class="no">第 6 課</span> <span class="layer">架構層</span><br>
+    <span class="name"><a href="lessons/0006-cqrs-讀與寫的不對稱.html" target="_blank" rel="noopener">CQRS</a></span>
+    <span class="desc">前五課的規矩,有一半的程式碼其實不需要遵守。</span>
+    <span class="blocks">擋掉:到處都嚴格(第一堂教「哪裡可以不加規矩」的課)</span>
+  </li>
+  <li>
+    <span class="no">第 7 課</span> <span class="layer">流程層</span><br>
+    <span class="name"><a href="lessons/0007-event-storming-產物從哪來.html" target="_blank" rel="noopener">Event Storming</a></span>
+    <span class="desc">前六課都假設你已經知道要建模什麼。這一課補那個假設。</span>
+    <span class="blocks">擋掉:不知道要建模什麼</span>
+  </li>
+  <li>
+    <span class="no">第 8 課</span> <span class="layer">驗收層</span><br>
+    <span class="name"><a href="lessons/0008-design-by-contract-這是誰的錯.html" target="_blank" rel="noopener">Design by Contract</a></span>
+    <span class="desc">依合約設計 —— 順便刪掉你程式裡一半的防禦性檢查。</span>
+    <span class="blocks">擋掉:責任不明</span>
+  </li>
+  <li>
+    <span class="no">第 9 課</span> <span class="layer">串起前八課</span><br>
+    <span class="name"><a href="lessons/0009-pattern-language-讓它會長大.html" target="_blank" rel="noopener">Pattern Language</a></span>
+    <span class="desc">你手上有八個工具了。工具箱不是語言。</span>
+    <span class="blocks">擋掉:harness 不會自己長大(錯誤 → 往上搬一階的迴圈)</span>
+  </li>
+  <li>
+    <span class="no">第 10 課</span> <span class="layer">走完整條線</span><br>
+    <span class="name"><a href="lessons/0010-訪談-一句話到驗收.html" target="_blank" rel="noopener">一句話到驗收</a></span>
+    <span class="desc">前九課是工具。這一課是拿著它們,從一句廢話走到跑得起來的驗收。</span>
+    <span class="blocks">擋掉:含糊被下游默默填掉(而沒有人查得出是誰填的)</span>
+  </li>
+</ol>
+
+<h2>參考卡 —— 隨時回來查</h2>
+
+<p>三張卡都是<b>同一種錯誤重複出現後才抽出來的</b>,不是預先設計的。
+所以它們治的都是真的會再犯的東西。</p>
+
+<ul class="toc">
+  <li>
+    <span class="no">參考卡 01</span><br>
+    <span class="name"><a href="reference/0001-該畫邊界還是該拆詞.html" target="_blank" rel="noopener">該畫邊界,還是該拆詞?</a></span>
+    <span class="desc">「兩群人對同一個詞講不一樣」有三種原因,三種解法。用錯解法會讓問題更糟。</span>
+    <span class="blocks">什麼時候翻:撞到同名不同義,不確定該用第 1 課還是第 2 課</span>
+  </li>
+  <li>
+    <span class="no">參考卡 02</span><br>
+    <span class="name"><a href="reference/0002-先問這是什麼-再問它屬於哪一類.html" target="_blank" rel="noopener">先問「這是什麼」,再問「它屬於哪一類」</a></span>
+    <span class="desc">順序反了,分類就會錯。附一張「各課真正判準 vs 常被誤用的表面特徵」對照表。</span>
+    <span class="blocks">什麼時候翻:任何分類題卡住的時候,以及答完之後檢查</span>
+  </li>
+  <li>
+    <span class="no">參考卡 03</span><br>
+    <span class="name"><a href="reference/0003-三幕流程與五尺度盤點.html" target="_blank" rel="noopener">需求 → spec 包:三幕流程與五尺度盤點</a></span>
+    <span class="desc">幕 = 時間,尺度 = 清單,階梯 = 強度。三個各就各位,誰也不用讓位。</span>
+    <span class="blocks">什麼時候翻:實際要把一句需求做成 spec 包時;或發現自己把這三軸講混了</span>
+  </li>
+</ul>
+
+<h2>練習</h2>
+
+<ul class="toc">
+  <li>
+    <span class="no">交錯練習 01</span> <span class="todo">還沒做</span><br>
+    <span class="name"><a href="practice/0001-交錯練習-前四課.html" target="_blank" rel="noopener">沒有人會告訴你該用哪一課</a></span>
+    <span class="desc">六個情境,工具自己挑 —— 給情境、不給選項,前四課混合。</span>
+    <span class="blocks">建議先讀參考卡 02 再做,那張卡正好治這種題會犯的錯</span>
+  </li>
+</ul>
+
+<footer>
+
+<h2>周邊檔案(不是課,但常要看)</h2>
+
+<div class="files">
+<p><a href="MISSION.md" target="_blank" rel="noopener"><code>MISSION.md</code></a> ——
+目標、對標的能力清單、in scope / out of scope。爭論「這個要不要教」時看這份。</p>
+
+<p><a href="NOTES.md" target="_blank" rel="noopener"><code>NOTES.md</code></a> ——
+決策記錄與目前進度:每一課寫作時的判斷、實驗結論、待決事項。跨 session 接力先讀這份。</p>
+
+<p><a href="RESOURCES.md" target="_blank" rel="noopener"><code>RESOURCES.md</code></a> ——
+來源清單,含<b>哪些讀過、哪些只讀二手、哪些是推斷</b>。引用前先查這裡的標註。</p>
+
+<p><a href="learning-records/" target="_blank" rel="noopener"><code>learning-records/</code></a> ——
+每次批改後的失效模式紀錄。參考卡都是從這裡長出來的。</p>
+
+<p><a href="examples/shop/" target="_blank" rel="noopener"><code>examples/shop/</code></a> ——
+貫穿用的小型電商例子:<code>spec/</code> 是那包 spec(GLOSSARY / SPEC / ARCHITECTURE / PROMPT)、
+<code>app/</code> 是骨架、<code>runs/</code> 是跨模型與分層 subagent 的實驗紀錄。</p>
+
+<p><code>.claude/skills/spec-authoring/SKILL.md</code> ——
+參考卡 03 那條生產線的可執行版。</p>
+</div>
+
+<div class="ask-teacher">
+  <b>不知道從哪開始就從第 1 課。</b>已經讀完十課的話,下一步不是再讀
+  ——是把 <a href="practice/0001-交錯練習-前四課.html" target="_blank" rel="noopener">交錯練習 01</a> 和第 9 課的階梯練習做掉。
+  練習全部還沒做,而那才是分辨「看懂了」與「用得出來」的地方。
+</div>
+
+</footer>
+
+</body>
+</html>

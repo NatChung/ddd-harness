@@ -1,0 +1,297 @@
+# acceptance.yaml —— 從 spec/SPEC.md §1.2(wire shape)與 §2(GWT 清單)落檔
+#
+# 收錄判準:只收 §2 裡實際寫出來的情境,而且**fixture 詞彙表達得出來**的那幾條。
+# fixture 的動詞只有一個:「送一筆下單請求(客人 + 品項)」,再對狀態碼與訂單列表斷言。
+# 因此 G3(庫存不足)/ G4–G8(結帳、付款、逾時、轉可出貨)/ G9–G12(改狀態)/
+# G14(每月銷量,另一個端點)/ G15(依 B-2 阻斷,散文明寫不得實作)全部收不進來。
+# 收不進來的那幾條在 contracts.yaml 的 no_named_test_reason 裡逐條交代,不是靜靜消失。
+
+# ─────────────────────────────────────────────────────────────────────────
+# wire_contract —— §1.2 整節標「本案自決」(SPEC.md L81),所以由這份規格逐欄訂定。
+wire_contract:
+  name: 球鞋線上訂購系統對外 JSON 合約(SPEC.md §1.2,L79-L205)
+
+  # 請求側:E1 `POST /checkouts` 的 request(SPEC.md L89-L101)
+  req_customer_field: customer          # L92;物件,內含 name / email / shippingAddress
+  req_items_field: items                # L97
+  req_product_field: sku                # L98;名詞對照 L196
+  req_quantity_field: quantity          # L98;名詞對照 L197
+  req_price_field: unitPrice            # L98;名詞對照 L198
+  # ⚠️ 幣別:E1 的 request 範例沒有這一欄,而 schema 這一欄 NOT NULL。
+  #    §1.2 整節本案自決(L81),故在此逐欄決定:請求也帶 `currency`,恆為 "TWD",
+  #    欄位名與回應側(L109、名詞對照 L202)一致。多幣別不在範圍(§5,L342)。
+  req_currency_field: currency
+  # req_total_field 刻意不給:E1 的 request 沒有夾帶總金額的欄位(L89-L101),
+  #    §2 也沒有「總金額不接受人為指定」這種情境 → 本合約沒有這個欄位,不是漏填。
+
+  # 回應側
+  res_order_id_field: orderId           # L134、L160;名詞對照 L203
+  # 列表一列的總金額欄。本檔有 list_field_equals_number 斷言 → 必填。
+  res_total_field: totalAmount          # L166;名詞對照 L201
+  # 列表一列的「客人編號」欄。本檔有預期被拒的情境 → 必填。
+  # ⚠️ 本案**沒有客戶識別碼**:§1 的「客戶」是角色、沒有識別碼(L33),
+  #    而 B-2「誰是誰」是阻斷級規格沉默(L350)、§10 明寫不得實作任何使用者身分模型
+  #    (L509)。憑空發明一個 customerId 等於替 B-2 投票。
+  #    E3 的列表一列裡真的能認出「這一列是誰的」的欄位只有 `customerName`(L163),
+  #    所以本合約以它當比對鍵;fixture 的 customer_id 因此就是客人的名字。
+  res_customer_id_field: customerName
+
+  # 列表一列有哪些欄位 —— 逐欄照 E3(SPEC.md L155-L171)
+  list_fields:
+    - orderId
+    - placedAt
+    - status
+    - customerName
+    - itemCount        # 所有品項的數量加總,不是品項種類數(L171)
+    - currency
+    - totalAmount
+
+# ─────────────────────────────────────────────────────────────────────────
+acceptance_scenarios:
+
+  # ── G1(SPEC.md L213-L216)────────────────────────────────────────────
+  - id: G1
+    given_when: >-
+      SKU NIKE-DUNK-LOW-US9 庫存 5 雙、單價 3200、運費 120;客戶以數量 2 建立結帳作業取得
+      checkoutId,第三方支付回報 pay_0001 付費成功,以該 checkoutId + paymentId 建立訂單。
+    then_expect: >-
+      回 201;orderId 不為空;該訂單出現在 GET /orders 的列表裡;status = PLACED;
+      itemCount = 2;placedAt 是 ISO-8601 日期時間;totalAmount = 2 × 3200 = 6400
+      (商品金額合計;運費那一項見 proxy_for)。
+    provenance: Qn
+    provenance_ref: SPEC.md L213-L216(來源 [Q3] [Q8],逐字見 L521、L526)
+    proxy_for: >-
+      散文的 G1 有運費 120、Then 的 totalAmount 是 6520。本檔的 fixture 詞彙**沒有運費**
+      —— 一個品項只有 product_id / quantity / unit_price_cents / currency,而列表的總金額欄
+      是靠「總額 = Σ(數量 × 單價)」認人的。故此處以**不含運費的請求**代替原情境,
+      斷言的 totalAmount 是商品金額合計 6400。後果:C2 公式「Σ(單價 × 數量) + 運費」
+      只有前半被驗到,**「+ 運費」那一半本檔驗不到**;庫存 5 雙、結帳作業、付款回報
+      這三個 Given/When 也不在 fixture 裡,本情境驗的是「一次下單請求成立並落進列表」。
+    steps:
+      - alias: order1
+        customer_id: 王小明          # SPEC.md L94 的範例客戶
+        items:
+          - product_id: NIKE-DUNK-LOW-US9    # L98
+            quantity: 2
+            unit_price_cents: 3200           # TWD 整數、單位「元」(§1 金額 L23、A-1 L370)
+            currency: TWD
+    assertions:
+      - kind: status_is
+        target: order1
+        expected_number: 201
+      - kind: order_id_not_blank
+        target: order1
+      - kind: list_row_exists
+        target: order1
+      - kind: list_field_equals_text
+        target: order1
+        field: customerName
+        expected_text: 王小明
+      - kind: list_field_equals_text
+        target: order1
+        field: status
+        expected_text: PLACED               # §6 A-3(L372)、E2 L135
+      - kind: list_field_equals_text
+        target: order1
+        field: currency
+        expected_text: TWD
+      - kind: list_field_equals_number
+        target: order1
+        field: totalAmount
+        expected_number: 6400
+      - kind: list_field_equals_number
+        target: order1
+        field: itemCount
+        expected_number: 2
+      - kind: list_field_is_iso_date
+        target: order1
+        field: placedAt
+
+  # ── G2(SPEC.md L218-L221)────────────────────────────────────────────
+  - id: G2
+    given_when: >-
+      SKU A 單價 3200 庫存 5、SKU B 單價 4500 庫存 2、運費 120;同一次結帳 A 買 2 雙、
+      B 買 1 雙,付費成功後產生訂單。
+    then_expect: >-
+      回 201;orderId 不為空;該訂單在列表裡;itemCount = 3;
+      totalAmount = 6400 + 4500 = 10900(商品金額合計;運費那一項見 proxy_for)。
+    provenance: Qn
+    provenance_ref: SPEC.md L218-L221(來源 [Q16] [Q21] [Q26],逐字見 L534、L539、L544)
+    proxy_for: >-
+      同 G1:散文的 totalAmount 是 6400 + 4500 + 120 = 11020,而 fixture 沒有運費欄位,
+      故以不含運費的請求代替,斷言 10900。C2 的「+ 運費」那一半本檔驗不到。
+      lineSubtotal(品項小計)也不在列表一列的欄位裡(E3,L155-L171),
+      故散文 Then 的「lineSubtotal 分別為 6400 與 4500」本檔只能靠總額間接驗到。
+    steps:
+      - alias: order1
+        customer_id: 王小明
+        items:
+          - product_id: NIKE-DUNK-LOW-US9
+            quantity: 2
+            unit_price_cents: 3200
+            currency: TWD
+          - product_id: NIKE-AIR-FORCE1-US9    # 散文只說「SKU B」,此處給 fixture 一個具體 SKU
+            quantity: 1
+            unit_price_cents: 4500
+            currency: TWD
+    assertions:
+      - kind: status_is
+        target: order1
+        expected_number: 201
+      - kind: order_id_not_blank
+        target: order1
+      - kind: list_row_exists
+        target: order1
+      - kind: list_field_equals_number
+        target: order1
+        field: totalAmount
+        expected_number: 10900
+      - kind: list_field_equals_number
+        target: order1
+        field: itemCount
+        expected_number: 3
+      - kind: list_field_equals_text
+        target: order1
+        field: status
+        expected_text: PLACED
+
+  # ── G13(SPEC.md L273-L274)───────────────────────────────────────────
+  - id: G13
+    given_when: >-
+      三張分屬不同客戶的訂單;後台人員呼叫 GET /orders。
+    then_expect: >-
+      三張都在列表裡,每一列的 customerName 各自對得回它自己的下單者,
+      欄位如 §1.2 E3(L155-L171)。
+    provenance: Qn
+    provenance_ref: SPEC.md L273-L274(來源:需求方第一句原話「我能看到所有訂單」+ [Q25],逐字見 L543)
+    proxy_for: >-
+      散文的 When 是「**後台人員**呼叫 GET /orders」。本檔沒有身分:B-2(身分驗證)是阻斷級
+      規格沉默(L350),§10 明寫 GET /orders 本次一律回所有訂單、不得實作任何身分模型
+      (L509)。故此處以「不帶身分呼叫列表」代替「後台人員呼叫」,驗的是
+      「三張都在同一份列表裡」,**驗不到「後台人員」與「用戶」的可見範圍差異**(那是 G15,
+      依 B-2 阻斷、不入驗收套件)。
+    steps:
+      - alias: order1
+        customer_id: 王小明
+        items:
+          - product_id: NIKE-DUNK-LOW-US9
+            quantity: 1
+            unit_price_cents: 3200
+            currency: TWD
+      - alias: order2
+        customer_id: 李美華
+        items:
+          - product_id: NIKE-AIR-FORCE1-US9
+            quantity: 2
+            unit_price_cents: 4500
+            currency: TWD
+      - alias: order3
+        customer_id: 張志豪
+        items:
+          - product_id: NIKE-DUNK-LOW-US9
+            quantity: 1
+            unit_price_cents: 3200
+            currency: TWD
+    assertions:
+      - kind: status_is
+        target: order1
+        expected_number: 201
+      - kind: status_is
+        target: order2
+        expected_number: 201
+      - kind: status_is
+        target: order3
+        expected_number: 201
+      - kind: list_row_exists
+        target: order1
+      - kind: list_row_exists
+        target: order2
+      - kind: list_row_exists
+        target: order3
+      - kind: list_field_equals_text
+        target: order1
+        field: customerName
+        expected_text: 王小明
+      - kind: list_field_equals_text
+        target: order2
+        field: customerName
+        expected_text: 李美華
+      - kind: list_field_equals_text
+        target: order3
+        field: customerName
+        expected_text: 張志豪
+      - kind: list_field_equals_number
+        target: order2
+        field: totalAmount
+        expected_number: 9000
+      - kind: list_field_equals_number
+        target: order2
+        field: itemCount
+        expected_number: 2
+      - kind: list_field_is_iso_date
+        target: order3
+        field: placedAt
+
+  # ── G16(SPEC.md L286)───────────────────────────────────────────────
+  - id: G16
+    expects_rejection: true
+    given_when: >-
+      下單請求裡的數量是 0,或是負數(-1)。
+    then_expect: >-
+      兩筆都回 400;訂單列表裡沒有任何一列屬於這兩個下單者
+      (散文的「不建立結帳作業」本檔驗不到 —— 結帳作業沒有查詢端點)。
+    provenance: 本案自決
+    provenance_ref: SPEC.md L286;依據 §6 A-6「數量為 ≥ 1 的整數」(L375)、§3 C5(L299)
+    rejected_requests:
+      - alias: zeroQuantity
+        customer_id: cust-rej-qty-zero      # 刻意不是任何預期成功情境用過的下單者
+        items:
+          - product_id: NIKE-DUNK-LOW-US9
+            quantity: 0                      # 違法值,刻意不修正
+            unit_price_cents: 3200
+            currency: TWD
+      - alias: negativeQuantity
+        customer_id: cust-rej-qty-negative
+        items:
+          - product_id: NIKE-DUNK-LOW-US9
+            quantity: -1                     # 違法值,刻意不修正
+            unit_price_cents: 3200
+            currency: TWD
+    rejected_assertions:
+      - kind: status_is
+        target: zeroQuantity
+        expected_number: 400
+      - kind: list_no_row_for_customer
+        target: zeroQuantity
+      - kind: status_is
+        target: negativeQuantity
+        expected_number: 400
+      - kind: list_no_row_for_customer
+        target: negativeQuantity
+
+  # ── G17(SPEC.md L287)───────────────────────────────────────────────
+  - id: G17
+    expects_rejection: true
+    given_when: >-
+      下單請求裡的 unitPrice 是負數(-3200)。
+    then_expect: >-
+      回 400;訂單列表裡沒有任何一列屬於這個下單者。
+    provenance: 本案自決
+    provenance_ref: SPEC.md L287;依據 §6 A-1「金額…不可為負」(L370)、§3 C4(L298)
+    proxy_for: >-
+      散文的 G17 是「`unitPrice` **或** `shippingFee` 為負 → 回 400」。fixture 沒有運費欄位
+      (見 G1 的 proxy_for),故本情境只送得出負的 unitPrice,**shippingFee 為負那一半驗不到**。
+    rejected_requests:
+      - alias: negativePrice
+        customer_id: cust-rej-price-negative
+        items:
+          - product_id: NIKE-DUNK-LOW-US9
+            quantity: 1
+            unit_price_cents: -3200          # 違法值,刻意不修正
+            currency: TWD
+    rejected_assertions:
+      - kind: status_is
+        target: negativePrice
+        expected_number: 400
+      - kind: list_no_row_for_customer
+        target: negativePrice

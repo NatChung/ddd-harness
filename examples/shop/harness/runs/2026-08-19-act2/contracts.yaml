@@ -1,0 +1,360 @@
+# contracts.yaml —— 從 spec/SPEC.md §3 領域契約(L291-L311)落檔,
+# 跨聚合根的處置本文取自 §9 的 X-1 / X-2 / X-3(L451-L457)。
+#
+# 兩件事先講明,免得下面的欄位被誤讀:
+#
+# 1. enforcement 一律 none —— 今天沒有任何生成器讀 domain_contract。
+#    ladder_note 逐條寫「為什麼還沒有機械檢查、搬得上去的話搬去哪」,不寫成一句罐頭。
+#
+# 2. named_tests 的零:**本檔 17 條契約,散文全部都有指名測試**(§3 的「指名測試」欄
+#    L293-L311 沒有一格是空的)。所以這裡出現的每一個零都是**第二種零**:
+#    「散文指名了 Gn,但 Gn 沒有收進 acceptance.yaml」,而不是「散文根本沒指名」。
+#    收不進來的原因逐條寫在 no_named_test_reason 裡,並指名是哪一個 Gn、缺的是哪個動詞。
+#    (acceptance.yaml 只收得下 G1 / G2 / G13 / G16 / G17 —— fixture 的動詞只有
+#     「送一筆下單請求」,沒有庫存前置、沒有付款回報、沒有時間推進、沒有改狀態。)
+
+domain_contracts:
+
+  - id: C1
+    kind: precondition
+    statement: 進入結帳時,每一個品項都必須能在該 SKU 上取得足量的庫存鎖定;取不到就不得進入結帳
+    provenance: Qn
+    provenance_ref: SPEC.md L295(來源 [Q7],逐字見 L525)
+    guarded_in: 庫存
+    crosses_aggregate: 0
+    disposition:
+    enforcement: none
+    ladder_note: >-
+      還沒有機械檢查:今天沒有生成器讀 domain_contract,而唯一指名的情境 G3 也進不了
+      acceptance.yaml(fixture 沒有庫存前置狀態)。搬得上去的話搬到第 1 階的驗收生成器 ——
+      前提是 fixture 詞彙先長出「某 SKU 的可售庫存 = n」這個 Given 與「結帳作業/庫存鎖定
+      沒有被建立」這個斷言;在那之前這條只住第 4 階(規格層讀得懂,沒有人在檢查)。
+    named_tests: []
+    no_named_test_reason: >-
+      第二種零:散文 L295 指名了 G3,但 G3 沒有收進 acceptance.yaml。
+      缺的是前置狀態的動詞 —— G3 的 Given 是「SKU A 可售庫存 1 雙」,而 fixture 只能送請求、
+      擺不出庫存;沒有庫存的 fixture 送數量 2 會**成立**而不是被拒,編進去就是一條斷言錯結果的測試。
+
+  - id: C2
+    kind: invariant
+    statement: 總價 = Σ(每個品項的單價 × 數量) + 運費
+    provenance: Qn
+    provenance_ref: SPEC.md L296(來源 [Q21] [Q26];[Q26]「最後一個」裁決 §7-1,逐字見 L539、L544)
+    guarded_in: 訂單
+    crosses_aggregate: 0
+    disposition:
+    enforcement: none
+    ladder_note: >-
+      還沒有機械檢查,而且這條是「invariant 被降級成 example」的樣本:G2 只證明了
+      2×3200 + 1×4500 這一筆,契約說的是任何品項組合。搬得上去的話搬到一支對總價算式做
+      property test 的生成器(任意品項組合 → 比對算式),而不是再多幾筆 fixture。
+      另有一個今天量得到的缺口:G2 的 fixture 沒有運費欄位,所以連 example 都只驗到
+      「Σ(單價 × 數量)」那一半,「+ 運費」那一半今天**完全沒有任何檢查**。
+    named_tests:
+      - G2
+    no_named_test_reason:
+
+  - id: C3
+    kind: invariant
+    statement: 訂單至少有一個訂單品項
+    provenance: 本案自決
+    provenance_ref: SPEC.md L297;依據 §6 A-9「空訂單無業務意義」(L378)
+    guarded_in: 訂單
+    crosses_aggregate: 0
+    disposition:
+    enforcement: none
+    ladder_note: >-
+      還沒有機械檢查。這條搬得上去的形式是型別層而不是測試層:讓訂單的建構子收不下空的
+      品項集合(第 1 階「填不了就寫不進去」的同一招),那時測試就只是佐證。
+      在那之前只住第 4 階。
+      ⚠️ 另記:散文指名的 G16 驗的是「數量 0 或負數」,**不是空品項清單** ——
+      指名測試與契約內容其實對不齊,§2 沒有任何一條情境送空的 items。
+    named_tests:
+      - G16
+    no_named_test_reason:
+
+  - id: C4
+    kind: invariant
+    statement: 金額的幣別恆為 TWD,數值為非負整數
+    provenance: Qn
+    provenance_ref: SPEC.md L298:幣別來源 [Q12](逐字見 L530);非負整數為 本案自決 §6 A-1(L370)
+    guarded_in: 金額(Value Object 自身)
+    crosses_aggregate: 0
+    disposition:
+    enforcement: none
+    ladder_note: >-
+      還沒有機械檢查。這條守在 Value Object 自己身上,搬得上去的形式同樣是型別層:
+      金額的工廠方法拒收負數與非 TWD 幣別。測試層的 G17 只證明了「負的 unitPrice 被拒」
+      這一筆,而且**幣別那一半今天完全沒有情境**(§5 L342 多幣別不在範圍,§2 沒有送
+      非 TWD 幣別的情境)。
+    named_tests:
+      - G17
+    no_named_test_reason:
+
+  - id: C5
+    kind: invariant
+    statement: 訂單品項的數量為 ≥ 1 的整數
+    provenance: 本案自決
+    provenance_ref: SPEC.md L299;依據 §6 A-6「買 0 雙鞋不是一筆生意」(L375)
+    guarded_in: 訂單
+    crosses_aggregate: 0
+    disposition:
+    enforcement: none
+    ladder_note: >-
+      還沒有機械檢查。搬得上去的形式是型別層(數量 Value Object 的建構子拒收 ≤ 0),
+      那是最便宜的一階;今天只有 G16 這兩筆例子(0 與 -1),證明不了「任何時候」。
+    named_tests:
+      - G16
+    no_named_test_reason:
+
+  - id: C6
+    kind: precondition
+    statement: 沒有付費成功,不得產生訂單(散文在此標記「⚠️ 跨聚合根,邊界可能錯 —— 判定「付費成功」必須看第三方支付,即訂單以外的資料」)
+    provenance: Qn
+    provenance_ref: SPEC.md L300(來源 [Q8]「沒有成功就沒有訂單」,逐字見 L526)
+    guarded_in: 訂單
+    crosses_aggregate: 1
+    disposition: >-
+      新增一個聚合根「結帳作業」:付款結果由 PaymentSucceeded / PaymentFailed 兩個事件寫進
+      結帳作業自己的狀態,POST /orders 只讀結帳作業就判定得了這條,判定不再需要即時去看
+      第三方支付。這是本案自決,依據是 [Q7](鎖在進入結帳時建立)與 [Q8](訂單付費成功後
+      才存在)之間的時間差。
+      殘留風險:結帳作業裡的付款狀態是事件寫進去的**副本**,不是支付端的即時真相 ——
+      事件遲到、漏送或重放時,這條會拿過期的狀態做判定,而規格沒有規定對帳或補償機制
+      (§5 B-4「退費要多久內完成」未答、對帳明寫本次不做,見 L325)。
+    enforcement: none
+    ladder_note: >-
+      還沒有機械檢查:唯一指名的 G4 收不進 acceptance.yaml。搬得上去的話有兩段 ——
+      (a)結構面搬到 ArchUnit(訂單的領域型別不得依賴 payment 的型別,§9 R6 / R7 已經有
+      規則但那是架構表、不是這條契約);(b)行為面要等 fixture 長出「付款回報成功/失敗」
+      這個動詞才進得了驗收生成器。
+    named_tests: []
+    no_named_test_reason: >-
+      第二種零:散文 L300 指名了 G4,但 G4 沒有收進 acceptance.yaml。
+      缺的動詞是「第三方支付回報付款失敗」—— fixture 只能送一筆下單請求,擺不出付款結果,
+      也沒有「不存在任何訂單」以外的觀察點。
+
+  - id: C7
+    kind: precondition
+    statement: 建立訂單時,其結帳作業必須尚未過期(建立後 1 小時內)
+    provenance: Qn
+    provenance_ref: "SPEC.md L301(來源 [Q22]「如果他沒回就走,就設定時間: 1小時」,逐字見 L540)"
+    guarded_in: 結帳作業
+    crosses_aggregate: 0
+    disposition:
+    enforcement: none
+    ladder_note: >-
+      還沒有機械檢查。這條要搬上去,fixture 先要有**時間**這個維度(把時鐘往前撥一小時),
+      今天的驗收詞彙裡完全沒有時間推進;在那之前它只住第 4 階。
+      可以先搬的一小塊:expiresAt 這個對外欄位存在與否是 wire 合約檢查得到的,
+      但那證明不了逾時後真的被擋下。
+    named_tests: []
+    no_named_test_reason: >-
+      第二種零:散文 L301 指名了 G7,但 G7 沒有收進 acceptance.yaml。
+      缺的動詞是「時間推進到 expiresAt 之後」,fixture 沒有時鐘。
+
+  - id: C8
+    kind: precondition
+    statement: 訂單成立後,除狀態外的任何欄位皆不得修改
+    provenance: Qn
+    provenance_ref: SPEC.md L302(來源 [Q24]「只會更改狀態」,逐字見 L542)
+    guarded_in: 訂單
+    crosses_aggregate: 0
+    disposition:
+    enforcement: none
+    ladder_note: >-
+      還沒有機械檢查。搬得上去的形式有兩條路:型別層(訂單除 status 外全部 final / 無 setter)
+      —— 這條其實搬得上 ArchUnit 之類的結構檢查;或行為層,等 fixture 長出「對既有訂單發修改
+      請求」這個動詞。今天兩條都還沒做。
+    named_tests: []
+    no_named_test_reason: >-
+      第二種零:散文 L302 指名了 G9,但 G9 沒有收進 acceptance.yaml。
+      缺的動詞是「對一張已成立的訂單發出修改請求」。schema 也擋著這種混合情境:
+      expects_rejection 掛在情境上,一個情境沒辦法同時有「成功的前置訂單」與「被拒的請求」。
+
+  - id: C9
+    kind: precondition
+    statement: 訂單狀態只能沿 已成立 → 已出貨 → 收到 單向前進
+    provenance: 暫定
+    provenance_ref: "SPEC.md L303:狀態值 暫定 [Q27]「先給: 已出貨/收到 就好」(L545);單向為 本案自決 §6 A-12(L381);⚠️ §7-3(L392)明寫這條建立在需求方自己承認不完整的狀態集上"
+    guarded_in: 訂單
+    crosses_aggregate: 0
+    disposition:
+    enforcement: none
+    ladder_note: >-
+      還沒有機械檢查,而且**先不該急著搬**:§7-3 未裁決前狀態集是暫定的,把一個會變的
+      狀態機釘進機械檢查,改的時候要連檢查一起改。可搬的時機是 §7-3 被需求方裁決之後,
+      形式是狀態機的轉移表(型別層或 property test),而不是三筆 fixture。
+    named_tests: []
+    no_named_test_reason: >-
+      第二種零:散文 L303 指名了 G10 / G11 / G12 **三個**情境,三個都沒有收進 acceptance.yaml。
+      缺的動詞是 PATCH /orders/{orderId}/status(改狀態),fixture 只送得出下單請求。
+
+  - id: C10
+    kind: postcondition
+    statement: 訂單產生後,該結帳作業持有的庫存鎖定轉為可出貨,不回到可售庫存(散文型態標記為「postcondition(成功)」,並標「⚠️ 跨聚合根 —— 訂單成立要改到庫存」)
+    provenance: Qn
+    provenance_ref: SPEC.md L304(來源 [Q17]「就變成可出貨」,逐字見 L535)
+    guarded_in: 訂單
+    crosses_aggregate: 1
+    disposition: >-
+      規則移到庫存聚合根,由 OrderPlaced 事件驅動(§4 L323、L324):訂單那一側只負責發出
+      事件,把鎖定轉可出貨的判定與寫入都留在庫存自己身上,訂單不持有庫存物件、只以 sku 字串
+      引用(§9 R6)。
+      殘留風險:「訂單成立與庫存轉可出貨是不是同一筆交易」需求方從未被問到。本次採**同一筆
+      交易內完成**(依據 [Q17]「就變成可出貨」語氣是立即的),代價是這一筆交易跨了兩個聚合根,
+      違反「一次交易只改一個聚合根」(§9 R9);若日後改成跨交易的事件驅動,兩者之間會出現一段
+      「訂單已成立、庫存還沒轉可出貨」的窗口,這條契約在那段窗口內不成立,而規格沒有規定窗口
+      上限。此項已列為待確認。
+    enforcement: none
+    ladder_note: >-
+      還沒有機械檢查。行為面要等 fixture 長出庫存這個東西(狀態擺得出來、也看得到)才搬得動;
+      結構面倒是已經有鄰居:§9 R6(以識別碼引用)有 ArchUnit 檢查,但那守的是「邊界不爛掉」,
+      不是這條契約本身的內容。
+    named_tests: []
+    no_named_test_reason: >-
+      第二種零:散文 L304 指名了 G8,但 G8 沒有收進 acceptance.yaml。
+      缺的是庫存這個觀察點 —— 「那 2 雙既不回到可售庫存、也不再是庫存鎖定」在對外的訂單列表上
+      看不見(§1.2 沒有任何端點揭露庫存)。
+
+  - id: C11
+    kind: postcondition
+    statement: 庫存不足時:不建立結帳作業、不建立任何庫存鎖定、可售庫存數字不變,不留半筆(散文型態標記為「postcondition(失敗:業務規則)」)
+    provenance: 推導自
+    provenance_ref: SPEC.md L305(推導自 [Q7]「無法結帳」→ 結帳作業不成立,逐字見 L525)
+    guarded_in: 庫存
+    crosses_aggregate: 0
+    disposition:
+    enforcement: none
+    ladder_note: >-
+      還沒有機械檢查,原因與 C1 同一個(指名的 G3 擺不出庫存前置)。
+      搬得上去的話跟 C1 一起搬:fixture 長出庫存 Given + 「結帳作業/庫存鎖定沒有被建立」
+      這個斷言之後,這條與 C1 是同一筆情境的兩面(前置條件擋下、後置狀態不留殘骸)。
+    named_tests: []
+    no_named_test_reason: >-
+      第二種零:散文 L305 指名了 G3,但 G3 沒有收進 acceptance.yaml(理由同 C1:fixture 沒有庫存前置狀態)。
+
+  - id: C12
+    kind: postcondition
+    statement: 付費失敗時:不存在任何訂單;該結帳作業的庫存鎖定全部釋放,可售庫存回到鎖定前(散文型態標記為「postcondition(失敗:外部系統)」,並標「⚠️ 跨聚合根 —— 結帳作業 + 庫存」)
+    provenance: Qn
+    provenance_ref: SPEC.md L306(來源 [Q8] [Q7],逐字見 L526、L525)
+    guarded_in: 結帳作業
+    crosses_aggregate: 1
+    disposition: >-
+      與 C10 同一套處置:規則移到庫存聚合根,由 PaymentFailed 觸發的
+      StockReservationReleased 事件驅動釋放(§4 L320、L322),結帳作業不直接改庫存的數字。
+      殘留風險:釋放是事件驅動的,事件從發出到庫存數字回復之間有一段窗口,那段時間裡
+      「可售庫存回到鎖定前」不成立 —— 對外的後果是那幾雙鞋暫時賣不出去(少賣,不是超賣),
+      比反過來安全,但規格沒有規定窗口上限,也沒有規定事件漏送時誰來補。
+      本次同樣採「事件在同一筆交易內處理」的作法(同 C10),因此也共用 C10 那條與 §9 R9
+      的緊張關係。
+    enforcement: none
+    ladder_note: >-
+      還沒有機械檢查。行為面卡在同一個地方:fixture 沒有付款回報這個動詞、也沒有庫存這個
+      觀察點。搬得上去的第一小步是把「不存在任何訂單」這半條變成 list_no_row_for_customer
+      式的斷言 —— 那是今天的詞彙表達得出來的;「庫存回到鎖定前」那半條還不行。
+    named_tests: []
+    no_named_test_reason: >-
+      第二種零:散文 L306 指名了 G4,但 G4 沒有收進 acceptance.yaml(理由同 C6:fixture 擺不出付款失敗)。
+
+  - id: C13
+    kind: postcondition
+    statement: 已收到錢但訂單未完成建立時:不得留下半筆訂單;必須對該筆付款發出退費;庫存鎖定釋放;不得改以事後補建訂單替代退費(散文型態標記為「postcondition(失敗:系統中途失敗)」,並標「⚠️ 跨聚合根 —— 訂單 + 庫存 + 支付」)
+    provenance: Qn
+    provenance_ref: SPEC.md L307(來源 [Q14]「優先確認有費用 但沒訂單,先退費,因為內容也不見了」、[Q18],逐字見 L532、L536)
+    guarded_in: 訂單
+    crosses_aggregate: 1
+    disposition: >-
+      不新增聚合根,以補償流程處理:退費是 PaymentRefunded 事件驅動的獨立動作,刻意**不**與
+      訂單建立放同一筆交易 —— 放同一筆的話,訂單建立失敗時退費會跟著被回滾,等於什麼都沒做。
+      重複退費由 C14 的冪等(以付款識別碼)擋住。
+      殘留風險:補償是最終一致的,從系統中斷到退費完成之間存在一段「錢已收、訂單不存在」的
+      窗口,客人在那段時間看得到扣款卻查不到單;而**退費要多久內完成需求方沒答**(§5 B-4,
+      L352),所以這個窗口今天沒有上限,也沒有對客承諾。另外:退費若一直失敗(超過重試),
+      規格沒有規定要怎麼收尾 —— 對帳明寫本次不做(L325)。
+    enforcement: none
+    ladder_note: >-
+      還沒有機械檢查,而且這條大概是最難搬的一條:要驗它得先能讓系統在持久化中途**掛掉**,
+      那是 fixture 詞彙以外的能力(故障注入)。搬得上去的話搬到第 1 階的方式不是驗收生成器,
+      而是一支針對補償流程的專門測試工具;在那之前這條完全靠人守。
+    named_tests: []
+    no_named_test_reason: >-
+      第二種零:散文 L307 指名了 G5,但 G5 沒有收進 acceptance.yaml。
+      缺的動詞是「建立訂單的持久化過程中系統中斷」與「對某筆付款發出退費」,
+      兩個 fixture 都做不到。
+
+  - id: C14
+    kind: postcondition
+    statement: 同一個付款識別碼最多只被退費一次(退費可重試、結果冪等)
+    provenance: 本案自決
+    provenance_ref: SPEC.md L308;依據 §6 A-10(L379):[Q18]「我們接第三方支付做」→ 網路呼叫必然會失敗與重試
+    guarded_in: 支付(port 層)
+    crosses_aggregate: 0
+    disposition:
+    enforcement: none
+    ladder_note: >-
+      還沒有機械檢查。這條守在 port 層,搬得上去的形式是針對那個 port 的合約測試
+      (同一個付款識別碼呼叫 N 次、對外只發生一次),不需要整套驗收 —— 是這 17 條裡
+      最容易搬的一條,只是今天還沒有人寫。
+    named_tests: []
+    no_named_test_reason: >-
+      第二種零:散文 L308 指名了 G6,但 G6 沒有收進 acceptance.yaml。
+      缺的動詞是「重試退費呼叫」,而且 G6 的斷言對象是 port 的呼叫次數,不是對外的訂單列表 ——
+      今天的斷言詞彙(狀態碼 + 列表)看不到它。
+
+  - id: C15
+    kind: postcondition
+    statement: 結帳作業建立滿 1 小時仍未產生訂單時,其庫存鎖定全部釋放(散文標「⚠️ 跨聚合根 —— 結帳作業 + 庫存」)
+    provenance: Qn
+    provenance_ref: "SPEC.md L309(來源 [Q22]「釋放…就設定時間: 1小時」,逐字見 L540)"
+    guarded_in: 結帳作業
+    crosses_aggregate: 1
+    disposition: >-
+      與 C10 / C12 同一套處置:釋放的規則住在庫存聚合根,由逾時觸發的
+      StockReservationReleased 事件驅動(§4 L320),結帳作業只負責到期這件事本身。
+      殘留風險:逾時要靠一個排程或計時器去觸發,而**誰來跑、多久掃一次規格沒有寫** ——
+      實際釋放的時間會晚於 expiresAt 一段不確定的長度,那段時間裡這條不成立(對外後果是
+      那幾雙鞋晚一點才回到可售,少賣不超賣)。事件漏送時鎖定會永遠掛著,規格也沒有規定
+      補救,而 §5 B-8「庫存怎麼補、誰補」同樣未答(L356)。
+    enforcement: none
+    ladder_note: >-
+      還沒有機械檢查。與 C7 卡在同一個地方(fixture 沒有時鐘),再加上庫存這個觀察點也沒有。
+      搬得上去的話跟 C7 一起搬 —— 它們是同一個逾時的前後兩面。
+    named_tests: []
+    no_named_test_reason: >-
+      第二種零:散文 L309 指名了 G7,但 G7 沒有收進 acceptance.yaml(理由同 C7:fixture 沒有時間推進,也看不到庫存)。
+
+  - id: C16
+    kind: postcondition
+    statement: 狀態變更成功後,訂單除 status 外的欄位逐欄不變
+    provenance: Qn
+    provenance_ref: SPEC.md L310(來源 [Q24]「只會更改狀態」,逐字見 L542)
+    guarded_in: 訂單
+    crosses_aggregate: 0
+    disposition:
+    enforcement: none
+    ladder_note: >-
+      還沒有機械檢查。搬得上去的形式是「改狀態前後逐欄比對」的測試,前提是 fixture 先有
+      改狀態這個動詞;型別層的不可變(同 C8)可以先擋住一部分,但擋不到「透過狀態變更的路徑
+      順手改了別的欄位」這種寫法 —— 那正是這條要抓的。
+    named_tests: []
+    no_named_test_reason: >-
+      第二種零:散文 L310 指名了 G9 與 G10,兩個都沒有收進 acceptance.yaml
+      (缺的動詞分別是「發出修改請求」與「PATCH 改狀態」)。
+
+  - id: C17
+    kind: postcondition
+    statement: 狀態變更被拒時,訂單狀態停在原狀態,不留中間態(散文型態標記為「postcondition(失敗)」)
+    provenance: 推導自
+    provenance_ref: SPEC.md L311(推導自 [Q24]「只會更改狀態」,逐字見 L542)
+    guarded_in: 訂單
+    crosses_aggregate: 0
+    disposition:
+    enforcement: none
+    ladder_note: >-
+      還沒有機械檢查。與 C9 綁在一起:狀態機的轉移表定下來、fixture 長出改狀態這個動詞之後,
+      這條是「被拒的那一格」的後置檢查。§7-3 未裁決前先不要釘死。
+    named_tests: []
+    no_named_test_reason: >-
+      第二種零:散文 L311 指名了 G12,但 G12 沒有收進 acceptance.yaml(缺 PATCH 改狀態這個動詞)。

@@ -1,0 +1,11 @@
+__pycache__/
+*.py[cod]
+.pytest_cache/
+*.db
+
+# gradle / java 產出
+build/
+.gradle/
+*.class
+
+.DS_Store

@@ -1,0 +1,216 @@
+# 本輪訪談產出的詞彙表 —— 由 SPEC-draft.md L20-L36(§1 GLOSSARY)與
+# L42-L47(§1.1 禁用同義詞清單)轉寫而來
+#
+# ⚠️ 這份是**手工轉寫**,不是第二幕落檔 agent 的產出。真的跑第二幕時,
+#    這一段由落檔 agent 自己交,格式相同。
+#
+# ⚠️ **這一份是三份語料裡唯一有「對外欄位名」那一欄的,而它也是唯一量不到差額的。**
+#    這場訪談的 S1–S21 **本輪一份都沒落檔** → 沒有 wire 合約 → 對譯檢查**沒有對面可比**。
+#    runs/ 底下三份 act2 產出是**別份規格**的(編號撞名而語意不同),
+#    **拿它們配對就是造假**,所以不配 —— 這一份誠實走 glossary_check.py 的
+#    「不適用」,而不是借別人的合約湊一個好看的數字。
+#
+# ⚠️ 轉寫時掉了東西,寫下來:
+#    1. **「對外欄位名」那一格裝了三種東西**:欄位名 / 真正的空白(界外概念不上線)/
+#       **散文註記**(某兩列寫的是括號說明,一列說「這個詞就是整個回應物件」、
+#       一列說「這個詞的欄位在下面那幾列」)。註記不是欄位名,轉寫成空白 ——
+#       於是那兩列在計數上跟「這個詞不上線」長得一樣,而它們的真相不是那樣。
+#       **這是「空白」這一格的第二種內容,報表的上限有印。**
+#    2. 明細那列的欄位名在散文裡帶了型態記號(方括號)。方括號是**型態的寫法**,
+#       不是欄位名的一部分,轉寫時去掉 —— 這是一個**判斷**,記在這裡。
+#       (spec_store 的第 2 階也擋:對外欄位名必須是一個欄位名,不是散文原文。)
+#    3. **五格來源標記是單值**,而某兩列一格裡混了 `[Qn]` 與 `本案自決`
+#       (值是他說的、格式是自決的)。轉寫只留得住主要那一格,其餘進 provenance_ref 本文。
+#
+# ⚠️ **定義與「單位 / 表示法」逐字照抄,具體值一個都不改寫。**
+#    單位與表示法正是「欄位單位漂掉」那一類發現讀得到的東西 ——
+#    把「分」「小數 2 位」「固定常數字串」抽象成「最小幣值單位」看起來乾淨,
+#    實際上是把下一支檢查要吃的資料先刪掉了。
+#    (洩題那條規則管的是 `schema.sql` 與 `spec_store.py` —— `run_act2.sh` 只複製那兩個檔;
+#    資料檔本來就裝真實的值,鄰居 `contracts.yaml` / `acceptance.yaml` 也是。)
+
+glossary_terms:
+  - term: 訂單 Order
+    definition: 客人一次送出、已經成立的一筆採購。系統裡存得下來的訂單只有已成立的
+    ddd_type: Aggregate Root
+    provenance: Qn
+    provenance_ref: "[Q1][Q13] — SPEC-draft.md L20;對外欄位名那格寫的是註記(整個回應物件),不是欄位名"
+
+  - term: 訂單品項 OrderLine
+    definition: 訂單裡的一列:哪個商品、買幾個、當時單價多少
+    ddd_type: Value Object
+    wire_field: items
+    provenance: Qn
+    provenance_ref: "[Q1] — SPEC-draft.md L21;同一格另標 推導自 [Q6];欄位名原文帶型態記號,轉寫去掉"
+
+  - term: 客人編號 CustomerId
+    definition: 會員系統發的編號,用來認出這幾張單是同一個人下的
+    ddd_type: 識別碼
+    representation: 字串,原樣採用會員系統的值,不做格式假設
+    wire_field: customerId
+    provenance: Qn
+    provenance_ref: "[Q5][Q10] — SPEC-draft.md L22"
+
+  - term: 客人名字 CustomerName
+    definition: 顯示用的名字。不屬於訂單,清單顯示時即時向會員系統查
+    ddd_type: (界外資料,非本案型態)
+    representation: 字串;查不到時為 null
+    wire_field: customerName
+    provenance: Qn
+    provenance_ref: "[Q10][Q15] — SPEC-draft.md L23"
+
+  - term: 商品編號 ProductId
+    definition: 商品價目系統認得的商品識別
+    ddd_type: 識別碼
+    representation: 字串,原樣採用,不做格式假設
+    wire_field: productId
+    provenance: 推導自
+    provenance_ref: "推導自 [Q6][Q15] — SPEC-draft.md L24"
+
+  - term: 數量 Quantity
+    definition: 一列品項買幾個
+    ddd_type: Value Object
+    representation: 正整數,無單位換算,範圍 1–100
+    wire_field: quantity
+    provenance: Qn
+    provenance_ref: "[Q1][Q11][Q19] — SPEC-draft.md L25"
+
+  - term: 金額 Money
+    definition: 一切錢的表示法
+    ddd_type: Value Object
+    representation: 整數,單位「分」,幣別固定 TWD。39800 = 新台幣 398.00 元。相等性 = 數值與幣別皆相同
+    provenance: Qn
+    provenance_ref: "[Q2] — SPEC-draft.md L26;對外欄位名那格寫的是註記(指向下面那幾列),不是欄位名"
+
+  - term: 單價 UnitPrice
+    definition: 成立當下從商品價目系統取得的價錢,存進訂單後永久定住
+    ddd_type: Value Object(Money)
+    representation: 整數・分・TWD;非負(可為 0,贈品)
+    wire_field: unitPrice
+    provenance: Qn
+    provenance_ref: "[Q6][Q19] — SPEC-draft.md L27"
+
+  - term: 小計 LineAmount
+    definition: 一列品項的錢 = 單價 × 數量
+    ddd_type: Value Object(Money)
+    representation: 整數・分・TWD
+    wire_field: lineAmount
+    provenance: 推導自
+    provenance_ref: "推導自 [Q1] — SPEC-draft.md L28"
+
+  - term: 總金額 TotalAmount
+    definition: 整張單的錢 = 所有小計加總。由系統算,客人不得指定
+    ddd_type: Value Object(Money)
+    representation: 整數・分・TWD;必須 > 0
+    wire_field: totalAmount
+    provenance: Qn
+    provenance_ref: "[Q1][Q6][Q11] — SPEC-draft.md L29"
+
+  - term: 幣別 Currency
+    definition: 本案只有一種
+    ddd_type: Value Object
+    representation: 固定常數字串 "TWD"
+    wire_field: currency
+    provenance: Qn
+    provenance_ref: "[Q2] — SPEC-draft.md L30"
+
+  - term: 訂單狀態 OrderStatus
+    definition: 訂單所處階段。本系統內恆為「已成立」一種值
+    ddd_type: 階段或狀態
+    representation: 固定常數字串 "PLACED"
+    wire_field: status
+    provenance: Qn
+    provenance_ref: "[Q4][Q7][Q13][Q16] — SPEC-draft.md L31"
+
+  - term: 訂單單號 OrderNumber
+    definition: 對外唯一識別碼,客人看得懂、能口頭報給客服
+    ddd_type: 識別碼
+    representation: 字串,格式見 §6-A2
+    wire_field: orderNumber
+    provenance: Qn
+    provenance_ref: "[Q20] — SPEC-draft.md L32;格式那半是 本案自決(五格單值裝不下)"
+
+  - term: 成立日期 PlacedOn
+    definition: 訂單成立那一天。只到日期,不含時分秒
+    ddd_type: Value Object
+    representation: YYYY-MM-DD,時區 Asia/Taipei
+    wire_field: placedOn
+    provenance: Qn
+    provenance_ref: "[Q20] — SPEC-draft.md L33;時區那半是 本案自決(五格單值裝不下)"
+
+  # 下面三列的「對外欄位名」是**真正的空白** —— 它們是界外概念與角色,API 上不出現。
+  # 空白不是漏填,是「這個詞不上線」。
+  - term: 會員系統
+    definition: 管客人編號與名字的另一套系統,不是本案要做的
+    ddd_type: 外部規則集
+    provenance: Qn
+    provenance_ref: "[Q10] — SPEC-draft.md L34"
+
+  - term: 商品價目系統
+    definition: 管商品價錢的另一套系統,不是本案要做的
+    ddd_type: 外部規則集
+    provenance: Qn
+    provenance_ref: "[Q15] — SPEC-draft.md L35"
+
+  - term: 內部人員
+    definition: 需求方本人與其團隊。訂單清單只給他們看
+    ddd_type: 角色
+    provenance: Qn
+    provenance_ref: "[Q17] — SPEC-draft.md L36"
+
+banned_synonyms:
+  # ⚠️ 散文的「一律改用」給了兩個詞,而**第一個在詞彙表裡不存在**
+  #    (詞彙表定義的是那個編號,沒有裸的那個詞)。FK 擋下來了 ——
+  #    只留得住存在的那一個,另一半進 note。**散文自己看不出這個破口。**
+  - banned: 會員
+    use_instead: 客人編號 CustomerId
+    note: 「會員」是會員系統那一側的概念;本案只認得一個編號,不擁有會員(SPEC-draft.md L42;散文另給的第一個替代詞不在詞彙表裡)
+  - banned: 買家
+    use_instead: 客人編號 CustomerId
+    note: 「會員」是會員系統那一側的概念;本案只認得一個編號,不擁有會員(SPEC-draft.md L42;散文另給的第一個替代詞不在詞彙表裡)
+  - banned: 使用者
+    use_instead: 客人編號 CustomerId
+    note: 「會員」是會員系統那一側的概念;本案只認得一個編號,不擁有會員(SPEC-draft.md L42;散文另給的第一個替代詞不在詞彙表裡)
+
+  - banned: 價錢
+    use_instead: 單價 UnitPrice
+    note: 沒說清楚是商品現在的牌價還是這張單當初定住的價,而這兩者會不一樣(SPEC-draft.md L43)
+  - banned: 售價
+    use_instead: 單價 UnitPrice
+    note: 沒說清楚是商品現在的牌價還是這張單當初定住的價,而這兩者會不一樣(SPEC-draft.md L43)
+  - banned: 價格
+    use_instead: 單價 UnitPrice
+    note: 沒說清楚是商品現在的牌價還是這張單當初定住的價,而這兩者會不一樣(SPEC-draft.md L43)
+
+  - banned: 總價
+    use_instead: 總金額 TotalAmount
+    note: 「應付」暗示付款流程,本案沒有付款(SPEC-draft.md L44)
+  - banned: 金額合計
+    use_instead: 總金額 TotalAmount
+    note: 「應付」暗示付款流程,本案沒有付款(SPEC-draft.md L44)
+  - banned: 應付金額
+    use_instead: 總金額 TotalAmount
+    note: 「應付」暗示付款流程,本案沒有付款(SPEC-draft.md L44)
+
+  # 下面六列**沒有替代詞** —— 散文寫的是「不得使用」。
+  # 「真的沒有替代詞」與「還沒填」長得一模一樣,所以理由是必填的(第 1 階的同列 CHECK)。
+  - banned: 購物車
+    no_replacement_note: 系統裡不存在這種東西,留著這個詞會誘導實作出一張表;要講就講「客人畫面上尚未送出的內容,不屬本系統」
+    note: 系統裡不存在這種東西,留著這個詞會誘導實作出一張表(SPEC-draft.md L45)
+  - banned: 草稿單
+    no_replacement_note: 系統裡不存在這種東西,留著這個詞會誘導實作出一張表;要講就講「客人畫面上尚未送出的內容,不屬本系統」
+    note: 系統裡不存在這種東西,留著這個詞會誘導實作出一張表(SPEC-draft.md L45)
+  - banned: 未完成訂單
+    no_replacement_note: 系統裡不存在這種東西,留著這個詞會誘導實作出一張表;要講就講「客人畫面上尚未送出的內容,不屬本系統」
+    note: 系統裡不存在這種東西,留著這個詞會誘導實作出一張表(SPEC-draft.md L45)
+
+  - banned: 商品名稱
+    no_replacement_note: 本案對外回應不含這項資訊,不得出現在本案的欄位與型別中
+    note: 本案對外回應不含商品名稱(需求方未要求)(SPEC-draft.md L46)
+
+  - banned: 訂單狀態變更
+    no_replacement_note: 只有一種狀態,沒有轉移,所以沒有對應的詞可以改用
+    note: 只有一種狀態,沒有轉移(SPEC-draft.md L47)
+  - banned: 狀態機
+    no_replacement_note: 只有一種狀態,沒有轉移,所以沒有對應的詞可以改用
+    note: 只有一種狀態,沒有轉移(SPEC-draft.md L47)

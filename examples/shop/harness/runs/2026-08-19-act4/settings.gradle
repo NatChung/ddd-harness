@@ -1,0 +1,7 @@
+// ⚠️ 受測品(ADR 0006 §6):骨架是餵給第四幕 agent 的輸入,改了它後續的跑就不能跟先前比。
+//    每跑要在 run 目錄留骨架的 blob 雜湊(git ls-files -s examples/shop/app-from-interview),
+//    寫報告前先 diff 上一跑那份。洩題面清單見 .scratch/ddd-harness/10-PREDICTION.md。
+//
+// 名字跟凍結骨架(rootProject.name = 'shop')刻意不同 —— 兩份骨架同時存在,
+// 名字撞了 gradle daemon / build cache 會把它們當同一個專案。
+rootProject.name = 'shop-from-interview'

@@ -1,0 +1,4 @@
+S1 :: org.opentest4j.AssertionFailedError: 
+S10 :: java.lang.NullPointerException: Cannot invoke "java.lang.Number.longValue()" because the return value of "java.util.Map.get(Object)" is null
+S11 :: org.opentest4j.AssertionFailedError: 
+S2 :: org.opentest4j.AssertionFailedError: 

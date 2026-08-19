@@ -1,0 +1,28 @@
+你在做第二幕:落檔。把一份散文規格裡的驗收情境,轉成結構化的 spec 資料。
+
+讀這兩個檔:
+  spec/SPEC.md              —— 散文規格(來源)
+  tools/harness/schema.sql  —— 結構化資料的 schema(合約)
+
+產出一個檔案:acceptance.yaml,頂層一個 key `acceptance_scenarios`,是一個 list。
+schema.sql 裡的 acceptance_scenario / scenario_step / step_item / scenario_assertion
+四張表定義了每個情境要有哪些東西,yaml 的欄位名對應那些表的欄位:
+  - 每個情境:id / given_when / then_expect / provenance / provenance_ref
+  - steps 是 list,每個有 alias / customer_id / items(list)
+  - items 每個有 product_id / quantity / unit_price_cents / currency
+  - assertions 是 list,每個有 kind / target(指向某個 alias),
+    以及該 kind 需要的參數(field / expected_text / expected_number)
+
+驗證你的產出:
+
+    python3 tools/harness/spec_store.py import acceptance.yaml /tmp/spec.db
+
+它會印出逐條錯誤。**改到它印 ok 為止**,那是完成的定義。
+
+規則:
+- provenance 只能是 schema 允許的五個值之一;provenance_ref 要指得出 SPEC.md 的行號。
+- 這份規格沒有任何被授權為「架構模板」的文件。
+- 只做 SPEC.md 裡實際寫出來的情境,不要自己加。
+- 除了上面兩個檔和你自己產出的 acceptance.yaml,不要讀這個目錄的其他檔案。
+
+輸出繁體中文的註解即可,欄位名用 schema 的英文名。

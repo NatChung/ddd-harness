@@ -1,0 +1,435 @@
+/* ============================================================
+   DDD 學習 workspace — 共用課程樣式
+   所有 lessons/*.html 與 reference/*.html 都連這一支。
+   設計目標:螢幕好讀、列印好看、中英混排不打架。
+   ============================================================ */
+
+:root {
+  --ink:        #1a1a18;
+  --ink-soft:   #55534d;
+  --ink-faint:  #8a8780;
+  --paper:      #fdfcf9;
+  --rule:       #ddd9d0;
+  --accent:     #7a2e1e;   /* 磚紅,用於強調與連結 */
+  --accent-bg:  #f6ede9;
+  --good:       #2f6a45;
+  --good-bg:    #edf5f0;
+  --warn:       #8a6116;
+  --warn-bg:    #faf3e2;
+  --code-bg:    #f2f0ea;
+
+  --serif: "Iowan Old Style", "Palatino Linotype", Palatino, "Source Han Serif TC",
+           "Noto Serif CJK TC", "PingFang TC", "Songti TC", Georgia, serif;
+  --sans:  "Inter", -apple-system, BlinkMacSystemFont, "PingFang TC",
+           "Noto Sans CJK TC", "Microsoft JhengHei", sans-serif;
+  --mono:  "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  font-family: var(--serif);
+  font-size: 18px;
+  line-height: 1.72;
+  color: var(--ink);
+  background: var(--paper);
+  margin: 0 auto;
+  padding: 4rem 1.5rem 8rem;
+  max-width: 42rem;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ---------- 頁首 ---------- */
+
+.lesson-meta {
+  font-family: var(--sans);
+  font-size: 0.75rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin-bottom: 0.75rem;
+}
+
+h1 {
+  font-size: 2.1rem;
+  line-height: 1.28;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  margin: 0 0 0.6rem;
+}
+
+.subtitle {
+  font-size: 1.12rem;
+  color: var(--ink-soft);
+  font-style: italic;
+  margin: 0 0 2.5rem;
+  padding-bottom: 2rem;
+  border-bottom: 1px solid var(--rule);
+}
+
+h2 {
+  font-family: var(--sans);
+  font-size: 1.02rem;
+  font-weight: 650;
+  letter-spacing: 0.02em;
+  margin: 3.2rem 0 1rem;
+  padding-bottom: 0.4rem;
+  border-bottom: 1px solid var(--rule);
+}
+
+h3 {
+  font-family: var(--sans);
+  font-size: 0.92rem;
+  font-weight: 650;
+  color: var(--ink-soft);
+  margin: 2rem 0 0.6rem;
+}
+
+p { margin: 0 0 1.15rem; }
+
+/* ---------- 行內元素 ---------- */
+
+a {
+  color: var(--accent);
+  text-decoration: none;
+  border-bottom: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+}
+a:hover { border-bottom-color: var(--accent); }
+
+strong { font-weight: 650; }
+
+code {
+  font-family: var(--mono);
+  font-size: 0.86em;
+  background: var(--code-bg);
+  padding: 0.12em 0.36em;
+  border-radius: 3px;
+}
+
+/* 術語:第一次出現的英文專有名詞 */
+.term {
+  font-family: var(--sans);
+  font-weight: 600;
+  font-size: 0.94em;
+  color: var(--accent);
+  white-space: nowrap;
+}
+
+/* ---------- 引文 ---------- */
+
+blockquote {
+  margin: 1.6rem 0;
+  padding: 0 0 0 1.4rem;
+  border-left: 2px solid var(--rule);
+  color: var(--ink-soft);
+  font-style: italic;
+}
+blockquote cite {
+  display: block;
+  margin-top: 0.5rem;
+  font-family: var(--sans);
+  font-size: 0.78rem;
+  font-style: normal;
+  color: var(--ink-faint);
+}
+
+/* 英文引言底下的中譯。
+   引文一律保留原文(要能對得上原始出處),中譯貼在下面供理解。 */
+blockquote + .bq-zh {
+  margin: -1.2rem 0 1.6rem;
+  padding: 0 0 0 1.4rem;
+  border-left: 2px solid transparent;
+  font-size: 0.88rem;
+  color: var(--ink-faint);
+}
+blockquote + .bq-zh::before {
+  content: "中譯 ";
+  font-family: var(--sans);
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  color: var(--accent);
+}
+
+/* ---------- 提示框 ---------- */
+
+.box {
+  margin: 1.8rem 0;
+  padding: 1.1rem 1.3rem;
+  border-radius: 4px;
+  font-size: 0.95rem;
+  line-height: 1.62;
+}
+.box > :last-child { margin-bottom: 0; }
+.box .box-label {
+  display: block;
+  font-family: var(--sans);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-bottom: 0.5rem;
+}
+
+.box.key    { background: var(--accent-bg); border-left: 3px solid var(--accent); }
+.box.key .box-label    { color: var(--accent); }
+.box.good   { background: var(--good-bg);   border-left: 3px solid var(--good); }
+.box.good .box-label   { color: var(--good); }
+.box.warn   { background: var(--warn-bg);   border-left: 3px solid var(--warn); }
+.box.warn .box-label   { color: var(--warn); }
+
+/* 標註「這是推論,不是引用來的共識」——本 workspace 的誠實性要求 */
+.box.inference { background: #f4f4f2; border-left: 3px dashed var(--ink-faint); }
+.box.inference .box-label { color: var(--ink-faint); }
+
+/* ---------- 對照表 ---------- */
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1.8rem 0;
+  font-family: var(--sans);
+  font-size: 0.88rem;
+  line-height: 1.55;
+}
+th, td {
+  text-align: left;
+  vertical-align: top;
+  padding: 0.7rem 0.8rem 0.7rem 0;
+  border-bottom: 1px solid var(--rule);
+}
+th {
+  font-weight: 650;
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  border-bottom: 1px solid var(--ink-faint);
+}
+td:last-child, th:last-child { padding-right: 0; }
+
+/* ---------- 程式碼 / 規格區塊 ---------- */
+
+pre {
+  background: var(--code-bg);
+  border-radius: 4px;
+  padding: 1rem 1.2rem;
+  overflow-x: auto;
+  font-family: var(--mono);
+  font-size: 0.82rem;
+  line-height: 1.65;
+  margin: 1.4rem 0;
+}
+pre code { background: none; padding: 0; font-size: inherit; }
+
+/* Gherkin 關鍵字上色 */
+.gk { color: var(--accent); font-weight: 600; }
+
+/* ---------- 測驗元件(配 assets/quiz.js) ---------- */
+
+.quiz {
+  margin: 2rem 0;
+  padding: 1.4rem 1.5rem;
+  border: 1px solid var(--rule);
+  border-radius: 5px;
+  background: #fff;
+}
+.quiz-q {
+  font-family: var(--sans);
+  font-size: 0.95rem;
+  font-weight: 600;
+  line-height: 1.6;
+  margin: 0 0 1rem;
+}
+.quiz-opts { display: flex; flex-direction: column; gap: 0.5rem; }
+
+.quiz-opt {
+  font-family: var(--sans);
+  font-size: 0.88rem;
+  line-height: 1.55;
+  text-align: left;
+  padding: 0.7rem 0.9rem;
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  background: var(--paper);
+  color: var(--ink);
+  cursor: pointer;
+  transition: border-color 0.12s, background 0.12s;
+}
+.quiz-opt:hover:not(:disabled) { border-color: var(--ink-faint); }
+.quiz-opt:disabled { cursor: default; }
+.quiz-opt.is-right { border-color: var(--good); background: var(--good-bg); }
+.quiz-opt.is-wrong { border-color: var(--accent); background: var(--accent-bg); }
+
+.quiz-fb {
+  font-family: var(--sans);
+  font-size: 0.86rem;
+  line-height: 1.62;
+  margin-top: 1rem;
+  padding-top: 0.9rem;
+  border-top: 1px solid var(--rule);
+  display: none;
+}
+.quiz-fb.show { display: block; }
+.quiz-fb b { font-weight: 650; }
+
+/* ---------- 分類練習元件(配 assets/sorter.js) ---------- */
+
+.sorter {
+  margin: 2rem 0;
+  border: 1px solid var(--rule);
+  border-radius: 5px;
+  background: #fff;
+  overflow: hidden;
+}
+
+.sorter-item {
+  padding: 1rem 1.2rem;
+  border-bottom: 1px solid var(--rule);
+}
+.sorter-item:last-child { border-bottom: none; }
+
+.sorter-label {
+  font-family: var(--sans);
+  font-size: 0.94rem;
+  font-weight: 600;
+  margin-bottom: 0.6rem;
+}
+
+.sorter-btns { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+
+.sorter-btn {
+  font-family: var(--sans);
+  font-size: 0.8rem;
+  padding: 0.4rem 0.75rem;
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  background: var(--paper);
+  color: var(--ink-soft);
+  cursor: pointer;
+  transition: border-color 0.12s, background 0.12s, color 0.12s;
+}
+.sorter-btn:hover:not(:disabled) { border-color: var(--ink-faint); color: var(--ink); }
+.sorter-btn:disabled { cursor: default; }
+.sorter-btn.is-right { border-color: var(--good); background: var(--good-bg); color: var(--good); font-weight: 650; }
+.sorter-btn.is-wrong { border-color: var(--accent); background: var(--accent-bg); color: var(--accent); }
+
+.sorter-why {
+  font-family: var(--sans);
+  font-size: 0.83rem;
+  line-height: 1.62;
+  color: var(--ink-soft);
+  margin-top: 0.7rem;
+  padding-left: 0.8rem;
+  border-left: 2px solid var(--rule);
+  display: none;
+}
+.sorter-why.show { display: block; }
+
+.sorter-score {
+  font-family: var(--sans);
+  font-size: 0.83rem;
+  font-weight: 650;
+  padding: 0.85rem 1.2rem;
+  background: var(--code-bg);
+  color: var(--ink-soft);
+  border-top: 1px solid var(--rule);
+}
+
+/* ---------- 自由作答練習 ---------- */
+
+.drill textarea {
+  width: 100%;
+  min-height: 8rem;
+  font-family: var(--mono);
+  font-size: 0.82rem;
+  line-height: 1.7;
+  padding: 0.9rem 1rem;
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  background: #fff;
+  color: var(--ink);
+  resize: vertical;
+}
+.drill textarea:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+
+/* ---------- 頁尾 ---------- */
+
+footer {
+  margin-top: 4.5rem;
+  padding-top: 1.6rem;
+  border-top: 1px solid var(--rule);
+  font-family: var(--sans);
+  font-size: 0.84rem;
+  line-height: 1.65;
+  color: var(--ink-soft);
+}
+footer h2 { margin-top: 2rem; }
+footer ul { padding-left: 1.1rem; }
+footer li { margin-bottom: 0.4rem; }
+
+.ask-teacher {
+  margin-top: 2rem;
+  padding: 0.9rem 1.1rem;
+  background: var(--accent-bg);
+  border-radius: 4px;
+  font-size: 0.86rem;
+  color: var(--ink);
+}
+
+/* ---------- 折疊解答(practice/ 用) ----------
+   交錯練習刻意不即時給答案 —— 先自己寫,寫完才展開。
+   純 <details>,不吃 JS。 */
+
+details.reveal {
+  margin: 0.9rem 0 0;
+  border-top: 1px dashed var(--rule);
+  padding-top: 0.7rem;
+}
+details.reveal > summary {
+  cursor: pointer;
+  list-style: none;             /* 隱藏預設三角形,標題自己帶 ▸ */
+  font-family: var(--sans);
+  font-size: 0.8rem;
+  color: var(--ink-faint);
+  letter-spacing: 0.02em;
+}
+details.reveal > summary::-webkit-details-marker { display: none; }
+details.reveal > summary:hover { color: var(--accent); }
+details.reveal[open] > summary { margin-bottom: 0.6rem; color: var(--ink-soft); }
+details.reveal > :not(summary) {
+  font-size: 0.9rem;
+  color: var(--ink-soft);
+}
+
+/* ---------- 列印 ---------- */
+
+@media print {
+  body { font-size: 11pt; max-width: none; padding: 0; background: #fff; }
+  a { color: var(--ink); border-bottom: none; }
+  a[href^="http"]::after {
+    content: " (" attr(href) ")";
+    font-size: 0.72em;
+    color: var(--ink-faint);
+    word-break: break-all;
+  }
+  .quiz, .box, pre, table { break-inside: avoid; }
+  .quiz-fb { display: block !important; }   /* 列印時答案一併印出 */
+  .drill textarea { min-height: 6rem; }
+  footer { break-before: auto; }
+}
+
+/* ---------- 深色模式 ---------- */
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --ink: #e8e5de;  --ink-soft: #aba79e;  --ink-faint: #7d7a72;
+    --paper: #1b1a17; --rule: #38352f;
+    --accent: #e0917c; --accent-bg: #2c211d;
+    --good: #7fc79b;  --good-bg: #1c2a22;
+    --warn: #dbb474;  --warn-bg: #2a2418;
+    --code-bg: #24221e;
+  }
+  .quiz, .drill textarea, .sorter { background: #201e1a; }
+  .box.inference { background: #262420; }
+}

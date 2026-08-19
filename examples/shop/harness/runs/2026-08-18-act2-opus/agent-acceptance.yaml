@@ -1,0 +1,178 @@
+# 架構/領域規則 —— 來源:spec/SPEC.md「領域規則(Aggregate 與契約)」一節(L55-L70)
+# 該節明寫「與上面的情境同等效力」,故一併落檔;importer 要求此區非空。
+# 這五條都是「物件內部行為」(setter、防禦性複本、例外),不是 package 依賴/
+# annotation/回傳型別,三個 archunit kind 都表達不了 → enforcement: none,
+# 並在 ladder_note 寫明為什麼還沒搬上階、搬得上去的話搬去哪。
+# enforced_by 一律不寫:那一欄只由生成器回填。
+# 本案沒有被授權的架構模板文件,provenance 一律 推導自 + SPEC.md 行號。
+
+architecture_rules:
+
+  - id: A1
+    rule: Order 是 Aggregate Root;任何改變明細的操作必須在同一個方法內重算總額,外部程式碼不得直接更動明細集合或總額
+    provenance: 推導自
+    provenance_ref: SPEC.md L59-61
+    enforcement: none
+    ladder_note: 「同一個方法內重算」是方法內部的行為,三個 archunit kind(依賴/annotation/回傳型別)都表達不了;目前只能靠 S4 的 totalCents 驗收情境間接蓋到。要搬上第 1 階需要一條自訂 ArchUnit/位元碼規則:檢查 Order 中會寫入 items 欄位的方法必定也寫入 total 欄位。
+
+  - id: A2
+    rule: Order 不得有任何 setter,狀態改變只能經由具領域意義的方法(如 addItem、place),且該方法自己守自己的前置條件
+    provenance: 推導自
+    provenance_ref: SPEC.md L62-63
+    enforcement: none
+    ladder_note: 「不得有 setter」是方法命名/簽章的形狀檢查,不屬於現有三個 kind。可搬上第 1 階:新增一個 archunit_forbidden_method_name kind(from_package + 方法名 pattern set*),即可機械化。
+
+  - id: A3
+    rule: Order.items() 必須回傳複本(如 List.copyOf),呼叫端拿到的集合改不到 Order 本體
+    provenance: 推導自
+    provenance_ref: SPEC.md L64-65
+    enforcement: none
+    ladder_note: 回傳型別是 List,archunit_forbidden_return_type 擋不到「是不是複本」——這是回傳值的來源而非型別。要機械化只能用單元測試(取得 items 後嘗試 mutate,期待 UnsupportedOperationException),目前住第 4 階。
+
+  - id: A4
+    rule: addItem(ProductId, int, Money) 在訂單非 DRAFT 時被呼叫,必須丟 IllegalStateException(呼叫方的 bug,不是業務例外)
+    provenance: 推導自
+    provenance_ref: SPEC.md L66-67
+    enforcement: none
+    ladder_note: 例外型別取決於執行期狀態,靜態架構檢查看不到。可搬上第 3 階(單元測試:place() 後再 addItem 期待 IllegalStateException),但無法搬上第 1 階。
+
+  - id: A5
+    rule: Money 對兩個幣別不同的實例做加法必須丟例外;金額運算一律走 Money,不得把金額拆成裸的 long 在領域內傳遞
+    provenance: 推導自
+    provenance_ref: SPEC.md L68-69
+    enforcement: none
+    ladder_note: 前半(不同幣別丟例外)是執行期行為,只能靠單元測試;後半(不得傳裸 long)理論上可搬上第 1 階——需要一個檢查領域方法簽章不得出現 long 金額參數的自訂 kind,現有三個 kind 沒有。
+
+  - id: A6
+    rule: Order 只持有 CustomerId,不持有 Customer 物件
+    provenance: 推導自
+    provenance_ref: SPEC.md L70
+    enforcement: none
+    ladder_note: 這一條最接近可機械化——Order 與 Customer 若同在 domain package 內,archunit_forbidden_dependency 的 from/to 都是 package pattern,切不開同 package 的兩個類別。要搬上第 1 階需要類別層級(而非 package 層級)的禁止依賴 kind;在那之前由 S3 驗收情境(列表姓名走 customers 表 join)間接蓋住。
+
+# 驗收情境 —— 來源:spec/SPEC.md「情境(Given-When-Then)」一節(L44-L53)
+# 每個情境只做 SPEC.md 列出的那五條,不多不少。
+# provenance 一律 推導自:情境文字直接寫在 SPEC.md,fixture 數值取自
+# 同一份文件的 request/response 範例(L13-L19、L27-L37)。
+
+acceptance_scenarios:
+
+  # 1. 下單成功:回 201 並帶回 orderId
+  - id: S1
+    given_when: 一位存在的顧客送出一筆含單一明細的訂單(POST /orders)
+    then_expect: 回應 201 Created,且 body 的 orderId 不為空字串
+    provenance: 推導自
+    provenance_ref: SPEC.md L44-45
+    steps:
+      - alias: singleItemOrder
+        customer_id: C-001
+        items:
+          # 明細數值取自 SPEC.md L16 的 request 範例
+          - product_id: P-100
+            quantity: 2
+            unit_price_cents: 1500
+            currency: TWD
+    assertions:
+      - kind: status_is
+        target: singleItemOrder
+        expected_number: 201
+      - kind: order_id_not_blank
+        target: singleItemOrder
+
+  # 2. 已成立的訂單出現在列表,狀態顯示「已成立」
+  - id: S2
+    given_when: 一筆已成立的訂單存在,查詢訂單列表(GET /orders)
+    then_expect: 該筆出現在列表中,且 statusLabel 為「已成立」
+    provenance: 推導自
+    provenance_ref: SPEC.md L46-47
+    steps:
+      - alias: placedOrder
+        customer_id: C-001
+        items:
+          - product_id: P-100
+            quantity: 2
+            unit_price_cents: 1500
+            currency: TWD
+    assertions:
+      - kind: list_row_exists
+        target: placedOrder
+      - kind: list_field_equals_text
+        target: placedOrder
+        field: statusLabel
+        expected_text: 已成立
+
+  # 3. Order 只持有 CustomerId,列表仍顯示顧客姓名(來自 customers 表)。
+  #    送兩筆不同顧客的訂單,才證明 customerName 是查表 join 出來的、不是寫死的。
+  - id: S3
+    given_when: 兩位不同顧客各下一筆訂單(Order 只持有 CustomerId),查詢訂單列表
+    then_expect: 兩列的 customerName 分別為各自顧客的姓名(來自 customers 表)
+    provenance: 推導自
+    provenance_ref: SPEC.md L48-49
+    steps:
+      - alias: aliceOrder
+        customer_id: C-001
+        items:
+          - product_id: P-100
+            quantity: 1
+            unit_price_cents: 1500
+            currency: TWD
+      - alias: bobOrder
+        customer_id: C-002
+        items:
+          - product_id: P-200
+            quantity: 1
+            unit_price_cents: 2100
+            currency: TWD
+    assertions:
+      - kind: list_field_equals_text
+        target: aliceOrder
+        field: customerName
+        expected_text: Alice
+      - kind: list_field_equals_text
+        target: bobOrder
+        field: customerName
+        expected_text: Bob
+
+  # 4. 多明細訂單:totalCents = Σ(數量 × 單價)
+  #    2×1500 + 1×2100 = 5100,對齊 SPEC.md L34 response 範例的 totalCents。
+  - id: S4
+    given_when: 一筆含多個明細的訂單(2×1500 與 1×2100,皆 TWD),查詢訂單列表
+    then_expect: 該列的 totalCents 等於各明細「數量 × 單價」的加總 5100
+    provenance: 推導自
+    provenance_ref: SPEC.md L50-51
+    steps:
+      - alias: multiItemOrder
+        customer_id: C-001
+        items:
+          - product_id: P-100
+            quantity: 2
+            unit_price_cents: 1500
+            currency: TWD
+          - product_id: P-200
+            quantity: 1
+            unit_price_cents: 2100
+            currency: TWD
+    assertions:
+      - kind: list_field_equals_number
+        target: multiItemOrder
+        field: totalCents
+        expected_number: 5100
+
+  # 5. placedAt 是 ISO 日期(YYYY-MM-DD)
+  - id: S5
+    given_when: 一筆已成立的訂單存在,查詢訂單列表
+    then_expect: 該列的 placedAt 是一個 ISO 日期(YYYY-MM-DD)
+    provenance: 推導自
+    provenance_ref: SPEC.md L52-53
+    steps:
+      - alias: datedOrder
+        customer_id: C-001
+        items:
+          - product_id: P-100
+            quantity: 2
+            unit_price_cents: 1500
+            currency: TWD
+    assertions:
+      - kind: list_field_is_iso_date
+        target: datedOrder
+        field: placedAt

@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>參考卡 03 — 需求 → spec 包:三幕流程與五尺度盤點</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+</head>
+<body>
+
+<p class="lesson-meta">參考卡 03 · DDD × Agent Harness</p>
+<h1>需求 → spec 包:三幕流程</h1>
+<p class="subtitle">幕 = 時間,尺度 = 清單,階梯 = 強度。三個各就各位,誰也不用讓位。</p>
+
+<h2>這張卡在治什麼</h2>
+
+<p>拿到一句 stakeholder 需求(「我要一個系統,客人能下單,我能看到所有訂單」),
+到手上有一包可以凍結、可以餵給任何實作 agent 的 spec——中間發生什麼事、
+誰做哪段、每一步問哪個問題。三個框架(時序三幕、五尺度、第 9 課五階)
+常被混為一談,這張卡把它們釘在各自的位置上。</p>
+
+<div class="box key">
+  <span class="box-label">一句口訣</span>
+  <p><b>幕回答「什麼時候發生」,尺度回答「有沒有漏」,階梯回答「夠不夠硬」。</b></p>
+  <p>幕是時序敘事(上一幕的產出是下一幕的輸入);尺度是盤點清單(五格掃一遍,
+  漏格 = 有一類洞沒人管);階梯是強度量尺(同一條約束,住第 4 階會被模型飄走,
+  住第 2 階換誰都擋)。</p>
+</div>
+
+<h2>三幕(時間軸)</h2>
+
+<table>
+  <thead><tr><th>幕</th><th>發生什麼</th><th>核心問題</th><th>產出</th></tr></thead>
+  <tbody>
+    <tr><td><b>第一幕:對話</b><br>(event storming)</td>
+      <td>追問 stakeholder,把一句需求逼出十幾條決策。
+        每個問題的答案都是一條決策——AI 追問、起草,<b>拍板一定是人</b></td>
+      <td>「這件事還有什麼沒說死?」</td>
+      <td>決策清單(訪談紀錄)</td></tr>
+    <tr><td><b>第二幕:落檔</b></td>
+      <td>每條決策按型態進檔案:<b>詞 → GLOSSARY、行為 → SPEC 的 GWT、
+        結構 → ARCHITECTURE</b>;被否決的 → 「明確不在範圍」。
+        <b>幕尾跑五尺度盤點</b>(見下)——漏格 = 回第一幕再問</td>
+      <td>「這條約束是哪個尺度?落哪個檔?」</td>
+      <td>spec 包(散文版)</td></tr>
+    <tr><td><b>第三幕:搬階</b></td>
+      <td>對每條規則問「能不能讓機器判?」——能判的翻成先紅的驗收(第 3 階)
+        或 ArchUnit(第 2 階),還不能的暫住散文(第 4 階)。
+        然後<b>凍結</b>,harness 成形</td>
+      <td>「能不能機械判?住哪一階?」</td>
+      <td>骨架 + 機械檢查(commit = harness)</td></tr>
+  </tbody>
+</table>
+
+<p>後續(第四幕實作、第五幕 review 與洞回頭改 harness)見第 9 課的迴圈;
+這張卡只管 spec 包的生產線。</p>
+
+<div class="box warn">
+  <span class="box-label">為什麼不按尺度分五幕</span>
+  <p>五個尺度<b>不是依序發生的</b>:大尺度(架構 starter)在對話開始<b>之前</b>
+  就存在;需求約束和微尺度(契約)是<b>同一場對話</b>混著出現的——主管說
+  「成立就鎖定」,同時餵了 GWT 和 invariant;中尺度要到實作開工才登場。
+  按尺度分幕 = 把真實對話剪碎重排成假時序,敘事因果就丟了。</p>
+</div>
+
+<h2>第二幕尾:五尺度盤點</h2>
+
+<p>落檔完、收尾前,拿這張清單掃一遍。判準:<b>每尺度有落點,或明寫空缺;
+漏格 = 訪談還沒完</b>。</p>
+
+<p>⚠️ <b>下表的「約束什麼」與「落點」兩欄是反推的,不是 Teddy 公開的內容。</b>
+課程行銷頁講的是「五個層層嵌套的尺度」;哪個尺度配哪個手段,是本 workspace
+從課綱推的(沒上過課)。詳見頁尾〈來源〉。</p>
+
+<table>
+  <thead><tr><th>尺度</th><th>約束什麼</th><th>落點</th><th>常見漏格</th></tr></thead>
+  <tbody>
+    <tr><td><b>需求</b></td><td>行為(event storming → BDD 驗收)</td>
+      <td>SPEC 的 GWT</td><td>「查無顧客」這類例外路徑沒情境</td></tr>
+    <tr><td><b>大尺度</b></td><td>架構(簡潔架構 + DDD + CQRS)</td>
+      <td>ARCHITECTURE(常備模板 + 本案追加)</td><td>只抄模板,本案邊界例外沒寫</td></tr>
+    <tr><td><b>中尺度</b></td><td>sub-agent 職責(AI 活在合適的 context)</td>
+      <td><b>harness 過程層,不進 spec 包</b>——允許「明寫空缺:本輪單 agent」</td>
+      <td>整格忘記存在(空格要現形,不是跳過)</td></tr>
+    <tr><td><b>小尺度</b></td><td>coding standards(命名、介面規範)</td>
+      <td>GLOSSARY 鐵律 + 禁用清單</td><td>有詞彙表、沒有「不得另創同義詞」那句</td></tr>
+    <tr><td><b>微尺度</b></td><td>Design by Contract</td>
+      <td>SPEC 領域規則,每條標 pre / post / invariant + 配不配測試</td>
+      <td>規則寫了但沒標型態,postcondition(如失敗原子性)整類缺席</td></tr>
+  </tbody>
+</table>
+
+<div class="box good">
+  <span class="box-label">微尺度「看不到」的原因</span>
+  <p>DbC 常常<b>不是缺席,是拆散住在三個地方</b>:precondition 落在
+  「非 DRAFT 丟 IllegalStateException——這是呼叫方的 bug」(實作後住第 1 階)、
+  invariant 落在「總額一致由 Order 自己維護」、postcondition 最容易整類漏
+  (「失敗時狀態不變」沒人寫)。盤點時逐條貼標籤,缺哪類一眼可見。</p>
+</div>
+
+<h2>尺度 × 階梯:矩陣才是全圖</h2>
+
+<p>尺度和階梯是<b>正交的兩軸</b>:尺度決定它是哪一類約束,階梯決定它多可靠。
+任何尺度的約束都可以住任何一階——所以 harness 的健康檢查是掃矩陣:
+<b>每個尺度有沒有約束?每條約束住的階夠不夠高?</b></p>
+
+<table>
+  <thead><tr><th>尺度</th><th>住第 4 階(散文)的樣子</th><th>往上搬後的樣子</th></tr></thead>
+  <tbody>
+    <tr><td>需求</td><td>SPEC 裡人讀的 GWT</td><td>先紅的驗收測試(3)</td></tr>
+    <tr><td>大</td><td>「domain 不碰框架」一句話</td><td>ArchUnit 規則(2)</td></tr>
+    <tr><td>中</td><td>prompt 說「你只能寫 domain/」</td><td>乾淨房間配給 + 收件驗 diff(2)</td></tr>
+    <tr><td>小</td><td>詞彙表的命名慣例</td><td>ArchUnit 命名規則(2)</td></tr>
+    <tr><td>微</td><td>「不同幣別不能相加」一句話</td><td>指名單元測試(3)、Money 由骨架直接給(1)</td></tr>
+  </tbody>
+</table>
+
+<footer>
+
+<h2>來源</h2>
+
+<p>三幕故事與五尺度盤點的整併,出自 2026-08-11/12 的兩輪實驗:
+spec-authoring 三臂實驗(<code>examples/shop/runs/2026-08-11-spec-authoring/</code>,
+結論「合約買的是形狀確定性,不是智力」)與跨模型輪 1 的 review 洞分佈
+(洞聚集在規格沉默處 = 盤點漏格處)。</p>
+
+<p><strong>五尺度的證據等級(對外講時要標)</strong>:「五個層層嵌套的尺度」出自
+Teddy(陳建村)「馴服 AI」工作坊的<strong>課程行銷頁</strong>。但<strong>每個尺度
+配哪個約束手段,是本 workspace 從課綱反推的,不是他公開的內容</strong>
+—— 沒上過課、沒看過教材。推導過程見
+<code>docs/working-notes/2026-08-09-teddy-vs-mattpocock-ai-workflow.md</code>
+的「約束階梯」表,該檔開頭自標「Teddy 側 = 推斷」。
+(先前這裡寫「見 <code>RESOURCES.md</code> 的 Teddy 體系一節」——
+<strong>那一節沒有五尺度的條目,是個指向空處的引用</strong>,2026-08-17 更正。)</p>
+
+<h2>相關</h2>
+<ul>
+  <li><a href="../lessons/0009-pattern-language-讓它會長大.html">第 9 課:那道階梯(強度軸的定義)</a></li>
+  <li><a href="../lessons/0007-event-storming-產物從哪來.html">第 7 課:第一幕的方法</a></li>
+  <li><a href="../lessons/0008-design-by-contract-這是誰的錯.html">第 8 課:微尺度的判準</a></li>
+  <li><code>.claude/skills/spec-authoring/SKILL.md</code> —— 這條生產線的可執行版(v4)</li>
+  <li><code>tools/harness/</code> —— 第三幕的生成器:把 ARCHITECTURE 的規則生成 ArchUnit
+      機械檢查(2026-08-17)。矩陣裡「大尺度往上搬」那一格現在有實作了</li>
+</ul>
+
+</footer>
+
+</body>
+</html>

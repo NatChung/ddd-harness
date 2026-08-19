@@ -1,0 +1,48 @@
+// 由 harness 提供,實作者不需要修改這個檔案。
+//
+// ⚠️ 受測品(ADR 0006 §6),而且**它本身就是最大的一片洩題面**:下面這幾行
+//    技術選型(Spring Boot 3.4.5 / Web / JPA / H2 / ArchUnit)等於已經替實作者
+//    決定了「Spring Boot 分層 + JPA」。這份規格**沒有**授權過這件事
+//    (input-SPEC.md L202:「沒有任何被授權為架構模板的文件」)。
+//    → 跨模型比較時兩份實作共享這個先驗,所以比較得出來;
+//      但**不能拿它當「規格夠不夠完整」的證據**。
+//
+// 改了它後續的跑就不能跟先前比。每跑在 run 目錄留 blob 雜湊
+// (git ls-files -s examples/shop/app-from-interview),寫報告前先 diff。
+
+plugins {
+    id 'java'
+    id 'org.springframework.boot' version '3.4.5'
+    id 'io.spring.dependency-management' version '1.1.7'
+}
+
+group = 'com.shop'
+version = '0.1.0'
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(17)
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    runtimeOnly 'com.h2database:h2'
+
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'com.tngtech.archunit:archunit-junit5:1.3.0'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+    testLogging {
+        events 'passed', 'failed', 'skipped'
+        exceptionFormat = 'short'
+    }
+}

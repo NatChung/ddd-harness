@@ -1,0 +1,11 @@
+{
+  "run": "2026-08-19-act1-human-stakeholder",
+  "kind": "live-human-stakeholder / teaching run",
+  "note": "需求方是真人(Nat),不是 agent。**不得與 agent-stakeholder 的跑直接比較基線。**",
+  "interviewer_model": "claude (subagent, bare dir)",
+  "stakeholder": "human: Nat",
+  "inputs": {
+    "interview-prompt.md": "ba8f147340f6"
+  },
+  "deviation": "刻意不給訪談者 act1/interviewer/prompt.txt。那份會白送三樣情報:需求方的身分與技術程度、「沒有既有系統」、「沒有既有架構模板文件」—— 最後一項正是「模板既定」造假那一格的答案。本跑要它自己問出來。⚠️ 因此本跑不得與先前給了 prompt.txt 的跑比較基線。"
+}

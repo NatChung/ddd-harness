@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>第 1 課 — Ubiquitous Language:擋掉模型漂移的第一道閘門</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+</head>
+<body>
+
+<p class="lesson-meta">第 1 課 · DDD × Agent Harness</p>
+<h1>Ubiquitous Language</h1>
+<p class="subtitle">擋掉模型漂移的第一道閘門 —— 也是最便宜的一道。</p>
+
+<h2>先看整張地圖(只有三格)</h2>
+
+<p>你的 mission 是建一套 harness,讓 agent 的產出不隨換模型而漂移。
+漂移不是一種東西,是三種,各自要用不同的東西擋:</p>
+
+<table>
+  <thead>
+    <tr><th>漂移的種類</th><th>擋它的概念</th><th>本課</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><b>語言漂移</b><br>同一個詞,不同模型理解成不同意思</td>
+      <td><span class="term">Ubiquitous Language</span><br>統一語言</td>
+      <td>← 就是這堂</td>
+    </tr>
+    <tr>
+      <td><b>範圍漂移</b><br>模型跑去改它不該碰的東西</td>
+      <td><span class="term">Bounded Context</span><br>限界上下文</td>
+      <td>第 2 課</td>
+    </tr>
+    <tr>
+      <td><b>判定漂移</b><br>做完了,但「算不算對」要靠人主觀判斷</td>
+      <td><span class="term">BDD / Given-When-Then</span></td>
+      <td>第 3 課</td>
+    </tr>
+  </tbody>
+</table>
+
+<p>這堂課只講第一格。另外兩格先知道位置就好,不用記細節。</p>
+
+<div class="box key">
+  <span class="box-label">整套教學的主軸</span>
+  <p>你沒辦法讓模型變成 deterministic —— 那是它的本質,換哪個模型都一樣。
+  <b>你能做的是讓「對不對」變成 deterministic。</b>
+  兩個模型寫出不一樣的程式碼沒關係,只要同一套規格與驗收能明確判定兩邊各自通過或不通過,
+  你的 harness 就成立了。</p>
+</div>
+
+<h2>Ubiquitous Language 是什麼</h2>
+
+<p>Martin Fowler 的定義很短:</p>
+
+<blockquote>
+  the practice of building up a common, rigorous language between developers and users
+  <cite>Martin Fowler, <a href="https://martinfowler.com/bliki/UbiquitousLanguage.html">bliki: UbiquitousLanguage</a></cite>
+</blockquote>
+<p class="bq-zh">把開發者與使用者之間共同、嚴謹的語言建立起來的做法。</p>
+
+<p>重點在 <b>rigorous</b>(嚴謹)這個字。Fowler 給的理由是一句話:</p>
+
+<blockquote>
+  software doesn't cope well with ambiguity
+  <cite>同上</cite>
+</blockquote>
+<p class="bq-zh">軟體不擅長處理含糊。</p>
+
+<p>2003 年講這句話時,「軟體」指的是編譯器和你的同事。今天多了一個讀者:agent。
+而且它處理含糊的方式比人更糟——<b>人遇到含糊會問你,模型遇到含糊會挑訓練資料裡最常見的那個解讀,
+然後很有自信地往下做。</b>不同模型的訓練分佈不同,挑的自然不同。這就是語言漂移。</p>
+
+<div class="box inference">
+  <span class="box-label">這裡標註一下</span>
+  <p>「Ubiquitous Language 可以拿來當 agent 的防漂移機制」——這個對應是本教學自己建立的推論,
+  不是 DDD 原典或 Fowler 說的。DDD 講這件事時,對象是人。
+  推論本身站得住(失效模式相同),但你在跟別人講的時候,值得把這層講清楚。</p>
+</div>
+
+<h2>一個真實會出事的例子</h2>
+
+<p>假設規格上有這麼一句話,看起來完全沒問題:</p>
+
+<pre><code>訂單成立後,扣掉對應的庫存。</code></pre>
+
+<p>「訂單成立」是哪一刻?至少有三個合理答案,而且每一個都有真實系統這樣做:</p>
+
+<table>
+  <thead><tr><th>解讀</th><th>後果</th></tr></thead>
+  <tbody>
+    <tr><td>使用者按下「送出訂單」</td><td>沒付錢的訂單也扣庫存 → 庫存被灌爆</td></tr>
+    <tr><td>金流授權成功</td><td>多數電商的實際做法</td></tr>
+    <tr><td>倉庫產生出貨單</td><td>超賣,因為扣得太晚</td></tr>
+  </tbody>
+</table>
+
+<p>三個模型讀同一句話,可能給你三種實作,而且三份程式碼<b>看起來都是對的</b>。
+Code review 也未必抓得到——它不是 bug,是規格沒講。</p>
+
+<h2>修法:寫一則詞彙條目</h2>
+
+<p>修法不是把那句話寫長一點,是<b>把詞本身釘死</b>,釘一次,之後所有規格共用:</p>
+
+<pre><code><b>訂單成立(Order Placed)</b>
+指金流授權成功、且庫存預留成功的那一刻。
+兩者其一失敗都不算成立。
+
+<i>不要用</i>:下單完成、結帳成功、訂單建立
+<i>區分</i>:「結帳送出」是使用者按下按鈕的動作,
+      發生在訂單成立之前,兩者不可互換。</code></pre>
+
+<p>四個部分,缺一不可:<b>詞</b>、<b>定義</b>、<b>禁用的同義詞</b>、<b>容易混淆的鄰居</b>。
+第三、四項才是真正在幹活的——它們把模型會滑過去的那些路徑封起來。</p>
+
+<h2>換你了</h2>
+
+<div class="quiz" data-answer="0">
+  <p class="quiz-q">為什麼含糊的詞對 agent 的殺傷力,比對人類工程師更大?</p>
+  <div class="quiz-opts">
+    <button class="quiz-opt">因為模型會挑訓練資料裡最常見的解讀</button>
+    <button class="quiz-opt">因為模型會主動回頭向你確認該用哪個</button>
+    <button class="quiz-opt">因為模型完全無法處理任何含糊的詞彙</button>
+  </div>
+  <div class="quiz-fb"
+    data-right="而且不同模型的訓練分佈不同,挑的就不同 —— 這正是你要擋的漂移。人類工程師遇到不確定會來問你,那個「問」就是天然的閘門,模型沒有。"
+    data-wrong="模型其實處理得「很好」—— 好到會直接補上一個看起來合理的答案,不會停下來。這才是問題:它不是無法處理,是無聲地處理掉了,而且不同模型補的不一樣。"></div>
+</div>
+
+<div class="quiz" data-answer="1">
+  <p class="quiz-q">下面哪一句規格,兩個不同模型最不可能做出不一樣的東西?</p>
+  <div class="quiz-opts">
+    <button class="quiz-opt">使用者結帳完成後系統立刻扣減商品庫存</button>
+    <button class="quiz-opt">金流授權成功之後系統立刻扣減商品庫存</button>
+    <button class="quiz-opt">訂單狀態變成已成立後系統扣減商品庫存</button>
+  </div>
+  <div class="quiz-fb"
+    data-right="因為它錨定在一個「系統看得到的事件」上 —— 金流回傳授權成功,這件事只有一種發生時刻。另外兩句都錨定在還需要再被定義一次的詞上(「結帳完成」是按下按鈕還是頁面跳轉?「已成立」正是我們剛剛在吵的那個詞)。"
+    data-wrong="這句裡還藏著一個沒定義的詞。判斷方法:問自己「這個詞指向的是一個系統事件,還是一個還要再解釋的概念?」只有前者不會漂移。"></div>
+</div>
+
+<h3>動手練習</h3>
+
+<p>從你自己手上任何一個專案,挑一個<b>你講起來很順、但其實沒定義過</b>的詞
+(常見嫌疑犯:完成、生效、同步、失敗、可用、上線)。用上面的四段格式寫一則:</p>
+
+<div class="drill">
+<textarea spellcheck="false">詞:
+
+定義:
+
+不要用:
+
+區分:
+</textarea>
+</div>
+
+<div class="box good">
+  <span class="box-label">自我檢查</span>
+  <p>寫完拿這三題檢查,三題都要能過:</p>
+  <ul>
+    <li>定義裡有沒有<b>再用到另一個沒定義的詞</b>?(最常見的失敗)</li>
+    <li>「不要用」那一行是不是<b>真的有東西</b>?如果想不出同義詞,通常代表這個詞其實不含糊,換一個。</li>
+    <li>把定義念給一個不懂這個系統的人聽,他能不能<b>指出那一刻</b>發生在什麼時候?</li>
+  </ul>
+</div>
+
+<footer>
+
+<h2>下一步該讀什麼</h2>
+
+<p><b>主要來源(建議讀這篇,五分鐘):</b>
+<a href="https://martinfowler.com/bliki/BoundedContext.html">Martin Fowler — Bounded Context</a>。
+本課的兩句引文出自他的姊妹篇 UbiquitousLanguage,但這篇更值得先讀:它示範了一個真實案例
+(電力公司裡「meter」這個字在不同部門是不同的東西),並帶出一句會貫穿第 2 課的話——
+<i>you need a different model when the language changes</i>。
+語言在哪裡變,邊界就在哪裡。</p>
+
+<p>想看已經有人把這套做成工具的樣子:<a href="https://github.com/github/spec-kit">GitHub Spec Kit</a>
+——把規格流程固化成 constitution → specify → plan → tasks → implement,支援 30 幾種 coding agent。
+拿它對照本教學的概念會發現很多東西只是換了個名字,不過<b>更值得拆的是你自己正在用的那套 harness</b>。</p>
+
+<h2>本課相關</h2>
+<ul>
+  <li><a href="../MISSION.md">MISSION.md</a> —— 這套教學在追什麼目標</li>
+  <li><a href="../RESOURCES.md">RESOURCES.md</a> —— 所有來源與它們的可信度標註</li>
+  <li><a href="./0002-bounded-context-邊界.html">第 2 課:Bounded Context</a> —— 邊界怎麼畫,以及它跟 agent 的作業範圍是什麼關係</li>
+</ul>
+
+<div class="ask-teacher">
+  <b>有不清楚的地方,直接問我。</b>我是你這門課的老師,不是只發講義的。
+  練習寫完貼給我,我會逐條挑毛病;覺得哪個推論太跳、或想先跳到第 3 課的 BDD,說一聲就好。
+</div>
+
+</footer>
+
+<script src="../assets/quiz.js"></script>
+</body>
+</html>

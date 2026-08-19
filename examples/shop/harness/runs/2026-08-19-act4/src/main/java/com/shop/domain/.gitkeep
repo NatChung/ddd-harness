@@ -1,0 +1,10 @@
+這個目錄是空的,而且**刻意是空的**。
+
+com/shop/domain/ 是骨架宣告的三個實作 package 之一(三個是 domain / usecase / adapter)。
+骨架**一個型別都不給** —— 不宣告任何 port 介面、不宣告任何 domain class。
+
+理由(ADR 0006 §2):驗收之所以判定得了兩份長得完全不同的實作,靠的就是
+「測試不 import 任何實作 class」。骨架只要宣告一個型別,那條不變式就破了。
+
+⚠️ 這三個 package 名不是這份規格宣告的 —— 這份規格從頭到尾沒宣告過任何 package。
+   它們是被 architecture/ArchitectureTest.java 掃的範圍逼出來的(見該檔檔頭)。

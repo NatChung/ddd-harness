@@ -1,0 +1,127 @@
+# 凍結那份規格的詞彙表 —— 由 examples/shop/spec/GLOSSARY.md L8-L22 轉寫而來
+#
+# ⚠️ 這份是**手工轉寫**,不是第二幕落檔 agent 的產出。用途是讓票 08-A 的
+#    glossary_term / glossary_banned_synonym 有真實資料可跑,並量出
+#    「詞彙表進了 store 之後看得見什麼」。真的跑第二幕時,這一段由落檔 agent 自己交。
+#
+# ⚠️ **這份詞彙表沒有「對外欄位名」這一欄** —— 原始表只有三欄:詞 | 型態 | 定義。
+#    所以 wire_field 全部留空。**留空在 schema 裡的語意是「這個詞不上線」,
+#    而這裡的真相是「這份詞彙表根本沒有這一欄」** —— 兩種情況在計數上長得一樣,
+#    那是 glossary_check.py 印在文末的上限之一,不是這份轉寫填得掉的。
+#
+# ⚠️ 轉寫時做過的判斷,寫下來:
+#    1. 詞的原文帶反引號(markdown 的程式碼標記)。反引號是**排版**不是詞的一部分,
+#       轉寫時去掉;中英並列的那些格(中文名 + 斜線 + 英文名)則**原樣保留**。
+#    2. 原表**沒有「單位 / 表示法」欄,也沒有「來源」欄**。representation 一律留空;
+#       provenance 一律 `推導自` + 該列的行號 —— 這份是從凍結散文轉寫出來的,
+#       不是誰親口說的。**不憑空生出五格裡的其他格。**
+#    3. 禁用同義詞在原文裡不是一張表,是 L4 括號裡的一句話(兩個例子)。
+#       兩個都轉,note 逐字裝那句話。
+#
+# ⚠️ **定義逐字照抄,具體值一個都不改寫** —— 包含某一列的定義內文裡出現的那個對外欄位名。
+#    它出現在**定義裡**,不是在一個叫「對外欄位名」的格子裡,所以**不搬進 wire_field**:
+#    搬過去就是我替這份規格補了一格它沒寫的,而這張票要量的正是「它沒寫」。
+#    (定義文字不進撞名比對 —— 那條路只看「詞」那一格。)
+
+glossary_terms:
+  - term: Order
+    definition: 一筆訂單。一致性邊界:明細與總額永遠一致
+    ddd_type: Aggregate Root
+    provenance: 推導自
+    provenance_ref: examples/shop/spec/GLOSSARY.md L8
+
+  - term: OrderItem
+    definition: 訂單的一條明細:商品、數量、單價。只能經由 Order 修改
+    ddd_type: Aggregate 內部物件
+    provenance: 推導自
+    provenance_ref: examples/shop/spec/GLOSSARY.md L9
+
+  - term: OrderId
+    definition: 訂單的識別。以值相等比較
+    ddd_type: Value Object
+    provenance: 推導自
+    provenance_ref: examples/shop/spec/GLOSSARY.md L10
+
+  - term: CustomerId
+    definition: 顧客的識別。Order 只持有 CustomerId,不持有 Customer 物件
+    ddd_type: Value Object
+    provenance: 推導自
+    provenance_ref: examples/shop/spec/GLOSSARY.md L11
+
+  - term: ProductId
+    definition: 商品的識別
+    ddd_type: Value Object
+    provenance: 推導自
+    provenance_ref: examples/shop/spec/GLOSSARY.md L12
+
+  - term: Money
+    definition: 金額 = 數值 + 幣別(如 TWD)。以值相等比較
+    ddd_type: Value Object
+    provenance: 推導自
+    provenance_ref: examples/shop/spec/GLOSSARY.md L13
+
+  - term: OrderStatus
+    definition: 訂單狀態。本規格用到:DRAFT(草稿)、PLACED(已成立)
+    ddd_type: 列舉
+    provenance: 推導自
+    provenance_ref: examples/shop/spec/GLOSSARY.md L14
+
+  - term: 下單 / place
+    definition: 把一筆訂單從草稿變成已成立。成立後明細不可再修改
+    ddd_type: 動詞
+    provenance: 推導自
+    provenance_ref: examples/shop/spec/GLOSSARY.md L15
+
+  # ⚠️ 這一列的定義裡出現了一個對外欄位名,而它出現在**定義的內文**裡,
+  #    不是在一個叫「對外欄位名」的格子裡。轉寫時**不把它搬進 wire_field** ——
+  #    那會變成我替這份規格補了一格它沒寫的東西,而這張票要量的正是「它沒寫」。
+  - term: 已成立
+    definition: PLACED 在列表頁顯示為「已成立」(statusLabel)
+    ddd_type: 狀態的顯示文字
+    provenance: 推導自
+    provenance_ref: examples/shop/spec/GLOSSARY.md L16
+
+  - term: OrderRepository
+    definition: Command 側的儲存介面。宣告在 usecase 層,實作在 adapter 層
+    ddd_type: 介面
+    provenance: 推導自
+    provenance_ref: examples/shop/spec/GLOSSARY.md L17
+
+  - term: OrderQueryRepository
+    definition: Query 側專用的查詢介面。回傳 View Model,不回傳 Order
+    ddd_type: 介面
+    provenance: 推導自
+    provenance_ref: examples/shop/spec/GLOSSARY.md L18
+
+  - term: OrderListItem
+    definition: 列表頁一列的形狀。定義在 usecase 層
+    ddd_type: View Model
+    provenance: 推導自
+    provenance_ref: examples/shop/spec/GLOSSARY.md L19
+
+  - term: PlaceOrderUseCase
+    definition: 下單(Command 側)
+    ddd_type: Use Case
+    provenance: 推導自
+    provenance_ref: examples/shop/spec/GLOSSARY.md L20
+
+  - term: OrderListUseCase
+    definition: 查訂單列表(Query 側)
+    ddd_type: Use Case
+    provenance: 推導自
+    provenance_ref: examples/shop/spec/GLOSSARY.md L21
+
+  - term: OrderController
+    definition: HTTP 進出口。宣告在 adapter 層
+    ddd_type: Adapter
+    provenance: 推導自
+    provenance_ref: examples/shop/spec/GLOSSARY.md L22
+
+banned_synonyms:
+  - banned: Purchase
+    use_instead: Order
+    note: GLOSSARY.md L4「不得另創同義詞(例:不要把 Order 叫成 Purchase…)」
+
+  - banned: confirm
+    use_instead: 下單 / place
+    note: GLOSSARY.md L4「不得另創同義詞(例:…不要把成立叫成 confirm)」

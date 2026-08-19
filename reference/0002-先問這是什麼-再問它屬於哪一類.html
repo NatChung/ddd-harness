@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>參考卡 02 — 先問「這是什麼」,再問「它屬於哪一類」</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+</head>
+<body>
+
+<p class="lesson-meta">參考卡 02 · DDD × Agent Harness</p>
+<h1>先問「這是什麼」</h1>
+<p class="subtitle">再問「它屬於哪一類」。順序反了,分類就會錯。</p>
+
+<h2>這張卡在治什麼</h2>
+
+<p>分類的時候,句子裡最顯眼的那個詞會搶先跳出來,你會不自覺地拿它當判準。
+這叫做<b>被表面特徵帶走</b>,而且它有個特徵:<b>錯得很有道理</b>——
+你選的那個答案跟句子的字面高度相關,所以當下不會覺得可疑。</p>
+
+<div class="box key">
+  <span class="box-label">兩步,順序不能顛倒</span>
+  <p><b>第一步:這句話在描述一個「什麼東西」?</b><br>
+  一段程式碼?一條 CI 規則?一個測試?一句寫在文件裡的話?一個介面宣告?</p>
+  <p><b>第二步:那個東西屬於哪一類?</b></p>
+  <p>幾乎所有分類錯誤,都是<b>跳過第一步</b>造成的。</p>
+</div>
+
+<h2>三個實際踩過的例子</h2>
+
+<h3>例一:「提示詞每次都提醒『改完明細記得 total 要重算』」</h3>
+
+<table>
+  <thead><tr><th></th><th></th></tr></thead>
+  <tbody>
+    <tr><td><b>被什麼帶走</b></td><td>「<b>每次都</b>」——聽起來像自動化、像有機制在跑</td></tr>
+    <tr><td><b>第一步該問</b></td><td>這是什麼東西?→ <b>一句話</b>,寫在提示詞裡</td></tr>
+    <tr><td><b>正解</b></td><td>第 4–5 階,文字約定</td></tr>
+  </tbody>
+</table>
+
+<div class="box warn">
+  <span class="box-label">這個例子背後有個獨立的重點</span>
+  <p><b>自動被送進 context ≠ 自動被擋下來。</b></p>
+  <p>提示詞、<code>CLAUDE.md</code> 這類東西每次都會被讀進去,所以「感覺」像個機制。
+  但自動的是<b>注入</b>,不是<b>遵守</b>。</p>
+  <p><b>機械檢查的定義是:違反會有明確的 fail。</b>提示詞裡沒有 fail 這回事,
+  只有「希望它照做」。看到「每次都⋯」,先問一句:<b>不照做的時候,會發生什麼?</b>
+  答案是「沒事」的話,那就是文字約定。</p>
+</div>
+
+<h3>例二:「一個測試:對已成立的訂單呼叫 addItem 必須拋例外」</h3>
+
+<table>
+  <tbody>
+    <tr><td><b>被什麼帶走</b></td><td>「<b>拋例外</b>」——那是最強那一階的關鍵字</td></tr>
+    <tr><td><b>第一步該問</b></td><td>主詞是什麼?→ <b>一個測試</b></td></tr>
+    <tr><td><b>正解</b></td><td>第 3 階,可執行驗收</td></tr>
+  </tbody>
+</table>
+
+<p>同一條規則有<b>兩個載體</b>:例外是第 1 階(堵住路),測試是第 3 階(驗證那條路真的堵住)。
+這句話是後者在描述前者。<b>階數由載體決定,不由內容決定。</b></p>
+
+<h3>例三:「<code>OrderView</code> 這個回傳用的 record 住哪一層?」</h3>
+
+<table>
+  <tbody>
+    <tr><td><b>被什麼帶走</b></td><td>它是<b>要吐給前端的</b>——面向外面,所以放外層</td></tr>
+    <tr><td><b>第一步該問</b></td><td>判準是什麼?→ <b>誰的程式碼裡出現了它的名字</b></td></tr>
+    <tr><td><b>正解</b></td><td>Use Cases 層</td></tr>
+  </tbody>
+</table>
+
+<p>「面向誰」是這個型別的<b>用途</b>,不是它的<b>歸屬</b>。歸屬看 import 方向。</p>
+
+<h2>通用的自我提問</h2>
+
+<div class="box good">
+  <span class="box-label">分類之前,先問這四句</span>
+  <ol>
+    <li><b>這句話的主詞是什麼?</b>(是「一個測試」還是「一個例外」?
+      是「一句提醒」還是「一條規則」?)</li>
+    <li><b>我是被哪個詞吸引的?</b>把它圈起來,然後問:<b>這個詞是判準嗎?</b>
+      通常不是——它只是最顯眼。</li>
+    <li><b>這一課的判準到底是什麼?</b>說得出來嗎?說不出來就先回去找,別硬猜。</li>
+    <li><b>如果把那個吸引我的詞換掉,答案會變嗎?</b>
+      (「一個測試:⋯必須<b>回傳 false</b>」——還是第 3 階。那就證明「拋例外」不是判準。)</li>
+  </ol>
+</div>
+
+<h2>各課的真正判準</h2>
+
+<p>需要的時候翻這張表,不要憑印象:</p>
+
+<table>
+  <thead><tr><th>課</th><th>要分類什麼</th><th>真正的判準</th><th>常被誤用的表面特徵</th></tr></thead>
+  <tbody>
+    <tr><td><a href="../lessons/0002-bounded-context-邊界.html">第 2</a></td>
+      <td>拆詞 vs 畫邊界</td>
+      <td>是同一條線上的兩個點,還是兩條平行演化的線</td>
+      <td>「兩邊講的不一樣」(兩種情況都會不一樣)</td></tr>
+    <tr><td><a href="../lessons/0004-aggregate-一次任務的大小.html">第 4</a></td>
+      <td>同不同一個 Aggregate</td>
+      <td>允不允許有一瞬間對不起來</td>
+      <td>關係緊密、常一起查、同一張表、有 FK</td></tr>
+    <tr><td><a href="../lessons/0005-簡潔架構-三原則與爆炸半徑.html">第 5</a></td>
+      <td>住哪一層</td>
+      <td>誰的程式碼 import 它(所有用到它的層,取最內)</td>
+      <td>它「面向」誰、它放在哪個資料夾</td></tr>
+    <tr><td><a href="../lessons/0006-cqrs-讀與寫的不對稱.html">第 6</a></td>
+      <td>Command vs Query</td>
+      <td>會不會改變系統狀態</td>
+      <td>句子裡有沒有「讀」「查」、複不複雜</td></tr>
+    <tr><td><a href="../lessons/0007-event-storming-產物從哪來.html">第 7</a></td>
+      <td>Event vs Command</td>
+      <td>時態:已經發生了,還是還沒發生</td>
+      <td>句子在講哪個名詞</td></tr>
+    <tr><td><a href="../lessons/0008-design-by-contract-這是誰的錯.html">第 8</a></td>
+      <td>哪一種條款</td>
+      <td><b>先</b>問是不是契約(有人寫錯 vs 生意就是這樣),<b>再</b>問時機</td>
+      <td>句子的形狀長得像前置條件</td></tr>
+    <tr><td><a href="../lessons/0009-pattern-language-讓它會長大.html">第 9</a></td>
+      <td>規則住第幾階</td>
+      <td><b>載體是什麼</b>(程式碼/CI/測試/文字)</td>
+      <td>句子裡的關鍵字(「拋例外」「每次都」)</td></tr>
+    </tbody>
+</table>
+
+<p>看最右欄——<b>那些表面特徵每一個都跟正確答案高度相關</b>,
+所以用它們猜,大部分題目會猜對。錯的都是刻意設計的那幾題,
+而現實裡真正會出事的,也正是那幾種。</p>
+
+<footer>
+
+<h2>來源</h2>
+
+<p>這張卡不是引用來的,是<b>從本教學實際發生的錯誤歸納出來的</b>——
+見 <code>learning-records/</code> 的 0007(用面向而非 import 判斷層別)、
+0009(跳過「是不是契約」那一關)、0010(用關鍵字而非載體判斷階數)。
+三次同型,所以抽成一張跨課的卡,而不是在三課各補一段。</p>
+
+<p>這件事本身就是<a href="../lessons/0009-pattern-language-讓它會長大.html">第 9 課</a>
+那道階梯的示範:同一個問題重複出現 → 把散在各處的散文<b>往上搬一階</b>,
+變成一份可以被翻閱、被指向的東西。</p>
+
+<h2>相關</h2>
+<ul>
+  <li><a href="./0001-該畫邊界還是該拆詞.html">參考卡 01:該畫邊界還是該拆詞</a></li>
+  <li><a href="../lessons/0009-pattern-language-讓它會長大.html">第 9 課:Pattern Language</a></li>
+  <li><a href="../practice/0001-交錯練習-前四課.html">交錯練習 01</a>
+    —— 給情境、不給選項,正好練這件事</li>
+</ul>
+
+</footer>
+
+</body>
+</html>

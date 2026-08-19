@@ -1,0 +1,6 @@
+{"event": "asked", "round": 1, "who": "interviewer", "session_id": "1d0e3e62-bc28-42fc-b939-02e89cd3efa7", "chars": 742, "file": "rounds/r1-questions.md"}
+{"event": "answered", "round": 1, "who": "stakeholder", "session_id": "a50cb15e-8338-47cc-af80-19bde9d11fdd", "chars": 429, "file": "rounds/r1-answers.md"}
+{"event": "relayed", "round": 1, "from": "stakeholder", "to": "interviewer", "chars": 429}
+{"event": "asked", "round": 2, "who": "interviewer", "session_id": "1d0e3e62-bc28-42fc-b939-02e89cd3efa7", "chars": 926, "file": "rounds/r2-questions.md"}
+{"event": "answered", "round": 2, "who": "stakeholder", "session_id": "a50cb15e-8338-47cc-af80-19bde9d11fdd", "chars": 473, "file": "rounds/r2-answers.md"}
+{"event": "relayed", "round": 2, "from": "stakeholder", "to": "interviewer", "chars": 473}

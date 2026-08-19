@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>第 4 課 — Aggregate:把規則從提示詞搬進程式碼</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+</head>
+<body>
+
+<p class="lesson-meta">第 4 課 · DDD × Agent Harness</p>
+<h1>Aggregate</h1>
+<p class="subtitle">把規則從提示詞搬進程式碼 —— 順便決定一次任務該多大。</p>
+
+<h2>前三課都在你之外</h2>
+
+<p>詞彙表、邊界、驗收——這三樣都是<b>寫給 agent 看的文件</b>。
+文件的問題是:它要被讀、被記得、被遵守,任何一環斷掉就失效。</p>
+
+<p>這一課換一種做法:<b>把規則做成「違反就會爆炸」的程式碼。</b>
+那種規則不需要被讀,也不需要被記得。</p>
+
+<h2>先講 invariant</h2>
+
+<p><span class="term">Invariant</span>(不變量)是一條<b>任何時候都必須成立</b>的規則。
+不是「應該」、不是「通常」——是只要它不成立,系統就處於錯誤狀態。</p>
+
+<p>例:<b>訂單的總金額,必須等於所有明細金額加總減掉折扣。</b>
+這條不能有例外,也不能「晚一點再對上」。</p>
+
+<p>大部分系統的 Order 長這樣:</p>
+
+<pre><code>// ❌ 只是個資料袋
+public class Order {
+    public List&lt;OrderItem&gt; items;   // 誰都能改
+    public Money total;              // 誰負責讓它跟 items 一致?
+}
+
+order.items.add(newItem);   // total 沒動 → invariant 破了,而且沒人知道</code></pre>
+
+<p>這裡真正的問題不是「有人會忘記呼叫 recalculate」,而是<b>這個類別讓「忘記」變成可能</b>。
+規則存在於某個人的腦袋裡、或某份文件裡,不存在於程式碼裡。</p>
+
+<h2>Aggregate:把入口收成一個</h2>
+
+<p><span class="term">Aggregate</span> 是一組必須一起保持正確的物件,
+由一個 <span class="term">Aggregate Root</span> 當<b>唯一入口</b>。外面只拿得到 root,
+碰不到內部。</p>
+
+<pre><code>public class Order {                       // ← Aggregate Root
+    private final OrderId id;
+    private final CustomerId customerId;   // ← 是 ID,不是 Customer 物件
+    private final List&lt;OrderItem&gt; items = new ArrayList&lt;&gt;();
+    private Money total;
+    private OrderStatus status;
+
+    public void addItem(ProductId productId, int qty, Money unitPrice) {
+        if (status != DRAFT)
+            throw new IllegalStateException("訂單成立後不可加明細");
+        items.add(new OrderItem(productId, qty, unitPrice));
+        recalculateTotal();                // ← invariant 在這裡被維護
+    }
+
+    public List&lt;OrderItem&gt; items() {
+        return List.copyOf(items);         // ← 外面拿到複本,改不到本體
+    }
+    // 沒有 setTotal(),沒有 getItems() 回傳可變 list
+}</code></pre>
+
+<p>差別不在多寫了幾行,在於<b>每一個 public 方法結束時,invariant 都成立</b>,
+而且外面<b>沒有路徑</b>可以讓它不成立。</p>
+
+<div class="box key">
+  <span class="box-label">這一課的核心</span>
+  <p><b>「訂單成立後不可加明細」這條規則,現在不需要任何人記得。</b></p>
+  <p>你不用在提示詞裡寫、不用在 code review 抓、不用在文件裡宣導。
+  agent 寫出違反它的程式碼時,那行呼叫會直接拋例外——在測試裡、在 CI 裡、在它自己跑的時候。</p>
+  <p>前三課是<b>把規則講清楚</b>,這一課是<b>把規則變成物理定律</b>。</p>
+</div>
+
+<h2>邊界畫在哪:問 invariant,不要問「有沒有關係」</h2>
+
+<p>最常見的錯誤是照「這些東西看起來有關」來分組。正確的判準只有一個:</p>
+
+<blockquote>哪些東西<b>必須在同一個時刻都正確</b>?</blockquote>
+
+<div class="box warn">
+  <span class="box-label">這句話要怎麼實際去驗</span>
+  <p>「必須同時正確」是判準,但它不好用——太抽象。實際去驗的問法是:</p>
+  <p><b>「晚一點再對上,會不會有人算錯錢?」</b></p>
+  <ul>
+    <li>訂單總額 ↔ 明細:那一瞬間有人看到的金額就是錯的 → <b>同一個</b></li>
+    <li>訂單成立 ↔ 寄確認信:晚 3 秒、晚 3 分鐘,沒人受害 → 不同</li>
+  </ul>
+  <p><b>特別注意:「一起改」不等於同一個 Aggregate。</b>下單的當下會一起扣庫存、
+  發通知、寫 log,四件事同時發生,但只有訂單自己那一組不能有一瞬間不一致。
+  同理,別把「同時正確」記成「同步」——<b>同步講的是時序,同時正確講的是一致性</b>,
+  差一個字,判準就滑掉了。</p>
+</div>
+
+<table>
+  <thead><tr><th>組合</th><th>判斷</th></tr></thead>
+  <tbody>
+    <tr>
+      <td>訂單 ↔ 訂單明細</td>
+      <td><b>同一個</b>。總金額必須等於明細加總,少一個都不行,而且要立刻。</td>
+    </tr>
+    <tr>
+      <td>訂單 ↔ 顧客</td>
+      <td><b>不同</b>。顧客改了名字,已成立的訂單不會因此變錯。關係緊密,但不需要同時正確。</td>
+    </tr>
+  </tbody>
+</table>
+
+<p>另外兩條規矩,都是從這個判準長出來的:</p>
+
+<ul>
+  <li><b>一次交易只改一個 Aggregate。</b>改兩個就代表你認為它們要同時正確——那它們應該是同一個。</li>
+  <li><b>Aggregate 之間用 ID 互相參照,不是物件參照。</b>
+    持有 <code>Customer</code> 物件,很容易一不小心就順手改了它。持有 <code>CustomerId</code> 就改不到。</li>
+</ul>
+
+<div class="box warn">
+  <span class="box-label">如果你腦中已經自動對到資料庫了</span>
+  <p>「Aggregate 像 DB 的關聯、Entity 像 Table」——這是熟資料庫的人最自然的第一個類比,
+  而且<b>方向剛好是反的</b>。</p>
+  <p>對得上的只有一點:Entity 靠 id 辨識、不靠欄位值,這跟 primary key 同構。其餘都不對:</p>
+  <ul>
+    <li><b>FK 表達「有關係」,Aggregate 表達「必須同時正確」</b>——
+      schema 裡沒有任何欄位在表達後者。訂單 ↔ 顧客有 FK 卻是不同 Aggregate;
+      商品 ↔ 可售庫存常在同一張表,也是不同 Aggregate。
+      下面那六題,答案全都跟 FK 對不上,那是刻意挑的。</li>
+    <li><b>Entity 有行為,Table 沒有。</b>把 Entity 當 Table,就會做出
+      「一堆 getter/setter 的資料袋 + 邏輯放 Service」——正是本課開頭要修掉的東西。</li>
+    <li><b>Value Object 裝不進這個類比。</b><code>Money</code> 住 Entities 層,
+      但它不是一張表,只是嵌在別人表裡的兩個欄位。</li>
+    <li>正規化的目標是<b>消除重複</b>,Aggregate 的目標是<b>保護 invariant</b>。
+      目標不同,切出來的線自然不一樣。</li>
+  </ul>
+  <p><b>快篩:把 FK 全部拿掉,你的判斷會不會改變?</b>
+  不會 → 你用的是 invariant 判準;會 → 你正在讓 schema 決定領域模型。</p>
+  <p>真要用資料庫的詞類比,換這個:<b>Aggregate 比較像「一個 transaction 的邊界」,
+  不是「一組 FK 關聯」</b>——「一次交易只改一個 Aggregate」直接就對上了,
+  而且它抓得到「同時正確」那個時間性質,那正是 FK 表達不出來的。</p>
+</div>
+
+<p>還有一件事現在先講,第 5 課會用到:<b>不是所有 invariant 都住得進 Entity。</b>
+「同一個帳號一天不能下超過 10 筆訂單」是一條沒有例外的規則,但它跨越很多張 <code>Order</code>,
+單一個 Aggregate 守不住它。這種規則會往外挪一層——挪到哪、為什麼,是下一課的事。</p>
+
+<h2>分分看</h2>
+
+<p>下面每一組,該放在同一個 Aggregate 嗎?</p>
+
+<div class="sorter" data-buckets="同一個 Aggregate|不同 Aggregate">
+  <div class="sorter-item" data-answer="0"
+    data-why="總金額必須等於明細加總 —— 這是 invariant,必須同時正確。明細沒有自己獨立的生命,離開訂單就沒有意義。">訂單 ↔ 訂單明細</div>
+  <div class="sorter-item" data-answer="1"
+    data-why="關係很緊密,但顧客改了名字、換了地址,已成立的訂單不會因此變成錯的。不需要同時正確 → 不同 Aggregate,用 CustomerId 參照。「常常一起查詢」不是判準。">訂單 ↔ 顧客</div>
+  <div class="sorter-item" data-answer="0"
+    data-why="跟訂單/明細同一個道理:購物車的小計必須等於項目加總,而且項目離開購物車沒有意義。">購物車 ↔ 購物車項目</div>
+  <div class="sorter-item" data-answer="1"
+    data-why="第 2 課就切開了 —— 它們根本在不同的 Bounded Context。而且時序上,訂單成立的當下出貨單還不存在,不可能有「必須同時正確」這回事。">訂單 ↔ 出貨單</div>
+  <div class="sorter-item" data-answer="1"
+    data-why="商品名稱、描述跟可售庫存不需要同時正確 —— 改個商品描述不會讓庫存變錯。而且庫存是高頻更新,綁在商品上會讓每次改描述都跟扣庫存搶鎖。invariant「可售庫存不得小於 0」是庫存自己的事。">商品名稱 ↔ 商品可售庫存</div>
+  <div class="sorter-item" data-answer="0"
+    data-why="這題的答案取決於你第 1 課定的那條規則。你把「訂單成立」定義成「授權成功且庫存預留成功」,那麼「已成立的訂單必定有一筆成功的授權」就是 invariant —— 必須同時正確。注意這個順序:是你的定義決定了 Aggregate 邊界,不是資料庫結構決定的。定義改了,邊界就得跟著改。">訂單 ↔ 該訂單的付款授權</div>
+</div>
+
+<h2>這對 harness 的三個用途</h2>
+
+<div class="box inference">
+  <span class="box-label">以下第二、三點是推論</span>
+  <p>Aggregate 與 invariant 是 DDD 的既有概念(Evans 提出,Vernon 的書講得最清楚)。
+  但「Aggregate ≈ 一次 agent 任務的天然大小」、「用型別把叮嚀下放成例外」這兩個用法,
+  是本教學自己接上去的。</p>
+</div>
+
+<table>
+  <thead><tr><th>Aggregate 的性質</th><th>對 agent 的意義</th></tr></thead>
+  <tbody>
+    <tr>
+      <td><b>一次交易只改一個</b></td>
+      <td><b>一張 ticket 只碰一個 Aggregate。</b>作用半徑明確,不用猜任務該多大——
+        改到第二個 Aggregate 就是訊號:這張票太大了,該拆。</td>
+    </tr>
+    <tr>
+      <td><b>root 是唯一入口</b></td>
+      <td>agent <b>沒有路徑</b>繞過規則改內部狀態。不是「它應該不會」,是「它做不到」。</td>
+    </tr>
+    <tr>
+      <td><b>invariant 在 root 內強制</b></td>
+      <td><b>很多提示詞裡的叮嚀可以刪掉。</b>每刪掉一句,context 就少一分噪音,
+        也少一個換模型後可能失效的假設。</td>
+    </tr>
+  </tbody>
+</table>
+
+<p>最後一點值得多說一句。你 harness 裡那些「記得要⋯」「不要⋯」的規則,
+每一條都該問一次:<b>這條能不能變成一個會拋例外的方法簽章?</b>
+能的話就搬進去——寫在 code 裡的規則不會被遺忘、不隨模型改變、而且免費地被每一次測試檢查。</p>
+
+<h2>換你了</h2>
+
+<div class="quiz" data-answer="0">
+  <p class="quiz-q">決定兩個東西該不該放進同一個 Aggregate,判準是什麼?</p>
+  <div class="quiz-opts">
+    <button class="quiz-opt">它們是不是必須在同一個時刻都保持正確</button>
+    <button class="quiz-opt">它們在業務上是不是關係緊密常常一起用</button>
+    <button class="quiz-opt">它們是不是存在同一張表或是同一個服務</button>
+  </div>
+  <div class="quiz-fb"
+    data-right="這一條判準會自動長出另外兩條規矩:一次交易只改一個 Aggregate、Aggregate 之間用 ID 參照。都是同一件事的推論。"
+    data-wrong="這兩個是最常見的誤判來源。「關係緊密、常一起查」會讓你做出巨大的 Aggregate(訂單裡塞了顧客、商品、物流);「同一張表」則是讓資料庫結構決定領域模型 —— 方向剛好相反,是 invariant 決定邊界,邊界再決定怎麼存。"></div>
+</div>
+
+<div class="quiz" data-answer="0">
+  <p class="quiz-q">「訂單成立後不可再加明細」這條規則,放在哪裡對 agent 最有效?</p>
+  <div class="quiz-opts">
+    <button class="quiz-opt">寫進那個類別的方法裡讓違反的呼叫直接爆炸</button>
+    <button class="quiz-opt">寫進給模型的提示詞裡並且在每次任務都提醒</button>
+    <button class="quiz-opt">寫進團隊的開發規範文件裡由審查時人工把關</button>
+  </div>
+  <div class="quiz-fb"
+    data-right="規則變成物理定律,不需要被讀、被記得、被遵守。而且它免費地在每一次測試、每一次 CI 執行時被檢查 —— 不管誰在寫、用哪個模型。"
+    data-wrong="這兩個都需要「有人記得」才會生效:提示詞要你記得帶、而且換模型後未必還吃得住;規範文件要審查者當下想得起來。能變成例外的規則,就不該留在文字裡。"></div>
+</div>
+
+<h3>動手練習</h3>
+
+<p>在你自己的系統裡找<b>一條真的 invariant</b>——一條只要不成立、系統就是錯的規則。
+然後看看它現在守不守得住:</p>
+
+<div class="drill">
+<textarea spellcheck="false">Invariant(任何時候都必須成立的規則):
+
+哪些東西必須同時正確,才維持得住它:
+
+Aggregate Root(唯一入口該是誰):
+
+現在外面有沒有辦法繞過 root 破壞它?怎麼繞:
+
+要拿掉/改掉什麼才堵得住:
+</textarea>
+</div>
+
+<div class="box good">
+  <span class="box-label">自我檢查</span>
+  <ul>
+    <li>你寫的 invariant 裡有「應該」「盡量」「通常」嗎?有就不是 invariant,是願望。</li>
+    <li><b>第 4 格填得出來嗎?</b>幾乎一定填得出來——public setter、回傳可變 list 的 getter、
+      直接寫資料庫的 script。填不出來的話,通常是你還沒真的去看那個類別。</li>
+    <li>「必須同時正確」的那組東西,是不是塞了「只是常一起用」的東西進去?</li>
+    <li>老毛病:<b>裡面有沒有又用到一個沒定義的詞?</b></li>
+  </ul>
+</div>
+
+<footer>
+
+<h2>下一步該讀什麼</h2>
+
+<p><b>主要來源:</b><a href="https://www.dddcommunity.org/library/vernon_2011/">Effective Aggregate Design — Vaughn Vernon</a>。
+dddcommunity.org 上有
+<a href="https://www.dddcommunity.org/wp-content/uploads/files/pdf_articles/Vernon_2011_1.pdf">Part I</a>、
+<a href="https://www.dddcommunity.org/wp-content/uploads/files/pdf_articles/Vernon_2011_2.pdf">Part II</a>、
+<a href="https://www.dddcommunity.org/wp-content/uploads/files/pdf_articles/Vernon_2011_3.pdf">Part III</a>
+三篇免費 PDF(連結已實際驗證)。站方的介紹說這是「DDD 領袖對 aggregate 風格的當前共識」。
+<b>⚠️ PDF 內文我沒讀過</b>,只驗證了它存在且可下載——所以上面那些「一次交易只改一個」之類的規矩,
+請以他的原文為準,不要以我的轉述為準。</p>
+
+<p><b>繁中:</b><a href="http://teddy-chen-tw.blogspot.com/search/label/DDD">搞笑談軟工 — DDD 標籤</a>,
+陳建村談 Aggregate 與 Clean Architecture 落地的文章。</p>
+
+<h2>本課相關</h2>
+<ul>
+  <li><a href="./0001-ubiquitous-language-第一道閘門.html">第 1 課:Ubiquitous Language</a>(語言漂移)</li>
+  <li><a href="./0002-bounded-context-邊界.html">第 2 課:Bounded Context</a>(範圍漂移)</li>
+  <li><a href="./0003-given-when-then-機械判定.html">第 3 課:Given-When-Then</a>(判定漂移)</li>
+  <li><a href="../reference/0001-該畫邊界還是該拆詞.html">參考卡 01:該畫邊界還是該拆詞</a></li>
+  <li><a href="./0005-簡潔架構-三原則與爆炸半徑.html">第 5 課:簡潔架構</a> —— 這些 Aggregate 該住在哪一層,以及為什麼那決定了 agent 能不能安全地改</li>
+  <li><a href="../practice/0001-交錯練習-前四課.html">交錯練習 01:前四課混合</a> —— 給情境、不給選項,自己挑工具</li>
+</ul>
+
+<div class="ask-teacher">
+  <b>練習貼給我,我會看第 4 格。</b>「現在怎麼繞過去」那一格才是這課真正的收穫——
+  它會告訴你,你系統裡有多少規則其實只活在人的記憶裡。
+</div>
+
+</footer>
+
+<script src="../assets/quiz.js"></script>
+<script src="../assets/sorter.js"></script>
+</body>
+</html>

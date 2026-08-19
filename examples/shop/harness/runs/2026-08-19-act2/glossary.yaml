@@ -1,0 +1,351 @@
+# glossary.yaml —— 從 spec/SPEC.md §1 GLOSSARY(L9-L57)落檔
+#
+# wire_field 的填法規則(先講清楚,免得空白被讀成漏填):
+#   有填 = §1.2(L79-L205)裡真的出現、而且指的就是這個詞的**欄位名**(識別字),
+#          包含容器欄位(`orders` / `items`)—— 同一條規則對兩者一致適用。
+#   留空 = 這個詞不上線:界外角色 / 外部系統 / 只活在領域內的東西(庫存、庫存鎖定),
+#          或散文那一格對應到的不是「一個欄位名」(型別、狀態值、多欄報表數字)。
+#   ⚠️ 留空是事實,不是待補。沒有為了填滿而猜任何欄位名。
+
+glossary_terms:
+
+  - term: 訂單
+    definition: 客人付費成功之後產生的一筆購買紀錄
+    ddd_type: Aggregate Root
+    representation:
+    wire_field: orders            # E3 列表容器(L158)
+    provenance: Qn
+    provenance_ref: SPEC.md L15(來源 [Q3] [Q8],逐字見 L521、L526)
+
+  - term: 訂單品項
+    definition: 一張訂單裡的一種鞋及其數量
+    ddd_type: Entity(隸屬訂單)
+    representation:
+    wire_field: items             # E1/E2 的品項陣列(L97、L143)
+    provenance: 推導自
+    provenance_ref: SPEC.md L16(推導自 [Q16]「可以多雙不同的鞋」,逐字見 L534)
+
+  - term: 鞋子 SKU
+    definition: 一款鞋的識別碼
+    ddd_type: 識別碼
+    representation: 字串
+    wire_field: sku               # 名詞對照 L196
+    provenance: Qn
+    provenance_ref: SPEC.md L17(來源 [Q2],逐字見 L520)
+
+  - term: 訂單識別碼
+    definition: 一張訂單的識別碼
+    ddd_type: 識別碼
+    representation: UUID v4 字串
+    wire_field: orderId           # 名詞對照 L203
+    provenance: 本案自決
+    provenance_ref: SPEC.md L18;依據 §6 A-2「UUID v4,不需集中發號、不外洩銷量」(L371)
+
+  - term: 結帳作業
+    definition: 客人「進入結帳」後、訂單尚未產生前的那段作業,持有被鎖住的庫存
+    ddd_type: Aggregate Root
+    representation:
+    # 留空:E1 的回應是結帳作業本身,沒有一個叫「結帳作業」的欄位;
+    #       它的識別碼是下一個詞。
+    wire_field:
+    provenance: 本案自決
+    provenance_ref: SPEC.md L19;依據 [Q7] 鎖在進入結帳時建立(L525)+ [Q8] 訂單付費成功後才存在(L526)→ 鎖須有訂單以外的載體;見 §6 A-5(L374)
+
+  - term: 結帳識別碼
+    definition: 一次結帳作業的識別碼
+    ddd_type: 識別碼
+    representation: UUID v4 字串
+    wire_field: checkoutId        # E1 回應 L108、E2 請求 L126
+    provenance: 本案自決
+    provenance_ref: SPEC.md L20;依據 §6 A-2(L371)
+
+  - term: 庫存
+    definition: 某一個鞋子 SKU 現有的可售數量
+    ddd_type: Aggregate Root
+    representation: 非負整數
+    # 留空:§1.2 沒有任何端點揭露庫存數字 —— 這個詞不上線。
+    wire_field:
+    provenance: 推導自
+    provenance_ref: SPEC.md L21(推導自 [Q7]「要先有該鞋數量」「要先鎖起來」,逐字見 L525)
+
+  - term: 庫存鎖定
+    definition: 結帳期間被保留、不可再賣給別人的數量
+    ddd_type: Entity(隸屬庫存)
+    representation: 正整數
+    # 留空:同上,不上線。
+    wire_field:
+    provenance: Qn
+    provenance_ref: SPEC.md L22(來源 [Q7],逐字見 L525)
+
+  - term: 金額
+    definition: 這個系統裡所有的錢
+    ddd_type: Value Object
+    representation: 幣別固定 TWD;整數,單位為「元」,不含小數;不可為負;相等性 = 幣別相同且數值相同
+    # 留空:「金額」是型別,不是欄位 —— 上線的是它的每一個用處(unitPrice / lineSubtotal /
+    #       shippingFee / totalAmount),各自有自己的詞。
+    wire_field:
+    provenance: Qn
+    provenance_ref: SPEC.md L23:幣別來源 [Q12](逐字見 L530);整數與非負為 本案自決 §6 A-1(L370)
+
+  - term: 單價
+    definition: 一雙鞋的價錢
+    ddd_type: Value Object(金額)
+    representation: TWD 整數
+    wire_field: unitPrice         # 名詞對照 L198
+    provenance: Qn
+    provenance_ref: SPEC.md L24(來源 [Q2],逐字見 L520)
+
+  - term: 數量
+    definition: 同一款鞋買幾雙
+    ddd_type: Value Object
+    representation: 正整數,最小 1
+    wire_field: quantity          # 名詞對照 L197
+    provenance: Qn
+    provenance_ref: SPEC.md L25(來源 [Q2],L520);下限 ≥ 1 為 本案自決 §6 A-6(L375)
+
+  - term: 品項小計
+    definition: 一個訂單品項的單價 × 數量
+    ddd_type: Value Object(金額)
+    representation: TWD 整數
+    wire_field: lineSubtotal      # 名詞對照 L199
+    provenance: 推導自
+    provenance_ref: SPEC.md L26(推導自 [Q21] 公式裡的被加項,逐字見 L539)
+
+  - term: 運費
+    definition: 這張單的運送費用
+    ddd_type: Value Object(金額)
+    representation: TWD 整數
+    wire_field: shippingFee       # 名詞對照 L200
+    provenance: Qn
+    provenance_ref: SPEC.md L27(來源 [Q2] [Q21],逐字見 L520、L539)
+
+  - term: 總價
+    definition: 所有品項小計加總,再加上運費
+    ddd_type: Value Object(金額)
+    representation: TWD 整數
+    wire_field: totalAmount       # 名詞對照 L201
+    provenance: Qn
+    provenance_ref: SPEC.md L28(來源 [Q21] [Q26];[Q26]「最後一個」裁決了 §7-1,逐字見 L539、L544)
+
+  - term: 收貨地址
+    definition: 貨要送到哪裡
+    ddd_type: Value Object
+    representation: 單一字串
+    wire_field: shippingAddress   # E1 請求 L95;禁用同義詞清單 L53 明寫此欄位名
+    provenance: Qn
+    provenance_ref: SPEC.md L29(來源 [Q2] [Q30];[Q30] 確認「地址」與「收貨地址」是同一個,逐字見 L548)
+
+  - term: 客戶基本資訊
+    definition: 名字 + email + 收貨地址
+    ddd_type: Value Object
+    representation:
+    # `customer` 給這個詞,不給下面的角色「客戶」:名詞對照 L195 那一列寫的是
+    # 「客人 / 客戶 → customer(name / email / shippingAddress)」,而括號裡那三欄
+    # 逐字就是本詞的定義。角色「客戶」在 API 上沒有識別碼(見該詞)。
+    # wire_field 是 UNIQUE,兩個詞不能同時宣稱 `customer` —— 這裡是刻意的選邊,不是漏填。
+    wire_field: customer
+    provenance: Qn
+    provenance_ref: SPEC.md L30(來源 [Q20] [Q30],逐字見 L538、L548)
+
+  - term: 名字
+    definition: 客戶的姓名
+    ddd_type: Value Object
+    representation: 字串
+    wire_field: name              # E1 請求 customer.name(L93)
+    provenance: Qn
+    provenance_ref: SPEC.md L31(來源 [Q20],逐字見 L538)
+
+  - term: email
+    definition: 客戶的電子郵件
+    ddd_type: Value Object
+    representation: 字串
+    wire_field: email             # E1 請求 customer.email(L94)
+    provenance: Qn
+    provenance_ref: SPEC.md L32(來源 [Q20],逐字見 L538)
+
+  - term: 客戶
+    definition: 買鞋的人
+    ddd_type: 角色
+    representation:
+    # 留空:本案沒有客戶識別碼 —— 「誰是誰」是阻斷級規格沉默 B-2(L350),
+    #       §10 明寫不得實作任何使用者身分模型(L509)。角色本身不上線,
+    #       上線的是他的基本資訊(上面那個詞)。
+    wire_field:
+    provenance: Qn
+    provenance_ref: SPEC.md L33(來源 [Q1] [Q3],逐字見 L519、L521)
+
+  - term: 用戶
+    definition: 會去看訂單資料的一種人
+    ddd_type: 角色
+    representation:
+    # 留空:同上,依附 B-2 / B-9(L350、L357);G15 在 B-2 解決前不得實作(L282)。
+    wire_field:
+    provenance: Qn
+    provenance_ref: SPEC.md L34(來源 [Q25],逐字見 L543)
+
+  - term: 後台人員
+    definition: 會去看訂單資料的另一種人,看得到所有訂單
+    ddd_type: 角色
+    representation:
+    wire_field:
+    provenance: Qn
+    provenance_ref: SPEC.md L35(來源 [Q25];「所有」來自需求方第一句原話,逐字見 L543)
+
+  - term: 上游公司
+    definition: 實際出貨的那一方
+    ddd_type: 角色(外部)
+    representation:
+    # 留空:界外,本次不實作(§5 L341)。
+    wire_field:
+    provenance: Qn
+    provenance_ref: SPEC.md L36(來源 [Q23],逐字見 L541)
+
+  - term: 第三方支付
+    definition: 收錢與退錢的外部系統
+    ddd_type: 外部規則集
+    representation:
+    # 留空:外部系統,以 port 隔離,領域層不得認識任何廠商(§9 R7,L446)。
+    wire_field:
+    provenance: Qn
+    provenance_ref: SPEC.md L37(來源 [Q15] [Q18],逐字見 L533、L536)
+
+  - term: 付費成功
+    definition: 第三方支付回報這筆錢收到了
+    ddd_type: 階段或狀態
+    representation:
+    # 留空:§1.2 沒有一個叫「付費成功」的欄位 —— 它在 wire 上只以
+    #       E2 的 paymentId 與錯誤碼 402 PAYMENT_NOT_SUCCEEDED(L151)的有無表現。
+    wire_field:
+    provenance: Qn
+    provenance_ref: SPEC.md L38(來源 [Q2] [Q8],逐字見 L520、L526)
+
+  - term: 可出貨
+    definition: 訂單成立後,原本被鎖住的庫存轉成的狀態
+    ddd_type: 階段或狀態
+    representation:
+    # 留空:庫存側的狀態,§1.2 不揭露。
+    wire_field:
+    provenance: Qn
+    provenance_ref: SPEC.md L39(來源 [Q17],逐字見 L535)
+
+  - term: 已出貨
+    definition: 訂單狀態之一
+    ddd_type: 階段或狀態
+    representation: 對外值 SHIPPED
+    # 留空:SHIPPED 是 `status` 這個欄位的**值**,不是欄位名。
+    #       (§1 沒有「訂單狀態」這個詞,所以 `status` 這個欄位對不回任何一個詞 ——
+    #        那是這份詞彙表真實的差額,不在這裡硬補。)
+    wire_field:
+    provenance: 暫定
+    provenance_ref: "SPEC.md L40(暫定 [Q27]「先給: 已出貨/收到 就好」,逐字見 L545;暫定語氣未解 → §7-3 L392)"
+
+  - term: 收到
+    definition: 訂單狀態之一
+    ddd_type: 階段或狀態
+    representation: 對外值 RECEIVED
+    wire_field:
+    provenance: 暫定
+    provenance_ref: SPEC.md L41(暫定 [Q27],逐字見 L545;→ §7-3 L392)
+
+  - term: 已成立
+    definition: 訂單剛產生時的狀態
+    ddd_type: 階段或狀態
+    representation: 對外值 PLACED
+    wire_field:
+    provenance: 本案自決
+    provenance_ref: SPEC.md L42;依據 §6 A-3(L372):[Q24]「只會更改狀態」蘊含產生當下就有一個狀態,但他沒給名字
+
+  - term: 退費
+    definition: 已收到錢但訂單沒建立起來時,把錢退回去
+    ddd_type: 階段或狀態(付款的終態)
+    representation:
+    # 留空:退費是支付側的動作,§1.2 沒有對外端點或欄位。
+    wire_field:
+    provenance: Qn
+    provenance_ref: SPEC.md L43(來源 [Q14] [Q18],逐字見 L532、L536)
+
+  - term: 每月銷量
+    definition: 後台人員要從訂單看到的東西
+    ddd_type: Value Object(報表數值)
+    representation: 見 §6 A-11(L380):以訂單成立時間、時區 Asia/Taipei 分月;回傳訂單張數、售出雙數、銷售金額三個數
+    # 留空:E5(L183)回的是 orderCount / unitsSold / salesAmount **三個**欄位,
+    #       沒有一個欄位叫「每月銷量」—— 散文那一格寫的是說明,不是一個欄位名。
+    wire_field:
+    provenance: Qn
+    provenance_ref: SPEC.md L44(來源 [Q29]「每月銷量」,逐字見 L547)
+
+  - term: 上游下定單
+    definition: 訂單成立後轉給上游公司的那張單
+    ddd_type: Entity(本次不實作,見 §5)
+    representation:
+    # 留空:本次不實作(§5 L340、§9 不建 upstream package L442)—— 界外,不上線。
+    wire_field:
+    provenance: Qn
+    provenance_ref: SPEC.md L45(來源 [Q23] [Q28],逐字見 L541、L546)
+
+# ─────────────────────────────────────────────────────────────────────────
+# 禁用同義詞清單(SPEC.md L47-L57)
+# 散文把好幾種講法擠在同一格,這裡逐個講法拆成一列。
+# note 逐字裝散文那一列的「為什麼」欄。
+banned_synonyms:
+
+  # L51 —— 那一格的「一律改用」寫了兩個東西,分屬兩種範圍,故拆兩列。
+  - banned: 「總價」指單一品項不含運費的金額
+    use_instead: 品項小計
+    note: 需求方 Q6 曾說「單價 x 數量 = 總價」(不含運費),Q26 裁決總價含運費。舊語意仍可能出現在任何人口中
+
+  - banned: 「總價」指全單不含運費的金額
+    # 散文指定改用「商品金額合計」,但**那個詞不在 §1 詞彙表裡**,FK 指不到,
+    # 故此處留空而不硬指一個最接近的詞(指「總價」會把被禁的舊語意指回禁詞本身)。
+    use_instead:
+    no_replacement_note: 散文(L51)指定改用「商品金額合計」,但 §1 GLOSSARY(L15-L45)沒有這個詞條 —— 它只出現在禁用同義詞清單的這一格。指得到的替代詞不存在,不是沒有替代概念;要補的是 §1 少一個詞條。
+    note: 需求方 Q6 曾說「單價 x 數量 = 總價」(不含運費),Q26 裁決總價含運費。舊語意仍可能出現在任何人口中
+
+  # L52 —— 一格裡四個講法,拆四列。
+  - banned: orderTotal
+    use_instead: 總價
+    note: 實作端最容易各取各的名
+  - banned: grandTotal
+    use_instead: 總價
+    note: 實作端最容易各取各的名
+  - banned: finalPrice
+    use_instead: 總價
+    note: 實作端最容易各取各的名
+  - banned: amount(裸用)
+    use_instead: 總價
+    note: 實作端最容易各取各的名
+
+  # L53
+  - banned: 「地址」
+    use_instead: 收貨地址
+    note: Q2 講「收貨地址」、Q20 講「地址」,Q30 確認是同一個。裸用會讓人以為另有帳單地址
+
+  # L54 —— 兩個講法,拆兩列。
+  - banned: 「單」指給上游的那張
+    use_instead: 上游下定單
+    note: Q23「轉下定給他」、Q28「我再另外開單做」——那是另一個東西
+  - banned: 「訂單」指給上游的那張
+    use_instead: 上游下定單
+    note: Q23「轉下定給他」、Q28「我再另外開單做」——那是另一個東西
+
+  # L55
+  - banned: 「鎖」
+    use_instead: 庫存鎖定
+    note: Q7 只說「鎖起來」,沒說鎖誰
+
+  # L56 —— 沒有替代詞的那一列。
+  - banned: 「購物車」
+    use_instead:
+    no_replacement_note: 本案沒有替代詞:購物車不在 §1 詞彙表裡,因為它指的東西在這次根本不存在 —— [Q19]「不在這裡,會另外開單」被採用,§9 R10(L449)一律禁止購物車相關型別。§7-2(L391)未裁決前不得出現,裁決後可能是新增一個詞而不是改用既有的詞。
+    note: Q19 說不在這裡、Q22 又說要留著(§7 矛盾未解),裸用會讓實作者以為要做
+
+  # L57 —— 一格裡兩個角色、兩種改法,拆三列(裸用的「客人」+ 兩個方向的互換)。
+  - banned: 「客人」
+    use_instead: 客戶
+    note: Q1/Q3 說「客人」「客戶」,Q25 說「用戶」——是不是同一個角色他沒說
+  - banned: 「用戶」指下單的一方
+    use_instead: 客戶
+    note: Q1/Q3 說「客人」「客戶」,Q25 說「用戶」——是不是同一個角色他沒說
+  - banned: 「客戶」指查詢端的一方
+    use_instead: 用戶
+    note: Q1/Q3 說「客人」「客戶」,Q25 說「用戶」——是不是同一個角色他沒說

@@ -1,0 +1,18 @@
+{"event": "asked", "round": 1, "who": "interviewer", "session_id": "subagent-a653bd2", "chars": 293, "file": "rounds/r1-questions.md"}
+{"event": "answered", "round": 1, "who": "human:Nat", "session_id": "main-session", "chars": 104, "file": "rounds/r1-answers.md"}
+{"event": "relayed", "round": 1, "from": "human:Nat", "to": "interviewer", "chars": 104}
+{"event": "asked", "round": 2, "who": "interviewer", "session_id": "subagent-a653bd2", "chars": 336, "file": "rounds/r2-questions.md"}
+{"event": "answered", "round": 2, "who": "human:Nat", "session_id": "main-session", "chars": 109, "file": "rounds/r2-answers.md"}
+{"event": "relayed", "round": 2, "from": "human:Nat", "to": "interviewer", "chars": 109}
+{"event": "asked", "round": 3, "who": "interviewer", "session_id": "subagent-a653bd2", "chars": 424, "file": "rounds/r3-questions.md"}
+{"event": "answered", "round": 3, "who": "human:Nat", "session_id": "main-session", "chars": 78, "file": "rounds/r3-answers.md"}
+{"event": "relayed", "round": 3, "from": "human:Nat", "to": "interviewer", "chars": 78}
+{"event": "asked", "round": 4, "who": "interviewer", "session_id": "subagent-a653bd2", "chars": 369, "file": "rounds/r4-questions.md"}
+{"event": "answered", "round": 4, "who": "human:Nat", "session_id": "main-session", "chars": 74, "file": "rounds/r4-answers.md"}
+{"event": "relayed", "round": 4, "from": "human:Nat", "to": "interviewer", "chars": 74}
+{"event": "asked", "round": 5, "who": "interviewer", "session_id": "subagent-a653bd2", "chars": 353, "file": "rounds/r5-questions.md"}
+{"event": "answered", "round": 5, "who": "human:Nat", "session_id": "main-session", "chars": 149, "file": "rounds/r5-answers.md"}
+{"event": "relayed", "round": 5, "from": "human:Nat", "to": "interviewer", "chars": 149}
+{"event": "asked", "round": 6, "who": "interviewer", "session_id": "subagent-a653bd2", "chars": 475, "file": "rounds/r6-questions.md"}
+{"event": "answered", "round": 6, "who": "human:Nat", "session_id": "main-session", "chars": 72, "file": "rounds/r6-answers.md"}
+{"event": "relayed", "round": 6, "from": "human:Nat", "to": "interviewer", "chars": 72}

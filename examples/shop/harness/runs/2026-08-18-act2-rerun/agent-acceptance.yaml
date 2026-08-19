@@ -1,0 +1,518 @@
+# acceptance.yaml —— SPEC.md 的驗收情境落檔(第二幕)
+#
+# 來源:spec/SPEC.md;合約:tools/harness/schema.sql
+# 只收 SPEC.md 實際寫出來的情境:S1–S12。
+# S13 不落檔 —— 它是刻意留白的阻斷級缺口(SPEC.md L126-L134、L302),不得實作。
+#
+# 沒有任何被授權為「架構模板」的文件(SPEC.md L5、L202),故本檔 provenance
+# 一律不用「模板既定」。
+
+# ─────────────────────────────────────────────────────────────────────────
+# 一、wire_contract —— 對外 JSON 的欄位名,由本規格擁有,實作照做。
+#
+# SPEC.md L28 把 HTTP 形式標成「本案自決」,散文只固定了 POST /orders、GET /orders,
+# 沒有逐欄定義。這裡把每一欄補齊(依據:SPEC.md L242-L252 ASSUMPTIONS 的自決授權)。
+# 欄位名一律照 §詞彙表(SPEC.md L144-L156)對譯,不另創同義詞:
+#   客人編號→customerId、訂單明細→items、商品→productId、數量→quantity、
+#   單價→unitPriceCents、幣別→currency、總金額→totalCents、
+#   成立日期→placedAt、狀態→status、訂單識別碼→orderId。
+# 金額一律以「分」為整數表示(SPEC.md L36 固定小數 2 位、L244 禁用浮點數),
+# 故欄位名帶 Cents 字尾。
+wire_contract:
+  name: shop-orders-v1
+
+  # 請求側(POST /orders)
+  req_customer_field: customerId
+  req_items_field: items
+  req_product_field: productId
+  req_quantity_field: quantity
+  req_price_field: unitPriceCents
+  req_currency_field: currency
+  # 選填:請求可以夾帶總金額 —— S3 要真的送一個進去,才證明得了它被忽略
+  # (SPEC.md L55-L60)。系統必須忽略它、自己算。
+  req_total_field: totalCents
+
+  # 回應側(POST 回應與 GET /orders 一列共用訂單識別欄)
+  res_order_id_field: orderId
+  # 條件式必填:本檔有 list_field_equals_number 斷言(S1/S2/S3/S8/S10/S11/S12),
+  # 「總額 = Σ(數量 × 單價)」(C1,SPEC.md L178)靠這一欄認人。不給就永遠不檢查。
+  res_total_field: totalCents
+  # 條件式必填:本檔有預期被拒的情境(S4–S7),每條都要 list_no_row_for_customer,
+  # 而它比對這一欄。列表本來就要顯示「是哪個客人下的」(SPEC.md L21),
+  # 而訂單只保存客人編號(SPEC.md L223),故列表揭露的就是客人編號。
+  res_customer_id_field: customerId
+
+  # 列表一列有哪些欄位 —— 直接由 SPEC.md L21 點名的必看資訊決定:
+  # 是哪個客人下的、買了哪些商品、每樣幾個、單價多少、幣別、成立日期、狀態、總金額。
+  # 另加 orderId(SPEC.md L247:訂單必然具備一組系統內部識別碼)。
+  # items 一列內的物件沿用請求側的明細欄位名(productId / quantity /
+  # unitPriceCents / currency),不另創同義詞。
+  list_fields:
+    - orderId
+    - customerId
+    - items
+    - currency
+    - placedAt
+    - status
+    - totalCents
+
+# ─────────────────────────────────────────────────────────────────────────
+# 二、acceptance_scenarios
+#
+# 狀態碼為本案自決(SPEC.md L28 / L248 授權):
+#   成立 201;結構上不成立的單(空單 / 數量 < 1)400;未登入 401。
+# 狀態值用 §詞彙表的原詞「已成立」(SPEC.md L148、L170:不得另創同義詞)。
+acceptance_scenarios:
+
+  # ── S1 ───────────────────────────────────────────────────────────────
+  - id: S1
+    given_when: >-
+      客人 C-001 已登入,購物內容為「藍色馬克杯」1 個、單價 TWD 150.00;
+      他按下「確定」送出訂單
+    then_expect: >-
+      系統建立一筆訂單,狀態「已成立」;含 1 項明細(藍色馬克杯 × 1、單價 TWD 150.00);
+      總金額 TWD 150.00;幣別 TWD;成立日期為送出當下;下單客人為 C-001
+    provenance: Qn
+    provenance_ref: "[Q1][Q2][Q8][Q12] — SPEC.md L41-L46(情境 S1);幣別 C7 見 L184"
+    steps:
+      - alias: s1Order
+        customer_id: C-001
+        items:
+          - product_id: P-MUG-BLUE
+            quantity: 1
+            unit_price_cents: 15000
+            currency: TWD
+    assertions:
+      - kind: status_is
+        target: s1Order
+        expected_number: 201
+      - kind: order_id_not_blank
+        target: s1Order
+      - kind: list_row_exists
+        target: s1Order
+      - kind: list_field_equals_text
+        target: s1Order
+        field: customerId
+        expected_text: C-001
+      - kind: list_field_equals_number
+        target: s1Order
+        field: totalCents
+        expected_number: 15000
+      - kind: list_field_equals_text
+        target: s1Order
+        field: currency
+        expected_text: TWD
+      - kind: list_field_equals_text
+        target: s1Order
+        field: status
+        expected_text: 已成立
+      - kind: list_field_is_iso_date
+        target: s1Order
+        field: placedAt
+
+  # ── S2 ───────────────────────────────────────────────────────────────
+  - id: S2
+    given_when: >-
+      客人 C-002 已登入,購物內容為「藍色馬克杯」2 個(單價 TWD 150.00)
+      與「棉質提袋」3 個(單價 TWD 89.50);他按下「確定」送出訂單
+    then_expect: >-
+      訂單成立,狀態「已成立」;總金額為 TWD 568.50(150.00 × 2 + 89.50 × 3),
+      且該數字由系統計算,不接受任何外部指定值
+    provenance: Qn
+    provenance_ref: "[Q8] — SPEC.md L48-L53(情境 S2);不變式 C1 見 L178"
+    steps:
+      - alias: s2Order
+        customer_id: C-002
+        items:
+          - product_id: P-MUG-BLUE
+            quantity: 2
+            unit_price_cents: 15000
+            currency: TWD
+          - product_id: P-TOTE-COTTON
+            quantity: 3
+            unit_price_cents: 8950
+            currency: TWD
+    assertions:
+      - kind: status_is
+        target: s2Order
+        expected_number: 201
+      - kind: order_id_not_blank
+        target: s2Order
+      - kind: list_row_exists
+        target: s2Order
+      - kind: list_field_equals_text
+        target: s2Order
+        field: customerId
+        expected_text: C-002
+      # 56850 = 15000 × 2 + 8950 × 3
+      - kind: list_field_equals_number
+        target: s2Order
+        field: totalCents
+        expected_number: 56850
+      - kind: list_field_equals_text
+        target: s2Order
+        field: status
+        expected_text: 已成立
+
+  # ── S3 ───────────────────────────────────────────────────────────────
+  - id: S3
+    given_when: >-
+      客人 C-003 已登入,購物內容為「棉質提袋」1 個、單價 TWD 89.50;
+      送出訂單時請求中夾帶一個總金額 TWD 50.00
+    then_expect: 該指定值一律被忽略;訂單仍成立,成立的訂單總金額為 TWD 89.50
+    provenance: Qn
+    provenance_ref: "[Q8] — SPEC.md L55-L60(情境 S3);不變式 C1 見 L178"
+    steps:
+      - alias: s3Order
+        customer_id: C-003
+        # 請求夾帶的總金額(TWD 50.00)—— 領域沒有這個概念,系統必須忽略它
+        claimed_total_cents: 5000
+        items:
+          - product_id: P-TOTE-COTTON
+            quantity: 1
+            unit_price_cents: 8950
+            currency: TWD
+    assertions:
+      - kind: status_is
+        target: s3Order
+        expected_number: 201
+      - kind: order_id_not_blank
+        target: s3Order
+      - kind: list_row_exists
+        target: s3Order
+      # 夾帶值 5000 被忽略,算出來的 8950 才算數 —— 這條就是 S3 的全部重點
+      - kind: list_field_equals_number
+        target: s3Order
+        field: totalCents
+        expected_number: 8950
+      - kind: list_field_equals_text
+        target: s3Order
+        field: status
+        expected_text: 已成立
+
+  # ── S4 ── 預期被拒 ────────────────────────────────────────────────────
+  - id: S4
+    given_when: 客人 C-004 已登入,購物內容為空、一項商品都沒有;他按下「確定」送出訂單
+    then_expect: 系統拒絕(400);不產生任何訂單紀錄,資料庫中不留下任何殘骸
+    provenance: Qn
+    provenance_ref: >-
+      [Q11] — SPEC.md L62-L67(情境 S4);不留紀錄為 推導自 [Q11],見 L67 與 C10 L187
+    expects_rejection: true
+    rejected_requests:
+      # 刻意送出不合法的請求:items 為空
+      - alias: s4Request
+        customer_id: C-004
+        items: []
+    rejected_assertions:
+      - kind: status_is
+        target: s4Request
+        expected_number: 400
+      # 只斷言狀態碼不夠 ——「回了 400 但還是寫了一筆」必須被抓出來
+      - kind: list_no_row_for_customer
+        target: s4Request
+
+  # ── S5 ── 預期被拒 ────────────────────────────────────────────────────
+  - id: S5
+    given_when: >-
+      客人 C-005 已登入,購物內容為「藍色馬克杯」0 個、單價 TWD 150.00;
+      他按下「確定」送出訂單
+    then_expect: 系統拒絕(400);不產生任何訂單紀錄
+    provenance: Qn
+    provenance_ref: "[Q11] — SPEC.md L69-L74(情境 S5);C6 L183、C10 L187"
+    expects_rejection: true
+    rejected_requests:
+      # 刻意送出不合法的數量:0
+      - alias: s5Request
+        customer_id: C-005
+        items:
+          - product_id: P-MUG-BLUE
+            quantity: 0
+            unit_price_cents: 15000
+            currency: TWD
+    rejected_assertions:
+      - kind: status_is
+        target: s5Request
+        expected_number: 400
+      - kind: list_no_row_for_customer
+        target: s5Request
+
+  # ── S6 ── 預期被拒 ────────────────────────────────────────────────────
+  - id: S6
+    given_when: >-
+      客人 C-006 已登入,購物內容為「藍色馬克杯」-1 個、單價 TWD 150.00;
+      他按下「確定」送出訂單
+    then_expect: 系統拒絕(400);不產生任何訂單紀錄
+    provenance: Qn
+    provenance_ref: "[Q11] — SPEC.md L76-L81(情境 S6);C6 L183、C10 L187"
+    expects_rejection: true
+    rejected_requests:
+      # 刻意送出不合法的數量:-1
+      - alias: s6Request
+        customer_id: C-006
+        items:
+          - product_id: P-MUG-BLUE
+            quantity: -1
+            unit_price_cents: 15000
+            currency: TWD
+    rejected_assertions:
+      - kind: status_is
+        target: s6Request
+        expected_number: 400
+      - kind: list_no_row_for_customer
+        target: s6Request
+
+  # ── S7 ── 預期被拒 ────────────────────────────────────────────────────
+  - id: S7
+    given_when: >-
+      一名未登入的訪客,購物內容為「藍色馬克杯」1 個、單價 TWD 150.00;他送出訂單
+    then_expect: 系統拒絕(401);不產生任何訂單紀錄
+    provenance: Qn
+    provenance_ref: >-
+      [Q12] — SPEC.md L83-L88(情境 S7);C8 L185(跨聚合根,邊界可能錯,見 L190)
+    expects_rejection: true
+    rejected_requests:
+      # 未登入 = 請求裡認不出客人編號,故刻意送空字串(領域擋得住,請求擋不住)
+      - alias: s7Request
+        customer_id: ""
+        items:
+          - product_id: P-MUG-BLUE
+            quantity: 1
+            unit_price_cents: 15000
+            currency: TWD
+    rejected_assertions:
+      - kind: status_is
+        target: s7Request
+        expected_number: 401
+      - kind: list_no_row_for_customer
+        target: s7Request
+
+  # ── S8 ── 代理編碼 ────────────────────────────────────────────────────
+  - id: S8
+    given_when: >-
+      已存在一筆已成立訂單,客人 C-001,含「藍色馬克杯」1 個(單價 TWD 150.00)、
+      總金額 TWD 150.00;有人(客人或營運人員)嘗試把數量改成 2
+    then_expect: >-
+      系統拒絕;該訂單的明細、總金額、狀態、成立日期完全不變,
+      仍為「藍色馬克杯 × 1、TWD 150.00、已成立」
+    provenance: Qn
+    provenance_ref: "[Q7] — SPEC.md L91-L96(情境 S8);C3 L180"
+    proxy_for: >-
+      schema 沒有「修改已成立訂單」這個動作,且 expects_rejection 掛在情境上,
+      「成功的前置訂單 + 被拒的修改」表達不了(schema.sql L255-L257)。
+      代理:成立該筆訂單後,以列表仍顯示 數量 1 之總金額 15000、狀態「已成立」,
+      近似「修改被拒且內容不變」—— 只覆蓋到「內容不變」這一半,
+      「修改請求被拒」那一半本檔證明不了。
+    steps:
+      - alias: s8Order
+        customer_id: C-001
+        items:
+          - product_id: P-MUG-BLUE
+            quantity: 1
+            unit_price_cents: 15000
+            currency: TWD
+    assertions:
+      - kind: status_is
+        target: s8Order
+        expected_number: 201
+      - kind: list_row_exists
+        target: s8Order
+      # 內容不變:總金額仍是 1 × 15000,不是改成 2 之後的 30000
+      - kind: list_field_equals_number
+        target: s8Order
+        field: totalCents
+        expected_number: 15000
+      - kind: list_field_equals_text
+        target: s8Order
+        field: status
+        expected_text: 已成立
+      - kind: list_field_is_iso_date
+        target: s8Order
+        field: placedAt
+
+  # ── S9 ── 代理編碼 ────────────────────────────────────────────────────
+  - id: S9
+    given_when: 同 S8 的那筆已成立訂單;有人嘗試取消它
+    then_expect: 系統拒絕;訂單狀態仍為「已成立」;系統中不存在「已取消」這個狀態
+    provenance: Qn
+    provenance_ref: "[Q7][Q6] — SPEC.md L98-L103(情境 S9);C2 L179、C3 L180"
+    proxy_for: >-
+      schema 沒有「取消訂單」這個動作。代理:成立一筆訂單後,以列表該列狀態仍為
+      「已成立」近似「取消被拒、狀態不變」—— 「不存在已取消狀態」只被
+      「唯一觀察得到的狀態值是已成立」間接覆蓋,取消請求本身本檔送不出去。
+    steps:
+      - alias: s9Order
+        customer_id: C-001
+        items:
+          - product_id: P-MUG-BLUE
+            quantity: 1
+            unit_price_cents: 15000
+            currency: TWD
+    assertions:
+      - kind: status_is
+        target: s9Order
+        expected_number: 201
+      - kind: list_row_exists
+        target: s9Order
+      - kind: list_field_equals_text
+        target: s9Order
+        field: status
+        expected_text: 已成立
+      - kind: list_field_equals_number
+        target: s9Order
+        field: totalCents
+        expected_number: 15000
+
+  # ── S10 ── 代理編碼 ───────────────────────────────────────────────────
+  - id: S10
+    given_when: >-
+      商品「藍色馬克杯」單價為 TWD 100.00,客人 C-007 於該價格下單 1 個、訂單成立、
+      總金額 TWD 100.00;之後該商品單價被調整為 TWD 120.00,而後重新查看那筆舊訂單
+    then_expect: 該訂單明細的單價仍顯示 TWD 100.00,總金額仍為 TWD 100.00
+    provenance: Qn
+    provenance_ref: "[Q9] — SPEC.md L105-L110(情境 S10,100/120 為親口確認);C4 L181"
+    proxy_for: >-
+      schema 沒有「調整商品單價」這個動作(商品目錄不在本規格範圍,SPEC.md L224),
+      故送不出調價那一步。代理:以 TWD 100.00 成立訂單後,查列表仍為總金額 10000
+      (= 1 × 下單當時單價的複本)近似「調價後舊訂單金額不動」——
+      實際上只證明了「訂單保存的是下單當時的單價複本」,沒證明調價之後。
+    steps:
+      - alias: s10Order
+        customer_id: C-007
+        items:
+          - product_id: P-MUG-BLUE
+            quantity: 1
+            unit_price_cents: 10000
+            currency: TWD
+    assertions:
+      - kind: status_is
+        target: s10Order
+        expected_number: 201
+      - kind: list_row_exists
+        target: s10Order
+      # 10000 = 下單當時的單價複本,不是調價後的 12000
+      - kind: list_field_equals_number
+        target: s10Order
+        field: totalCents
+        expected_number: 10000
+      - kind: list_field_equals_text
+        target: s10Order
+        field: currency
+        expected_text: TWD
+
+  # ── S11 ───────────────────────────────────────────────────────────────
+  - id: S11
+    given_when: >-
+      系統中存在 3 筆已成立訂單,分屬客人 C-001、C-002、C-007;營運人員開啟訂單列表
+    then_expect: >-
+      3 筆全部列出,每筆顯示:下單客人、商品項目、各項數量、各項單價、幣別、
+      成立日期、狀態、總金額;不提供搜尋框、篩選器或排序控制
+    provenance: Qn
+    provenance_ref: "[Q2][Q14] — SPEC.md L112-L117(情境 S11);列表欄位見 L21"
+    steps:
+      - alias: s11OrderA
+        customer_id: C-001
+        items:
+          - product_id: P-MUG-BLUE
+            quantity: 1
+            unit_price_cents: 15000
+            currency: TWD
+      - alias: s11OrderB
+        customer_id: C-002
+        items:
+          - product_id: P-MUG-BLUE
+            quantity: 2
+            unit_price_cents: 15000
+            currency: TWD
+          - product_id: P-TOTE-COTTON
+            quantity: 3
+            unit_price_cents: 8950
+            currency: TWD
+      - alias: s11OrderC
+        customer_id: C-007
+        items:
+          - product_id: P-TOTE-COTTON
+            quantity: 1
+            unit_price_cents: 8950
+            currency: TWD
+    assertions:
+      # 三筆一次全撈、全部列出(無查詢條件、無分頁 —— SPEC.md L210、L251)
+      - kind: list_row_exists
+        target: s11OrderA
+      - kind: list_field_equals_text
+        target: s11OrderA
+        field: customerId
+        expected_text: C-001
+      - kind: list_field_equals_number
+        target: s11OrderA
+        field: totalCents
+        expected_number: 15000
+      - kind: list_field_is_iso_date
+        target: s11OrderA
+        field: placedAt
+      - kind: list_row_exists
+        target: s11OrderB
+      - kind: list_field_equals_text
+        target: s11OrderB
+        field: customerId
+        expected_text: C-002
+      - kind: list_field_equals_number
+        target: s11OrderB
+        field: totalCents
+        expected_number: 56850
+      - kind: list_row_exists
+        target: s11OrderC
+      - kind: list_field_equals_text
+        target: s11OrderC
+        field: customerId
+        expected_text: C-007
+      - kind: list_field_equals_number
+        target: s11OrderC
+        field: totalCents
+        expected_number: 8950
+      - kind: list_field_equals_text
+        target: s11OrderC
+        field: status
+        expected_text: 已成立
+
+  # ── S12 ── 代理編碼 ───────────────────────────────────────────────────
+  - id: S12
+    given_when: >-
+      客人 C-008 已登入,購物內容為「藍色馬克杯」2 個、單價 TWD 150.00;
+      他送出訂單,系統在持久化過程中(訂單主檔已寫、明細尚未寫完)發生故障中斷
+    then_expect: >-
+      系統中不存在這筆訂單的任何部分 —— 不得留下沒有明細的訂單主檔,
+      也不得留下總金額與明細對不上的殘骸。要嘛完整成立,要嘛完全不存在
+    provenance: 本案自決
+    provenance_ref: >-
+      本案自決 — SPEC.md L119-L124(情境 S12,明示不是需求方說的);
+      依據 L246 ASSUMPTIONS「下單寫入為原子操作,不留半筆」與 C9 L186 / C11 L188
+    proxy_for: >-
+      schema 沒有「在持久化中途注入故障」這個動作,送不出中斷那一步。
+      代理:正常成立同一筆訂單,以列表該列存在、且總金額 30000 與明細
+      Σ(數量 × 單價) 一致近似「不留下對不上的殘骸」——
+      只覆蓋「完整成立」那一半,「故障後完全不存在」那一半本檔證明不了。
+    steps:
+      - alias: s12Order
+        customer_id: C-008
+        items:
+          - product_id: P-MUG-BLUE
+            quantity: 2
+            unit_price_cents: 15000
+            currency: TWD
+    assertions:
+      - kind: status_is
+        target: s12Order
+        expected_number: 201
+      - kind: order_id_not_blank
+        target: s12Order
+      - kind: list_row_exists
+        target: s12Order
+      # 30000 = 2 × 15000:主檔與明細對得上,沒有半筆殘骸
+      - kind: list_field_equals_number
+        target: s12Order
+        field: totalCents
+        expected_number: 30000
+      - kind: list_field_equals_text
+        target: s12Order
+        field: status
+        expected_text: 已成立

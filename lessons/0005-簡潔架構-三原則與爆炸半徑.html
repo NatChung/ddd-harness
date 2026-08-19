@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>第 5 課 — 簡潔架構:三原則,以及 agent 改一行的爆炸半徑</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+</head>
+<body>
+
+<p class="lesson-meta">第 5 課 · DDD × Agent Harness</p>
+<h1>簡潔架構</h1>
+<p class="subtitle">三條原則,決定 agent 改一行的爆炸半徑有多大。</p>
+
+<h2>第 4 課守住的東西,會在這一課被拆掉</h2>
+
+<p>你上一課做了一個 <code>Order</code>:沒有 setter、<code>items()</code> 回傳複本、
+invariant 在 root 內強制。很好。</p>
+
+<p>然後有人要做一支 API,把訂單回傳成 JSON。序列化工具讀不到私有欄位,於是——</p>
+
+<pre><code>public class Order {
+    public Order() { }                       // ← 序列化需要無參數建構子
+    public void setTotal(Money t) { ... }    // ← 序列化需要 setter
+    public List&lt;OrderItem&gt; getItems() {      // ← 直接回傳本體,不是複本
+        return items;
+    }
+}</code></pre>
+
+<p>三行,第 4 課全白做。<b>而這正是 agent 最會做的事</b>:它看到「序列化失敗」這個錯誤,
+最短路徑就是加 setter。它不會知道那個 private 是刻意的。</p>
+
+<p>擋住這件事的不是提示詞,是<b>架構</b>——讓那支 API 從一開始就拿不到 <code>Order</code>。</p>
+
+<h2>三條原則</h2>
+
+<p>陳建村把 Clean Architecture(<span class="term">簡潔架構</span>)收成三條原則。
+這一課就只有這三條。</p>
+
+<h3>一、分層原則</h3>
+
+<blockquote>Clean Architecture 有四層:Entities、Use Cases、Interface Adapters、Frameworks &amp; Drivers。</blockquote>
+
+<table>
+  <thead><tr><th>層</th><th>放什麼</th><th>電商例子</th></tr></thead>
+  <tbody>
+    <tr>
+      <td><b>Entities</b><br>(最內)</td>
+      <td>不管有沒有這套軟體都成立的業務規則</td>
+      <td><code>Order</code>、<code>OrderItem</code>、<code>Money</code>
+        ——第 4 課的 Aggregate 住這裡</td>
+    </tr>
+    <tr>
+      <td><b>Use Cases</b></td>
+      <td>這套軟體特有的流程:誰、依什麼順序、做哪幾件事</td>
+      <td><code>PlaceOrderUseCase</code>:預留庫存 → 建立訂單 → 送出通知</td>
+    </tr>
+    <tr>
+      <td><b>Interface Adapters</b></td>
+      <td>翻譯。把外面的格式轉成內層看得懂的,反之亦然</td>
+      <td><code>OrderController</code>(HTTP ↔ 輸入物件)、
+        <code>JpaOrderRepository</code>(SQL ↔ Order)</td>
+    </tr>
+    <tr>
+      <td><b>Frameworks &amp; Drivers</b><br>(最外)</td>
+      <td>別人寫的東西:框架、DB、外部服務</td>
+      <td>Spring、JPA、PostgreSQL、金流 SDK</td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="box warn">
+  <span class="box-label">先擋兩個一定會冒出來的問題</span>
+  <p><b>「到底幾層?」</b>——四層是起點,不是規定。Uncle Bob 原文寫得很清楚:</p>
+  <blockquote>the circles are schematic. You may find that you need more than just these four.
+  There's no rule that says you must always have just these four.
+  However, <i>The Dependency Rule</i> always applies.</blockquote>
+<p class="bq-zh">這些圈只是示意。你可能會發現不只需要這四層。沒有任何規定說你一定要剛好四層。不過,相依性規則永遠適用。</p>
+  <p>你查資料會看到 3 層、4 層、六角形架構⋯⋯<b>它們講的是同一件事</b>,只是切得粗細不同、
+  名字不同。不可動的只有相依性規則,層數按專案複雜度自己決定。判準也是原文那句:
+  <b>越往內越抽象、越是政策;越往外越具體、越是機制。</b></p>
+
+  <p><b>「跟我看過的那些名字怎麼對?」</b></p>
+  <table>
+    <thead><tr><th>Clean Architecture</th><th>Evans 的 DDD 分層</th><th>Spring 專案常見目錄</th></tr></thead>
+    <tbody>
+      <tr><td>Entities</td><td>Domain</td><td><code>domain/</code> <code>model/</code></td></tr>
+      <tr><td>Use Cases</td><td>Application</td><td><code>service/</code></td></tr>
+      <tr><td>Interface Adapters</td><td>User Interface + 部分 Infrastructure</td>
+        <td><code>controller/</code>、repository 的<b>實作</b></td></tr>
+      <tr><td>Frameworks &amp; Drivers</td><td>Infrastructure</td><td>Spring、JPA、DB 本身</td></tr>
+    </tbody>
+  </table>
+  <p>但這張表會騙人,因為<b>兩套四層的形狀不一樣</b>——這是最關鍵的一點:</p>
+  <ul>
+    <li><b>DDD 的四層是垂直堆疊</b>,相依由上往下:UI → Application → Domain →
+      Infrastructure。<b>Domain 依賴 Infrastructure</b>(它要往下呼叫才存得了資料)。</li>
+    <li><b>Clean Architecture 是同心圓</b>,相依由外往內。
+      同一個 Infrastructure 從<b>最底下</b>被搬到<b>最外圈</b>,箭頭因此反了:
+      <b>Infrastructure 依賴 Domain</b>,Domain 完全不知道資料庫存在。</li>
+  </ul>
+  <p><b>這就是 Clean Architecture 相對於傳統分層真正改掉的那一件事</b>,其他大致相同。
+  可以理解成:同一批責任重新排一次,把「技術」從地基改成外殼。
+  所以 Evans 的 Infrastructure 在右邊會被拆成兩塊——你寫的接軌程式碼歸 Interface Adapters,
+  框架與 DB 本身歸 Frameworks &amp; Drivers。</p>
+  <p>另外<b>最右欄是「目錄名字」,不是「層」</b>,見下面〈別看資料夾〉那段。</p>
+</div>
+
+<p>判準是<b>「這東西為什麼會改」</b>:
+金流商換一家 → 最外層改;下單流程多一步風控 → Use Cases 改;
+「訂單總額 = 明細加總減折扣」這條變了 → Entities 改。
+一個東西如果會因為兩種完全不同的理由而改,它八成跨了層。</p>
+
+<p>表會忘,下面四個問題不會。判斷任何一個東西住哪一層,由內往外問:</p>
+
+<ol>
+  <li><b>沒有這套軟體、沒有電腦,這件事也成立嗎?</b> → Entities</li>
+  <li><b>這是在描述「我們家這套系統的做事順序」嗎?</b> → Use Cases</li>
+  <li><b>這是在翻譯格式嗎?</b>(JSON ↔ 物件、SQL ↔ 物件) → Interface Adapters</li>
+  <li><b>這是別人寫的嗎?</b> → Frameworks &amp; Drivers</li>
+</ol>
+
+<p>DDD 那些戰術概念也照這四問各就各位:Aggregate / Entity / Value Object 在
+Entities;Use Case、往外傳的資料結構在 Use Cases;Controller、Presenter、
+ORM mapping、repository 實作在 Interface Adapters。
+<b>repository 的介面宣告在內側</b>——Evans 原本掛在 Domain 層、本課這一派掛在 Use Cases 層,
+位置有出入,但重點從來都是「介面在內、實作在外」,不是它掛哪一格。</p>
+
+<h3>二、相依性原則</h3>
+
+<p>Uncle Bob 的原句:</p>
+
+<blockquote>Source code dependencies can only point inwards.
+Nothing in an inner circle can know anything at all about something in an outer circle.</blockquote>
+<p class="bq-zh">原始碼的相依只能往內指。內圈裡的任何東西,都不准知道外圈有什麼。</p>
+
+<p>陳建村的版本:<b>「原始碼的依賴方向必須由外往內、由低層往高層。」</b></p>
+
+<div class="box warn">
+  <span class="box-label">最常見的誤解</span>
+  <p><b>「相依」講的是原始碼,不是執行時的呼叫方向。</b></p>
+  <p>執行時控制流當然會往外跑——use case 一定得存資料庫、一定得回應 HTTP。
+  往外跑的方法是<b>內層定義介面、外層來實作</b>:</p>
+<pre><code>// Use Cases 層。介面「宣告」在內層,因為需求是內層的
+public interface OrderRepository {
+    Order findById(OrderId id);
+    void save(Order order);
+}
+
+// Interface Adapters 層。實作在外層
+public class JpaOrderRepository implements OrderRepository { ... }</code></pre>
+  <p><code>PlaceOrderUseCase</code> 只 import <code>OrderRepository</code>,
+  永遠不知道 JPA 存在。控制流往外,原始碼相依往內——兩件事。</p>
+</div>
+
+<h3>三、跨層原則</h3>
+
+<blockquote>當 Entities 層的物件跨越離開 Use Case 層往外傳遞時,不要直接把 Entities 層的物件
+傳出 Use Case 層,而是要在 Use Cases 層定義往外傳遞的介面與資料結構。</blockquote>
+
+<p>回到開頭那支 API。違規版:</p>
+
+<pre><code>// ❌ Interface Adapters 層直接拿到 Entities 層的物件
+@GetMapping("/orders/{id}")
+public Order get(@PathVariable String id) {
+    return findOrder.byId(id);      // Order 直接被序列化成 JSON
+}</code></pre>
+
+<p>兩個後果,而且都不會馬上痛:</p>
+
+<ul>
+  <li><b>封裝被序列化需求逼開。</b>就是開頭那三行。第 4 課的 invariant 沒了。</li>
+  <li><b>API 的欄位跟領域模型綁死。</b>之後把 <code>total</code> 改名、
+    把 <code>status</code> 拆成兩個欄位——外部 API 契約跟著壞,而你原本只是想改領域模型。</li>
+</ul>
+
+<p>正解是在 Use Cases 層定義一個往外傳的資料結構:</p>
+
+<pre><code>// Use Cases 層
+public record OrderView(String orderId, String status, long totalCents) { }
+
+// Interface Adapters 層拿到的是 OrderView,不是 Order
+@GetMapping("/orders/{id}")
+public OrderView get(@PathVariable String id) {
+    return findOrder.byId(id);
+}</code></pre>
+
+<p><code>Order</code> 可以繼續一個 setter 都沒有。</p>
+
+<div class="box key">
+  <span class="box-label">這一課的核心</span>
+  <p><b>分層不是為了整齊,是為了讓「改這裡會影響到哪裡」有一個確定的答案。</b></p>
+  <p>相依性原則保證影響只會往外擴散,不會往內。所以動 Interface Adapters 層,
+  Entities 層一定安全——這不是慣例,是 import 方向決定的事實。</p>
+</div>
+
+<h2>一個型別到底該放哪一層</h2>
+
+<p>上面兩節講了原則,但真正動手時的問題永遠是這一個:
+<b>我手上這個檔案該放進哪個資料夾?</b>先看整個 package 長怎樣:</p>
+
+<pre><code>com.shop
+├── domain/                      ← Entities 層
+│   ├── Order.java
+│   └── OrderId.java
+├── usecase/                     ← Use Cases 層
+│   ├── CancelOrderUseCase.java
+│   ├── OrderRepository.java     ← 介面「宣告」在這裡
+│   └── OrderView.java           ← 回傳用的 record 也在這裡
+└── adapter/                     ← Interface Adapters 層
+    ├── OrderController.java
+    └── JpaOrderRepository.java  ← 「實作」在這裡</code></pre>
+
+<pre><code>// ===== usecase/OrderRepository.java =====
+package com.shop.usecase;
+
+import com.shop.domain.Order;              // 內層的內層,合法
+import com.shop.domain.OrderId;
+
+public interface OrderRepository {
+    Order findById(OrderId id);
+    void save(Order order);
+}
+
+// ===== adapter/JpaOrderRepository.java =====
+package com.shop.adapter;
+
+import com.shop.usecase.OrderRepository;   // ← 外層 import 內層,合法 ✅
+import jakarta.persistence.EntityManager;  // ← 外層 import 框架,合法 ✅
+
+public class JpaOrderRepository implements OrderRepository { ... }</code></pre>
+
+<p><b>把介面移到 <code>adapter/</code> 會怎樣?</b>那 use case 就得寫成:</p>
+
+<pre><code>package com.shop.usecase;
+
+import com.shop.adapter.OrderRepository;   // ❌ 內層 import 外層 —— 違規</code></pre>
+
+<p>就這一行,Dependency Rule 破了。<code>CancelOrderUseCase</code> 非提到
+<code>OrderRepository</code> 這個型別不可(欄位型別、建構子參數都要寫它的名字),
+<b>所以那個型別住在哪,就決定了這個 import 往哪指</b>。</p>
+
+<div class="box key">
+  <span class="box-label">一條規則</span>
+  <p><b>一個型別,要放在「所有用到它的層」當中最內的那一層。</b></p>
+  <ul>
+    <li><code>OrderRepository</code>:Use Cases 用它(宣告欄位、呼叫方法)、
+      Interface Adapters 用它(實作)→ 最內是 <b>Use Cases</b></li>
+    <li><code>OrderView</code>:Use Cases 用它(產生並回傳)、
+      Interface Adapters 用它(序列化成 JSON)→ 最內是 <b>Use Cases</b></li>
+  </ul>
+</div>
+
+<div class="box warn">
+  <span class="box-label">那為什麼 OrderView 不乾脆再往內放進 Entities?</span>
+  <p><b>因為 Entities 層根本不在候選名單裡</b>——翻遍 <code>domain/</code>,
+  沒有任何一個檔案提到 <code>OrderView</code>。領域模型不需要知道有人要把它顯示成什麼樣。</p>
+  <p>更重要的是那個藏在問題背後的假設:<b>越內層越安全,所以往內放比較保險</b>。錯。
+  <b>往內移一層,是做出一個承諾:「這東西是業務本身的一部分,不會因為技術或應用而改。」</b></p>
+  <p>用第一個判準問:<b>沒有電腦、公司改用紙本作業,這東西還在嗎?</b>
+  <code>Order</code> 跟「已出貨不可取消」還在;
+  <code>OrderView(orderId, status, totalCents)</code> 不在——它是「某支 API 現在要回這幾個欄位」。</p>
+  <p>更好用的測試:<b>這個型別的欄位清單是誰決定的?</b>
+  <code>Order</code> 由業務規則決定,<code>OrderView</code> 由畫面 / API 的消費者決定。
+  <b>由消費者決定形狀的東西,不能住在最內層。</b></p>
+  <p>放錯的實際後果:最不穩定的東西被塞進最該穩定的地方(前端改版會去動領域模型那層);
+  而且會傳染(下一個人接著加 <code>OrderListView</code>、<code>OrderPdfView</code>);
+  最後變動理由混在一起——而「因為不同理由而改」正是分層要拆開的東西。</p>
+  <p>注意對稱性:<b>把 Entity 直接往外傳(跨層原則在擋的),跟把 View 往內塞,
+  是同一個錯誤的兩個方向。</b></p>
+</div>
+
+<p>這種「內層宣告、外層實作」的介面,在六角形架構(Ports and Adapters)裡就叫
+<span class="term">Port</span>——之後讀到這個詞,講的就是這件事。</p>
+
+<h2>順著一個請求走一遍</h2>
+
+<p>上面全是靜態的。真正讓分層變得看得見的,是跟著一次請求走完整趟——
+使用者按下「取消訂單」:</p>
+
+<table>
+  <thead><tr><th>#</th><th>發生什麼</th><th>檔案</th><th>層</th></tr></thead>
+  <tbody>
+    <tr><td>1</td><td><code>POST /orders/123/cancel</code> 進來,JSON 轉成輸入物件</td>
+      <td><code>OrderController</code></td><td>Interface Adapters</td></tr>
+    <tr><td>2</td><td>跑流程:載入訂單 → 取消 → 存回去</td>
+      <td><code>CancelOrderUseCase</code></td><td>Use Cases</td></tr>
+    <tr><td>3</td><td>檢查「已出貨的訂單不可取消」,不合就爆炸</td>
+      <td><code>Order.cancel()</code></td><td><b>Entities</b></td></tr>
+    <tr><td>4</td><td>把 <code>Order</code> 轉成資料表的列、寫進去</td>
+      <td><code>JpaOrderRepository</code></td><td>Interface Adapters</td></tr>
+    <tr><td>5</td><td>真的執行 SQL</td><td>JPA / PostgreSQL</td><td>Frameworks &amp; Drivers</td></tr>
+  </tbody>
+</table>
+
+<p><b>只有第 3 步是真正的業務規則。</b>「已出貨的訂單不可取消」不管你用什麼資料庫、
+有沒有 API、甚至公司改用紙本作業,都還是成立。其他四步全是機制。</p>
+
+<p><b>第 2 步呼叫第 4 步,但 <code>CancelOrderUseCase</code> 的原始碼裡沒有 JPA 這個字。</b>
+它呼叫的是 <code>OrderRepository</code> 這個介面(宣告在它自己那層),實際跑的是 JPA 實作。
+執行時往外走,原始碼相依往內——這就是 Dependency Rule 那句話動起來的樣子。</p>
+
+<div class="box good">
+  <span class="box-label">現在就可以驗一次</span>
+  <p>挑你專案裡<b>任何一支 API</b>,把一次請求經過的檔案照順序列出來,每個標一層。
+  兩件事會馬上現形:</p>
+  <ul>
+    <li>有沒有哪一步<b>跳層</b>(Controller 直接呼叫 JPA,沒經過 use case)</li>
+    <li>有沒有哪個「應該是 Entities 層」的檔案,import 了框架</li>
+  </ul>
+  <p>這比讀十遍定義有效。</p>
+</div>
+
+<h2>別看資料夾</h2>
+
+<p>如果你手上是個 Spring 專案,現在心裡大概已經把 <code>controller/</code> /
+<code>service/</code> / <code>repository/</code> 三個目錄對到三層去了。<b>那個對應是假的。</b></p>
+
+<p>大部分專案的 <code>service/</code> 裡塞滿了 <code>@Transactional</code>、
+<code>@Autowired</code>、直接呼叫 JPA、甚至處理 HTTP 例外——按層來說,那些有一半屬於外圈。
+<b>目錄名字對得上,內容對不上。</b>同理,<code>@Repository</code> 只是 Spring 的 bean 標籤,
+不代表「Repository 是一層」——它是<b>一個介面加一個實作,橫跨兩層</b>。</p>
+
+<blockquote>判斷一個檔案屬於哪一層,<b>看它 import 了什麼,不要看它放在哪個資料夾。</b></blockquote>
+
+<p>資料夾是給人看的,import 是編譯器認的。相依性原則管的是後者。</p>
+
+<h2>住哪一層?</h2>
+
+<div class="sorter" data-buckets="Entities|Use Cases|Interface Adapters|Frameworks &amp; Drivers">
+  <div class="sorter-item" data-answer="0"
+    data-why="「訂單成立後不可加明細」不管有沒有這套系統都成立,是業務本身的規則 → Entities。第 4 課已經把它做成會拋例外的方法了。">「訂單成立後不可加明細」的檢查</div>
+  <div class="sorter-item" data-answer="1"
+    data-why="「先預留庫存,成功了才建訂單,然後送通知」——這個順序是你這套軟體的決定,不是業務本身的規則。換一家公司做同樣生意,順序可能不同 → Use Cases。">下單流程:預留庫存 → 建立訂單 → 送出通知</div>
+  <div class="sorter-item" data-answer="1"
+    data-why="陷阱題,而且是這一課最重要的一題。介面「宣告」在 Use Cases 層,因為「我需要能存取訂單」是 use case 的需求。放到外層就違反相依性原則了 —— use case 會反過來相依於外層。">OrderRepository 這個介面的宣告</div>
+  <div class="sorter-item" data-answer="2"
+    data-why="跟上一題同名,但這是「實作」。它知道 JPA、知道表格長怎樣 → Interface Adapters。宣告在內、實作在外,這一對就是相依性倒轉的具體樣子。">OrderRepository 用 JPA 寫的實作</div>
+  <div class="sorter-item" data-answer="2"
+    data-why="翻譯工作:把 HTTP 的 JSON 轉成 use case 的輸入物件 → Interface Adapters。注意它只是翻譯,不該在這裡做任何業務判斷 —— 一旦這裡出現 if,通常代表有規則漏到外層了。">把 HTTP request 的 JSON 轉成 use case 的輸入物件</div>
+  <div class="sorter-item" data-answer="3"
+    data-why="別人寫的東西、你只是設定它 → Frameworks & Drivers。這一層應該是最厚也最可拋棄的:換掉它不該影響內層任何一行。">Spring Boot 的設定與資料庫連線池</div>
+  <div class="sorter-item" data-answer="0"
+    data-why="「不同幣別不能相加」是業務規則,跟你用什麼框架、有沒有 API 都無關 → Entities。值物件(Value Object)跟 Aggregate 一樣住最內層。">Money:金額加減,不同幣別不能相加</div>
+  <div class="sorter-item" data-answer="1"
+    data-why="這是「往外傳的資料結構」,跨層原則說它定義在 Use Cases 層。放 Entities 層會讓領域模型長出為了外部而存在的東西;放 Interface Adapters 層則會讓 use case 相依於外層。">OrderView 這個回傳用的 record</div>
+</div>
+
+<h2>這對 harness 的用途</h2>
+
+<div class="box inference">
+  <span class="box-label">以下的對應是推論</span>
+  <p>三原則本身是既有共識(Uncle Bob 2012、陳建村的整理,連結在頁尾)。
+  但「分層 ≈ agent 的爆炸半徑上限」、「相依方向是可機械檢查的驗收條件」這兩個用法,
+  是本教學自己接上去的,不是引用來的。</p>
+</div>
+
+<table>
+  <thead><tr><th>簡潔架構的性質</th><th>對 agent 的意義</th></tr></thead>
+  <tbody>
+    <tr>
+      <td><b>每層職責明確</b></td>
+      <td><b>一張票說得出「要動哪幾層」。</b>說不出來,或答案是「全部」——
+        那是票沒切好,不是架構的問題。這跟第 4 課的
+        「改到第二個 Aggregate 就該拆票」是同一種訊號,只是換一個尺度。</td>
+    </tr>
+    <tr>
+      <td><b>相依方向單向</b></td>
+      <td><b>這是少數可以完全機械檢查的東西。</b>Entities 層的檔案 import 到 Spring、
+        import 到 JPA,就是違規,一條 CI 檢查就擋得住——不需要任何人在 review 時想起來。
+        <b>能變成檢查的規則,就不該留在提示詞裡</b>(第 4 課同一句話)。</td>
+    </tr>
+    <tr>
+      <td><b>跨層要轉資料結構</b></td>
+      <td>agent 最常見的抄近路——「把 Entity 直接 return 出去」——
+        有了明確且可測的錯誤定義。你不用預測它會怎麼偷懶,只要讓那條路是死的。</td>
+    </tr>
+  </tbody>
+</table>
+
+<p>再往上收一層:前四課產出的都是<b>文件</b>(詞彙表、邊界、驗收、規則),
+第 4 課開始把規則搬進<b>型別</b>,這一課把它搬進<b>目錄結構</b>。
+目錄結構是 agent 一定讀得到、而且不需要理解就會受限的東西——
+它不必同意分層,它只是 import 不到。</p>
+
+<h2>換你了</h2>
+
+<div class="quiz" data-answer="0">
+  <p class="quiz-q">相依性原則說的「相依只能由外往內」,講的是什麼?</p>
+  <div class="quiz-opts">
+    <button class="quiz-opt">原始碼的相依方向,內層不能知道外層的存在</button>
+    <button class="quiz-opt">執行時的呼叫方向,內層永遠不會回頭呼叫外層</button>
+    <button class="quiz-opt">內外層可以互相相依,只要中間包一層介面就不算違規</button>
+  </div>
+  <div class="quiz-fb"
+    data-right="關鍵字是「原始碼」。執行時控制流當然會往外跑(存資料庫、回 HTTP),做法是內層定義介面、外層實作 —— OrderRepository 那一對就是。"
+    data-wrong="第二個選項混淆了原始碼相依與執行時控制流:控制流一定會往外,那沒有違規。第三個選項則搞反了介面的作用 —— 介面要「宣告在內層」才有用;宣告在外層再包一層,use case 還是相依到外層去了。"></div>
+</div>
+
+<div class="quiz" data-answer="1">
+  <p class="quiz-q">Agent 為了讓 API 回得出 JSON,在 <code>Order</code> 上加了無參數建構子與 setter。這違反了哪一條,後果是什麼?</p>
+  <div class="quiz-opts">
+    <button class="quiz-opt">分層原則 —— Order 應該搬到 Interface Adapters 層去</button>
+    <button class="quiz-opt">跨層原則 —— Entity 不該跨出 Use Case 層,第 4 課的 invariant 因此破了</button>
+    <button class="quiz-opt">沒有違反任何原則 —— 序列化需要 setter 是技術限制,跟架構無關</button>
+  </div>
+  <div class="quiz-fb"
+    data-right="真正的修法不是叫 agent 別加 setter,是讓 Interface Adapters 層根本拿不到 Order —— 在 Use Cases 層定義一個 OrderView 往外傳。路是死的,就不用叮嚀。"
+    data-wrong="Order 是業務規則,不會因為 API 而搬家(選項一方向剛好反了)。而「技術限制」的說法值得警惕:它每次都聽起來很合理,但代價是領域模型被外層需求侵蝕 —— 而且是一行一行慢慢來,沒有哪一次看起來嚴重。"></div>
+</div>
+
+<h3>動手練習</h3>
+
+<p>挑你自己系統裡<b>最近做過的一張票</b>,不要挑漂亮的,挑真實的:</p>
+
+<div class="drill">
+<textarea spellcheck="false">這張票動了哪幾層(照上面四層填):
+
+有沒有哪一層是「本來不該動、但還是動了」?為什麼非動不可:
+
+你最內層的程式碼裡,有沒有為了外層方便而存在的東西?
+(無參數建構子、setter、@Column、@JsonProperty、implements Serializable⋯)
+
+如果要用一條機械檢查擋住相依方向錯誤,你會檢查什麼:
+
+這條檢查現在會不會 fail?老實說:
+</textarea>
+</div>
+
+<div class="box good">
+  <span class="box-label">自我檢查</span>
+  <ul>
+    <li><b>第一格答案是「四層都動」嗎?</b>那不一定是壞事(新 feature 常常如此),
+      但如果每張票都四層全動,代表分層只存在於目錄名稱裡。</li>
+    <li>第三格<b>幾乎一定填得出來</b>——大部分 Java 專案的 Entity 上都有 ORM 標註。
+      填出來之後真正該問的是:這些東西<b>值不值得</b>清掉?
+      (答案常常是「不值得」,那也是個答案,寫下理由就好。)</li>
+    <li>第四格如果寫不出來,通常是因為<b>層與目錄沒有對應關係</b>——
+      檢查不了的原因是「哪些檔案算 Entities 層」沒有機械化的答案。那就是下一件該做的事。</li>
+    <li>老毛病,每一課都問一次:<b>你上面寫的東西裡,有沒有又用到一個沒定義的詞?</b></li>
+  </ul>
+</div>
+
+<footer>
+
+<h2>下一步該讀什麼</h2>
+
+<p><b>原始出處:</b>
+<a href="https://blog.cleancoder.com/uncle-bob/2012/08/13/the-clean-architecture.html">The Clean Architecture — Robert C. Martin(2012)</a>。
+四層名稱與 Dependency Rule 的原句出自這篇,免費、短。</p>
+
+<p><b>繁中:</b>
+<a href="https://teddy-chen-tw.blogspot.com/2020/08/clean-architecture.html">再談 Clean Architecture 三原則 — 搞笑談軟工</a>。
+本課的三原則架構與中文原句引自這篇。同系列還有
+<a href="https://teddy-chen-tw.blogspot.com/2018/07/clean-architecture5.html">相依性原則</a>、
+<a href="https://teddy-chen-tw.blogspot.com/2018/07/clean-architecture6.html">跨層原則</a> 兩篇專文。</p>
+
+<p>⚠️ <b>誠實標註:</b>上面兩篇我核對的是本課引用的那幾句(四層名稱、Dependency Rule 原句、
+三原則的中文定義),<b>沒有逐字讀完全文</b>。要拿去跟別人論辯前請自己看原文。
+本課的 Java 範例是為了教學寫的,不是從任何一篇文章抄來的。</p>
+
+<h2>本課相關</h2>
+<ul>
+  <li><a href="./0001-ubiquitous-language-第一道閘門.html">第 1 課:Ubiquitous Language</a>(語言漂移)</li>
+  <li><a href="./0002-bounded-context-邊界.html">第 2 課:Bounded Context</a>(範圍漂移)</li>
+  <li><a href="./0003-given-when-then-機械判定.html">第 3 課:Given-When-Then</a>(判定漂移)</li>
+  <li><a href="./0004-aggregate-一次任務的大小.html">第 4 課:Aggregate</a>(一致性邊界)——本課開頭那三行拆掉的就是它</li>
+  <li><a href="../practice/0001-交錯練習-前四課.html">交錯練習 01:前四課混合</a>(給情境、不給選項)</li>
+  <li><a href="./0006-cqrs-讀與寫的不對稱.html">第 6 課:CQRS</a> —— 為什麼「讀」那一側可以整套跳過上面這些規矩</li>
+</ul>
+
+<div class="ask-teacher">
+  <b>練習貼給我,我會看第二格跟第五格。</b>
+  「本來不該動但還是動了」通常是分層真正的斷點在哪的證據;
+  而第五格老實回答會不會 fail,比寫得出檢查更有用。
+</div>
+
+</footer>
+
+<script src="../assets/quiz.js"></script>
+<script src="../assets/sorter.js"></script>
+</body>
+</html>

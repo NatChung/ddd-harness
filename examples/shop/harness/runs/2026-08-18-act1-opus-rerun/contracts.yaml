@@ -1,0 +1,338 @@
+# 領域契約 —— 由本輪 SPEC-draft.md「領域規則」一節(C1–C19,L322–L355)轉寫而來
+#
+# ⚠️ 這份是**手工轉寫**,不是第二幕落檔 agent 的產出。用途是讓票 06-A 的
+#    domain_contract / contract_named_test 有真實資料可跑,並量出「落檔之後看得見什麼」。
+#    真的跑第二幕時,這一段要由落檔 agent 自己交,格式相同。
+#
+# ⚠️ **19 條的 named_tests 全部是空的,而那不是散文沒指名。**
+#    散文 19 條裡有 18 條寫了指名測試(只有 C14 寫「無法指名,規格沉默」),
+#    但「指名測試」是關聯表、FK 指 acceptance_scenario ——
+#    **這場訪談的 S1–S21 本輪一份都沒落檔**,所以一條連結也建不起來。
+#    runs/ 底下三份 act2 產出(act2-opus / act2-from-interview / act2-rerun)
+#    是**別份規格**的情境集:編號撞名而語意不同(這場的 S10 是「數量為 0」,
+#    act2-from-interview 的 S10 是「調價後舊訂單金額不動」)——
+#    **拿它們配對就是造假連結**,所以不配。
+#    兩種零列的差別寫在 no_named_test_reason 的本文裡,報表逐字印。
+#
+# ⚠️ 轉寫時掉了東西,寫下來:
+#    1. 「S10–S15」是**範圍寫法**,關聯表只吃得下逐個情境編號。
+#    2. 「S16 + §9-A5 機械檢查」「S6, S19 + §9-A8」同一格裡混了**架構規則**;
+#       關聯表指不到 architecture_rule,那半改寫進 ladder_note 的本文。
+#    3. C12/C13/C14 散文的「守在哪個聚合根內」整格被 ⚠️ 警報佔滿,沒有指名物件;
+#       C12/C13 的物件是從 §9-A9 讀出來的,**C14 兩處都沒有答案**(見該條)。
+#
+# enforcement 一律 none:今天沒有任何生成器讀 domain_contract。
+# **這是 CHECK 逼出來的 100%,不是量出來的發現**(schema.sql 的註解說明理由)。
+
+domain_contracts:
+
+  - id: C1
+    kind: invariant
+    statement: >-
+      totalAmount = 所有品項 unitPrice × quantity 的加總;任何改變明細的操作,
+      總額必須在同一個方法內重算
+    provenance: Qn
+    provenance_ref: "[Q1](轉寫自 SPEC-draft.md L330)"
+    guarded_in: 訂單 Order(自足)
+    enforcement: none
+    ladder_note: >-
+      算術型 invariant。要驗「任何改變明細的操作都重算」,必須能在一個情境裡
+      建單 → 改明細 → 再看總額,而 schema 沒有「改明細」這個動作(卡票 01)。
+      今天的情境只證明得了建構當下算對了 —— 實作只在建構時算一次也會綠。
+      搬得上去的話搬到第 2 階的驗收生成器,前提是先有那個動詞。
+    no_named_test_reason: >-
+      散文指名 S1, S2, S3, S5;這場訪談的情境本輪一份都沒落檔,FK 指不到。
+
+  - id: C2
+    kind: invariant
+    statement: 每列品項 lineAmount = unitPrice × quantity
+    provenance: 推導自
+    provenance_ref: "推導自[Q1](SPEC-draft.md L331)"
+    guarded_in: 訂單 Order(自足)
+    enforcement: none
+    ladder_note: >-
+      同 C1 的算術型,而且更難:列層的小計今天連對外欄位都沒有,
+      驗收只看得到總額。要搬階得先讓列表揭露列小計。
+    no_named_test_reason: >-
+      散文指名 S1, S2;這場訪談的情境本輪一份都沒落檔,FK 指不到。
+
+  - id: C3
+    kind: precondition
+    statement: 送出的每一列 quantity 為整數且 ≥ 1
+    provenance: Qn
+    provenance_ref: "[Q3](SPEC-draft.md L332)"
+    guarded_in: 訂單 Order(自足)
+    enforcement: none
+    ladder_note: >-
+      這條是三個 archunit kind(package 依賴 / annotation / 回傳型別)都表達不了的
+      物件內部前置條件。第 8 課要的兩個載體是 precondition 拋例外 + 一條 GWT 驗它真的拋;
+      前者今天沒有任何機械檢查在看,只有後者可能存在。
+    no_named_test_reason: >-
+      散文指名 S10, S11b;這場訪談的情境本輪一份都沒落檔,FK 指不到。
+
+  - id: C3b
+    kind: precondition
+    statement: 依 C6 合併之後,每一列 quantity ≤ 100
+    provenance: 推導自
+    provenance_ref: >-
+      推導自[Q11][Q18]:上限是針對同一商品的總件數,而同商品要先合併成一列
+      ⇒ 上限必須在合併後判定(SPEC-draft.md L333)
+    guarded_in: 訂單 Order(自足)
+    enforcement: none
+    ladder_note: >-
+      同 C3。額外的難處是「合併先於上限判定」這個順序本身也是契約的一部分,
+      而順序無法由任何單一情境的結果證明 —— 兩種實作順序在多數輸入下結果相同。
+    no_named_test_reason: >-
+      散文指名 S4, S11, S11a;這場訪談的情境本輪一份都沒落檔,FK 指不到。
+
+  - id: C4
+    kind: invariant
+    statement: totalAmount > 0
+    provenance: Qn
+    provenance_ref: "[Q11](SPEC-draft.md L334)"
+    guarded_in: 訂單 Order(自足)
+    enforcement: none
+    ladder_note: >-
+      物件內部不變式,三個 archunit kind 表達不了。
+      要搬到第 1 階得等契約 → 前置檢查骨架那條路(票 06-C),而它卡在會綁實作類名。
+    no_named_test_reason: >-
+      散文指名 S12, S13;這場訪談的情境本輪一份都沒落檔,FK 指不到。
+
+  - id: C5
+    kind: precondition
+    statement: 訂單至少有一列品項
+    provenance: 推導自
+    provenance_ref: "推導自[Q11]:空單 → 加總為 0 → 撞 C4(SPEC-draft.md L335)"
+    guarded_in: 訂單 Order(自足)
+    enforcement: none
+    ladder_note: >-
+      同 C4。這條與 C4 是同一個判定的兩種說法,散文分成兩條;
+      合併與否本身沒有機械檢查在看。
+    no_named_test_reason: >-
+      散文指名 S12;這場訪談的情境本輪一份都沒落檔,FK 指不到。
+
+  - id: C6
+    kind: invariant
+    statement: >-
+      同一 productId 在一張訂單中至多出現一列;重複加入時合併數量。
+      合併先於 C3b 的上限判定
+    provenance: Qn
+    provenance_ref: "[Q18](SPEC-draft.md L336)"
+    guarded_in: 訂單 Order(自足)
+    enforcement: none
+    ladder_note: >-
+      集合層的不變式。archunit 表達不了「同一鍵至多一列」;
+      要機械檢查得走契約骨架那條路(票 06-C)。
+    no_named_test_reason: >-
+      散文指名 S3, S11a;這場訪談的情境本輪一份都沒落檔,FK 指不到。
+
+  - id: C7
+    kind: invariant
+    statement: >-
+      unitPrice 為成立當下的快照,訂單建立後永不改變,且不隨商品價目系統變動
+    provenance: Qn
+    provenance_ref: "[Q6](SPEC-draft.md L337)"
+    guarded_in: 訂單 Order(自足)
+    enforcement: none
+    ladder_note: >-
+      「永不改變」是時間上的全稱句,任何一組情境都只證明得了「這幾次沒變」。
+      結構型的那一半(訂單不得有 setter / 明細集合回傳複本)搬得上 archunit,
+      那要等票 06-B;而 06-B 今天沒開工。
+    no_named_test_reason: >-
+      散文指名 S6;這場訪談的情境本輪一份都沒落檔,FK 指不到。
+
+  - id: C8
+    kind: invariant
+    statement: >-
+      所有金額為非負整數、單位為分、幣別 TWD;unitPrice 可為 0,totalAmount 不可
+    provenance: Qn
+    provenance_ref: "[Q2][Q19](SPEC-draft.md L338)"
+    guarded_in: 金額 Value Object 自身
+    enforcement: none
+    ladder_note: >-
+      這條守在 Value Object 內,不是聚合根內 —— 欄名叫「守在哪個物件內」就是為了裝得下它。
+      §9-A4「domain 內禁止 double/float、禁止裸 int/long 當金額型別」是它的結構型鄰居,
+      那一條由 architecture_rule 管,**不是這一條**。
+    no_named_test_reason: >-
+      散文指名 S5, S13;這場訪談的情境本輪一份都沒落檔,FK 指不到。
+
+  - id: C9
+    kind: invariant
+    statement: status 恆為 PLACED;系統中不存在其他狀態的訂單
+    provenance: Qn
+    provenance_ref: "[Q7][Q13][Q16](SPEC-draft.md L339)"
+    guarded_in: 訂單 Order(自足)
+    enforcement: none
+    ladder_note: >-
+      「系統中不存在」是全稱句,情境只掃得到自己建的那幾筆。
+      持久化層沒有草稿欄位那一半住 §9-A6,而 A6 自己也明寫目前無機械檢查。
+    no_named_test_reason: >-
+      散文指名 S1, S8, S9;這場訪談的情境本輪一份都沒落檔,FK 指不到。
+
+  - id: C10
+    kind: precondition
+    statement: 訂單一旦成立,不接受任何內容修改(數量、品項、金額)
+    provenance: Qn
+    provenance_ref: "[Q14](SPEC-draft.md L340)"
+    guarded_in: 訂單 Order(自足)
+    enforcement: none
+    ladder_note: >-
+      ⚠️ 散文的「指名測試」那一格寫的是「S16 + §9-A5 機械檢查」——
+      A5 是端點清單掃描(/orders 底下只准 POST 與 GET),它住 architecture_rule,
+      **關聯表指不到它**,所以那半只能記在這裡。而且 A5 擋的是「對外有沒有修改端點」,
+      擋不到「領域物件內部有沒有 setter」——**那兩件事不是同一條**。
+    no_named_test_reason: >-
+      散文指名 S16(另加 §9-A5,但那是架構規則不是情境);
+      這場訪談的情境本輪一份都沒落檔,FK 指不到。
+
+  - id: C11
+    kind: invariant
+    statement: 客人名字不是訂單的一部分,不得被寫入訂單
+    provenance: Qn
+    provenance_ref: "[Q10](SPEC-draft.md L341)"
+    guarded_in: 訂單 Order(自足)
+    enforcement: none
+    ladder_note: >-
+      ⚠️ 散文那一格寫的是「S6, S19 + §9-A8」。A8(訂單資料表不得有客人名字欄位)
+      自己就明寫「目前無機械檢查(第 4 階)」——**指過去的那一條也是空的**,
+      所以這裡不是「有兩個載體」,是兩個都沒有。
+    no_named_test_reason: >-
+      散文指名 S6, S19(另加 §9-A8,但那是架構規則不是情境);
+      這場訪談的情境本輪一份都沒落檔,FK 指不到。
+
+  - id: C12
+    kind: precondition
+    statement: customerId 必須在會員系統中對得到一個人,否則訂單不得成立
+    provenance: Qn
+    provenance_ref: "[Q10](SPEC-draft.md L342)"
+    guarded_in: application 層的 PlaceOrderService(§9-A9;訂單本身不宣稱保證這一條)
+    crosses_aggregate: 1
+    disposition: >-
+      不新增聚合根。這條前置檢查移到 application 層的 PlaceOrderService,
+      在建構 Order 之前完成;Order 本身不宣稱保證它。理由是會員為界外 context,
+      本案無權把它納入聚合,新增聚合根等於複製別人的資料,與「即時查、不抄一份」衝突。
+      殘留風險:檢查通過到訂單提交之間,會員可能被停用 ——
+      該風險待需求方裁決,裁決前不做補償機制。
+    enforcement: none
+    ladder_note: >-
+      跨聚合根的前置條件,在訂單內部守不住;移出去之後也沒有任何機械檢查在看
+      「它有沒有真的在建構之前被呼叫」。要搬階得先能表達「呼叫順序」,今天表達不了。
+    no_named_test_reason: >-
+      散文指名 S14;這場訪談的情境本輪一份都沒落檔,FK 指不到。
+
+  - id: C13
+    kind: precondition
+    statement: 每個 productId 必須在商品價目系統中查得到單價,否則訂單不得成立
+    provenance: 推導自
+    provenance_ref: "推導自[Q15](SPEC-draft.md L343)"
+    guarded_in: application 層的 PlaceOrderService(§9-A9;訂單本身不宣稱保證這一條)
+    crosses_aggregate: 1
+    disposition: >-
+      與 C12 同一個處置:不新增聚合根,檢查移到 application 層的 PlaceOrderService,
+      在建構 Order 之前完成。理由是商品價目為界外 context。
+      殘留風險:檢查通過到提交之間商品可能下架 —— 待需求方裁決,裁決前不做補償機制。
+    enforcement: none
+    ladder_note: 同 C12:移出聚合根之後,沒有任何機械檢查在看它有沒有真的被呼叫。
+    no_named_test_reason: >-
+      散文指名 S15;這場訪談的情境本輪一份都沒落檔,FK 指不到。
+
+  - id: C14
+    kind: precondition
+    statement: 訂單清單只有內部人員能看
+    provenance: Qn
+    provenance_ref: "[Q17](SPEC-draft.md L344)"
+    guarded_in: >-
+      (規格沉默,填不出來)—— 散文那一格整格是警報,沒有指名任何物件;
+      §9-A10 明寫「待需求方裁決前不決定」。這一欄是 NOT NULL,
+      **裝不下「沒有答案」,只能塞一句散文** —— 這是這張表今天的一個表達不出來的洞。
+    crosses_aggregate: 1
+    disposition: >-
+      在需求方答覆之前不得實作,也不得自行加上任何登入、token、密鑰或角色判斷。
+      GET /orders 先做成無存取控制的端點,並在 ASSUMPTIONS 標明存取控制刻意留空。
+      連帶不得實作下單端點的身分驗證。這是本規格唯一的阻斷級缺口:
+      需求方說了「只有我跟我團隊看」,但沒說怎麼認出內部人員。
+    enforcement: none
+    ladder_note: >-
+      阻斷級缺口未解,連該守什麼都還沒定,談不上機械檢查。
+      解掉之後這條會同時長出結構型(端點必須經過某個授權關卡)與行為型兩半。
+    no_named_test_reason: >-
+      **規格沉默,真的指不出來** —— 散文原文就寫「(無法指名,規格沉默)」。
+      這跟其他 18 條「指得出來但情境還沒落檔」是**兩種不同的零列**,不要混計。
+
+  - id: C15
+    kind: postcondition
+    statement: >-
+      postcondition(成功):建立成功後訂單以 PLACED 持久化、取得全系統唯一 orderNumber、
+      totalAmount 已固定、placedOn 為當日、所有品項完整寫入
+    provenance: 推導自
+    provenance_ref: "推導自[Q1][Q9][Q20](SPEC-draft.md L345)"
+    guarded_in: 訂單 Order
+    enforcement: none
+    ladder_note: >-
+      「全系統唯一」是跨全部資料的全稱句,情境驗不到;其餘幾項驗收看得到,
+      但那是 example 不是 postcondition —— 沒有任何一步在檢查方法回傳後這些是否恆成立。
+    no_named_test_reason: >-
+      散文指名 S1, S2, S7;這場訪談的情境本輪一份都沒落檔,FK 指不到。
+
+  - id: C16
+    kind: postcondition
+    statement: >-
+      postcondition(失敗:業務規則):任一業務規則不通過時不建立訂單,
+      持久化層無任何新增列,系統狀態與請求前完全相同
+    provenance: Qn
+    provenance_ref: "[Q9](SPEC-draft.md L346)"
+    guarded_in: 訂單 Order
+    enforcement: none
+    ladder_note: >-
+      「系統狀態與請求前完全相同」比「列表裡沒有這個客人的列」強得多,
+      而後者才是今天的斷言 kind 表達得出來的。差距沒有任何機械檢查在看。
+    no_named_test_reason: >-
+      散文指名的是「S10–S15」這個**範圍寫法**,關聯表只吃得下逐個情境編號;
+      而且這場訪談的情境本輪一份都沒落檔,FK 也指不到。
+
+  - id: C17
+    kind: postcondition
+    statement: >-
+      postcondition(失敗:外部系統):會員或商品價目系統不可用時不建立訂單,
+      回可重試的 UPSTREAM_UNAVAILABLE;不得先收下再補對
+    provenance: Qn
+    provenance_ref: "[Q15](SPEC-draft.md L347)"
+    guarded_in: 訂單 Order
+    enforcement: none
+    ladder_note: >-
+      ⚠️ 這條的判定要看訂單以外的系統可用性,散文**沒有**標跨聚合根,
+      所以 crosses_aggregate 照原樣是 0 —— 這一欄記的是規格標了什麼,不是重判的結果。
+      漏標一樣進不了分診佇列,這是這一欄今天的上限。
+    no_named_test_reason: >-
+      散文指名 S17, S18;這場訪談的情境本輪一份都沒落檔,FK 指不到。
+
+  - id: C18
+    kind: postcondition
+    statement: >-
+      postcondition(失敗:系統中途):建立訂單為全有或全無,
+      訂單主體與所有品項在同一筆交易內提交;中途中斷後不得留下任何半筆
+    provenance: Qn
+    provenance_ref: "[Q9](SPEC-draft.md L348)"
+    guarded_in: 訂單 Order
+    enforcement: none
+    ladder_note: >-
+      要驗它必須能在提交點注入失敗,而驗收的詞彙裡沒有「讓它中途壞掉」這個動作。
+      §9-A7 指名了 S20、S21 當強制方式,那是驗收不是機械檢查。
+    no_named_test_reason: >-
+      散文指名 S20, S21;這場訪談的情境本輪一份都沒落檔,FK 指不到。
+
+  - id: C19
+    kind: postcondition
+    statement: >-
+      postcondition(查詢降級):清單查詢時會員系統不可用,查詢仍成功回 200,
+      受影響列 customerName 為 null,其餘欄位正確
+    provenance: Qn
+    provenance_ref: "[Q15](SPEC-draft.md L349)"
+    guarded_in: 訂單 Order(讀取面)
+    enforcement: none
+    ladder_note: >-
+      ⚠️ 與 C17 同一種情形:判定要看會員系統的可用性,散文沒有標跨聚合根,
+      照原樣落檔就是 0。另外讀取面依 §9-A11 可繞過聚合根直接查詢,
+      「守在訂單內」這個說法對讀取面本來就偏鬆。
+    no_named_test_reason: >-
+      散文指名 S19;這場訪談的情境本輪一份都沒落檔,FK 指不到。

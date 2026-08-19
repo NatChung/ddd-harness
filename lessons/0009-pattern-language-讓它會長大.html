@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>第 9 課 — Pattern Language:把八個工具變成一套語言,而且讓它會長大</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+</head>
+<body>
+
+<p class="lesson-meta">第 9 課 · DDD × Agent Harness</p>
+<h1>Pattern Language</h1>
+<p class="subtitle">你手上有八個工具了。工具箱不是語言。</p>
+
+<h2>這個詞一直被刻意避開</h2>
+
+<p>前八課從來沒有定義過 <span class="term">pattern language</span>(模式語言)這個詞,
+即使它是整套教學的目標。原因寫在 <code>RESOURCES.md</code> 裡:
+<b>第一手來源沒收到之前,不定義這個詞。</b>現在收到了,所以這一課可以講。</p>
+
+<h2>一、pattern,以及為什麼是「語言」</h2>
+
+<p>Christopher Alexander,1977 年,《A Pattern Language》。他講的不是軟體,是建築。</p>
+
+<blockquote>Each pattern describes a problem which occurs over and over again in our environment,
+and then describes the core of the solution to that problem, in such a way that you can use
+this solution a million times over, without ever doing it the same way twice.</blockquote>
+<p class="bq-zh">每一個 pattern 描述一個在我們環境裡反覆出現的問題,然後描述那個問題的解法核心
+——描述的方式要讓你能把這個解法用上一百萬次,而且每一次都不會做得一模一樣。</p>
+
+<p>「用一百萬次,每次都不一樣」是重點。pattern 不是範本,不是可以複製貼上的東西;
+它是<b>問題 + 解法核心</b>,每次落地的樣子都不同。</p>
+
+<div class="box key">
+  <span class="box-label">「語言」那兩個字才是關鍵</span>
+  <p>Alexander 對 pattern language 的定義只有一句:</p>
+  <blockquote>A pattern language is a network of patterns that call upon one another.</blockquote>
+  <p class="bq-zh">模式語言是一個由彼此互相呼叫的 pattern 所構成的網路。</p>
+  <p><b>差別不在數量,也不在品質,在於 pattern 之間有沒有互相呼叫。</b></p>
+  <p>一百個很棒的 pattern 各自獨立擺著,那是<b>工具箱</b>——你得自己知道什麼時候拿哪一個。
+  一套 pattern language 裡,大的 pattern 會告訴你「接下來該用哪幾個小的來補完我」,
+  所以你可以<b>從一個問題走到下一個問題</b>,不必事先知道全貌。</p>
+  <p>這就是為什麼 Alexander 用「語言」而不是「清單」——就像文法讓你造出無限多句子,
+  pattern 之間的交叉引用讓你組出無限多設計。</p>
+</div>
+
+<p>陳建村的中文版說法:<b>「模式語言由一群相互關聯的模式所組成」</b>,目的是達到 Alexander
+說的 <b>Quality Without A Name(無名特質)</b>;而它的實際作用是
+<b>「提供了溝通的共同基礎,讓一般人可以使用模式語言來解決複雜的設計問題」</b>。</p>
+
+<p>注意最後那句——<b>溝通的共同基礎</b>。這個詞你在第 1 課就見過了。</p>
+
+<h2>二、你已經有一套了</h2>
+
+<p>前八課不是八篇獨立的文章。把它們照<b>抽象層次</b>排開:</p>
+
+<table>
+  <thead><tr><th>層</th><th>pattern</th><th>擋掉什麼</th></tr></thead>
+  <tbody>
+    <tr><td><b>流程層</b></td>
+      <td>Event Storming(第 7 課)</td>
+      <td>不知道要建模什麼</td></tr>
+    <tr><td><b>語言層</b></td>
+      <td>Ubiquitous Language(第 1)、Bounded Context(第 2)</td>
+      <td>語言漂移、範圍漂移</td></tr>
+    <tr><td><b>驗收層</b></td>
+      <td>Given-When-Then(第 3)、Design by Contract(第 8)</td>
+      <td>判定漂移、責任不明</td></tr>
+    <tr><td><b>模型層</b></td>
+      <td>Aggregate 與 invariant(第 4)</td>
+      <td>一致性破口、任務大小沒有判準</td></tr>
+    <tr><td><b>架構層</b></td>
+      <td>簡潔架構三原則(第 5)、CQRS(第 6)</td>
+      <td>爆炸半徑不明、到處都嚴格</td></tr>
+  </tbody>
+</table>
+
+<p>但<b>分層只是清單</b>。讓它變成語言的是下面這張圖——每一條箭頭都是一次「呼叫」:</p>
+
+<pre><code>          ┌─ Event Storming ─┐
+          │  貼出 hotspot     │
+          └────────┬──────────┘
+                   │ 撞出歧義了,是哪一種?
+         ┌─────────┴─────────┐
+         ↓                   ↓
+  Ubiquitous Language   Bounded Context
+   (同一條線上兩個點     (兩套語言各自演化
+    → 拆成兩個詞)         → 畫界 + 定義接點)
+         │                   │
+         └─────────┬─────────┘
+                   │ 講清楚了,但怎麼確定做對?
+                   ↓
+           Given-When-Then
+          (把爭議變成可判定的驗收)
+                   │ 驗收擋得住外部,擋不住內部繞過
+                   ↓
+          Aggregate / invariant
+          (規則變成違反就爆炸的程式碼)
+                   │
+     ┌─────────────┼──────────────┐
+     ↓             ↓              ↓
+ 這條 invariant  責任是誰的?    規矩太重了?
+ 跨多個 Aggregate     ↓              ↓
+     ↓         Design by      CQRS
+  簡潔架構       Contract    (Query 側整套鬆手)
+ (往外挪一層)  (pre/post 分責任)</code></pre>
+
+<p>照這張圖走一遍就會發現:<b>你從來不需要一次想全部。</b>
+每個 pattern 在解完自己的問題之後,會產生一個新問題,而那個新問題有明確的下一站。</p>
+
+<div class="box good">
+  <span class="box-label">每一條箭頭都在前面幾課出現過</span>
+  <ul>
+    <li>hotspot 撞出歧義 → 用<a href="../reference/0001-該畫邊界還是該拆詞.html">參考卡 01</a> 判斷該拆詞還是畫界(第 7 → 1/2)</li>
+    <li>Brandolini 說討論變熱就「define a clear acceptance test」(第 7 → 3)</li>
+    <li>第 4 課:文件會被忘記,所以把規則變成物理定律(第 3 → 4)</li>
+    <li>第 4 課末:「同一帳號一天不能下超過 10 筆」單一 Aggregate 守不住(第 4 → 5)</li>
+    <li>第 6 課:那些規矩本來就只為防寫壞而訂,查詢不必付(第 4/5 → 6)</li>
+    <li>第 8 課:契約寫不出來,通常是 Aggregate 邊界錯了(第 8 → 4,反向的箭頭)</li>
+  </ul>
+  <p><b>這些不是後來硬接的。</b>每一課都是從前一課的缺口長出來的——
+  那正是「互相呼叫」的意思。</p>
+</div>
+
+<h2>三、讓它會長大</h2>
+
+<p>到這裡為止,這套語言是<b>死的</b>——它只包含我教你的東西。真正會複利的部分是下面這個。</p>
+
+<p>MISSION 裡有一條:<b>agent 犯了錯 → 錯誤被轉成 pattern 或驗收條目 → 同類錯誤不再發生。</b>
+問題是「轉成什麼」。答案不只一個,而且<b>強度差很多</b>。</p>
+
+<div class="box inference">
+  <span class="box-label">下面這道階梯是本教學的整理</span>
+  <p>Alexander 與 Teddy 講的是 pattern language 本身。把「agent 犯的錯」對應到
+  「該用哪一階擋住」這道階梯,是本教學自己組出來的,不是引用來的。</p>
+</div>
+
+<p>agent 犯了錯,先別急著改提示詞。問這一句:</p>
+
+<blockquote>這個錯誤,下次要靠<b>什麼</b>擋住?</blockquote>
+
+<p>然後從最強的往下找,<b>挑做得到的最強那一階</b>:</p>
+
+<table>
+  <thead><tr><th>階</th><th>手段</th><th>為什麼強</th></tr></thead>
+  <tbody>
+    <tr><td><b>1</b><br>最強</td>
+      <td><b>型別 / 會拋例外的方法</b><br>(第 4、8 課)</td>
+      <td>agent <b>做不到</b>那件錯事。不需要它讀、不需要它記得、不需要它同意</td></tr>
+    <tr><td><b>2</b></td>
+      <td><b>機械檢查</b>(CI、import 規則)<br>(第 5 課)</td>
+      <td>做得到但會被擋下來。不需要人在 review 時想起來</td></tr>
+    <tr><td><b>3</b></td>
+      <td><b>可執行的驗收</b>(Given-When-Then)<br>(第 3 課)</td>
+      <td>錯了會有明確的失敗,而且每次都跑</td></tr>
+    <tr><td><b>4</b></td>
+      <td><b>詞彙表 / 原則檔的一條</b><br>(第 1 課、CLAUDE.md)</td>
+      <td>要被讀到才有效,但至少寫下來了、而且跨任務</td></tr>
+    <tr><td><b>5</b><br>最弱</td>
+      <td><b>提示詞裡多一句叮嚀</b></td>
+      <td>要被讀到、被記得、被遵守,而且換模型後未必還吃得住</td></tr>
+  </tbody>
+</table>
+
+<div class="box warn">
+  <span class="box-label">最常見的錯誤處理方式,是最弱的那一階</span>
+  <p>agent 又犯了同樣的錯,大部分人的反應是<b>在提示詞裡加一句更明確的叮嚀</b>。
+  它會有效——通常有效個幾次。</p>
+  <p>然後叮嚀愈積愈多,變成噪音,彼此開始衝突,而且沒有人敢刪,
+  因為不知道哪一句還在擋著什麼。<b>換一個模型,整批重新賭一次。</b></p>
+  <p>第 4 課那句話在這裡回來了:<b>這條能不能變成一個會拋例外的方法簽章?</b>
+  能的話,提示詞裡那一句就該刪掉——<b>而且一定要真的刪掉</b>,
+  否則你會同時維護兩份規則,那是第 8 課 Meyer 罵的那件事。</p>
+</div>
+
+<h3>往上搬一階,就是在寫一個新 pattern</h3>
+
+<p>做完這件事,你手上會多一個東西:一個「問題 → 解法核心」的配對,而且它會被下次用到。
+<b>那就是一個 pattern。</b>它接在哪個既有 pattern 後面,那條線就是新的箭頭。</p>
+
+<p>語言就是這樣長大的——不是你坐下來設計它,是<b>每次踩到坑就往上搬一階,順手把線接上</b>。</p>
+
+<div class="box good">
+  <span class="box-label">這個 workspace 自己就是例子</span>
+  <p><code>learning-records/</code> 那幾份就是這個迴圈,只是犯錯的主體是<b>人</b>不是 agent:</p>
+  <ul>
+    <li>LR 0004:你把拆詞誤判成畫邊界 → 產出<a href="../reference/0001-該畫邊界還是該拆詞.html">參考卡 01</a>(第 4 階:寫下來的判準)</li>
+    <li>LR 0009:你在第 8 課跳過了「是不是契約」那一關 → 課文把散文改寫成
+      <b>Q1 → Q2 的編號步驟</b>(從第 5 階搬到第 4 階,而且變成流程)</li>
+  </ul>
+  <p>錯誤沒有被當成「你要更小心」,而是被當成<b>教材的缺口</b>。同一個東西,
+  換成 agent 也一樣運作。</p>
+</div>
+
+<div class="box warn">
+  <span class="box-label">最容易被誤認成第 2 階的東西</span>
+  <p><code>CLAUDE.md</code>、提示詞這類東西<b>每次都會被自動讀進去</b>,
+  所以感覺像個機制、像有東西在跑。</p>
+  <p>但自動的是<b>注入</b>,不是<b>遵守</b>。
+  <b>機械檢查的定義是:違反會有明確的 fail。</b>提示詞裡沒有 fail 這回事,
+  只有「希望它照做」。</p>
+  <p>快篩:<b>不照做的時候,會發生什麼?</b>答案是「沒事」→ 那就是第 4–5 階的文字約定,
+  不管它被讀進去幾次。</p>
+</div>
+
+<h2>這條規則現在住在第幾階?</h2>
+
+<p>下面每一項都是<b>同一批規則的不同寫法</b>。判斷它現在的強度。</p>
+
+<p><b>先問一句再作答:這句話在描述一個「什麼東西」?</b>
+一段程式碼?一條 CI 規則?一個測試?一句寫在文件裡的話?
+<b>階數由載體決定,不由句子裡的關鍵字決定</b>——
+詳見<a href="../reference/0002-先問這是什麼-再問它屬於哪一類.html">參考卡 02</a>。</p>
+
+<div class="sorter" data-buckets="1 型別／會拋例外|2 機械檢查|3 可執行驗收|4-5 文字約定">
+  <div class="sorter-item" data-answer="0"
+    data-why="外面沒有路徑可以改到 total —— 不是「不該改」,是「改不到」。這是最強的一階。">Order 沒有 setter,外面拿到的 items 是複本</div>
+  <div class="sorter-item" data-answer="1"
+    data-why="做得到但會被擋下來。相依方向是少數能完全機械檢查的東西(第 5 課),而且不需要任何人在 review 時想起來。">CI 有一條規則:domain 目錄 import 到框架就 fail</div>
+  <div class="sorter-item" data-answer="3"
+    data-why="跟上一題是同一條規則,但寫在原則檔裡 —— 要被讀到才有效。這一對就是整道階梯最好的示範:同一件事可以住在第 2 階,也可以住在第 4 階,強度差很多。看到這種的,問「能不能往上搬」。">CLAUDE.md 寫著「domain 層不要用框架」</div>
+  <div class="sorter-item" data-answer="2"
+    data-why="可執行的驗收 —— 錯了會有明確的失敗,而且每次都跑。但它只涵蓋你想到要測的路徑,這是它比第 1、2 階弱的地方。">一條 scenario:庫存為 0 時結帳按鈕不可點擊</div>
+  <div class="sorter-item" data-answer="3"
+    data-why="詞彙表條目,第 4 階。這條沒辦法再往上搬嗎? —— 其實可以:把「已出貨」「已送達」做成兩個不同的型別或狀態值,混用就編譯不過。值得想一下。">詞彙表:已出貨 = 交給貨運;已送達 = 客戶簽收</div>
+  <div class="sorter-item" data-answer="0"
+    data-why="違反的呼叫直接拋例外 —— 第 4 課的核心做法。注意它跟第四題(scenario)的差別:測試只在你想到的路徑上跑,例外在每一次呼叫時都成立。">addItem() 在訂單非 DRAFT 時丟 IllegalStateException</div>
+  <div class="sorter-item" data-answer="3"
+    data-why="最弱的第 5 階,而且這一條特別可惜 —— 「total 要重算」正是第 4 課示範過、可以完全內建進 addItem() 的東西。這種叮嚀留在提示詞裡,是白白付出 context 噪音卻沒買到保證。">提示詞每次都提醒「改完明細記得 total 要重算」</div>
+  <div class="sorter-item" data-answer="2"
+    data-why="一個測試 → 第 3 階。它跟第六題守的是同一條規則:那個例外是第 1 階,這個測試是第 3 階。兩個一起用沒有問題 —— 例外堵路、測試守回歸(第 8 課的分工)。">一個測試:對已成立的訂單呼叫 addItem 必須拋例外</div>
+</div>
+
+<h2>回頭對照 MISSION</h2>
+
+<p>這是最後一課,所以把 <code>MISSION.md</code> 的成功條件拿出來核一次——包括還沒做到的:</p>
+
+<table>
+  <thead><tr><th>目標</th><th>現況</th></tr></thead>
+  <tbody>
+    <tr><td>為一個 feature 寫出詞彙表、邊界、Given-When-Then,並說明各擋掉哪種漂移</td>
+      <td><b>教完了</b>(第 1–3 課)。但你只實際做過第 1、2 課的練習</td></tr>
+    <tr><td>把戰術 pattern 與架構 pattern 組成分層的 pattern language</td>
+      <td><b>這一課</b>。上面那張表與那張圖就是</td></tr>
+    <tr><td>錯誤 → pattern → 同類錯誤不再發生</td>
+      <td><b>機制給了</b>(那道階梯)。<b>但你還沒真的跑過一次</b> —— 見下面的練習</td></tr>
+    <tr><td>看得懂別人講 SDD / harness 時哪些是換皮</td>
+      <td><b>工具有了,對象要換成你自己在用的那套</b>(mattpocock-skills)。
+        原本拆 Spec Kit 的那課因為標本挑錯被刪了</td></tr>
+    <tr><td>同一份規格餵兩個 model,能被同一套驗收明確判定</td>
+      <td>⚠️ <b>沒做過。</b>這是 mission 的核心假設,而且
+        <code>RESOURCES.md</code> 記著:連別人做過的量測研究都沒找到</td></tr>
+  </tbody>
+</table>
+
+<p>最後一列是這整套教學目前最大的空缺。<b>它不是再上一課能解決的,是要真的去做一次實驗。</b></p>
+
+<h2>換你了</h2>
+
+<div class="quiz" data-answer="2">
+  <p class="quiz-q">一份「一百個很棒的 pattern 的清單」,跟一套 pattern language,差別在哪?</p>
+  <div class="quiz-opts">
+    <button class="quiz-opt">在數量 —— 要夠多才能涵蓋所有情況</button>
+    <button class="quiz-opt">在品質 —— 每個 pattern 都要經過實戰驗證</button>
+    <button class="quiz-opt">在 pattern 之間有沒有互相呼叫</button>
+  </div>
+  <div class="quiz-fb"
+    data-right="Alexander 的定義就是這句:「A pattern language is a network of patterns that call upon one another.」有了那些箭頭,你才能從一個問題走到下一個問題,不必事先知道全貌 —— 那正是「語言」而不是「清單」的意思。"
+    data-wrong="數量與品質都是好事,但都不構成語言。一百個各自獨立擺著的 pattern 是工具箱 —— 你得自己知道什麼時候該拿哪一個,而「什麼時候」正是最難的部分。語言就是把那個知識編進 pattern 之間的連線裡。"></div>
+</div>
+
+<div class="quiz" data-answer="1">
+  <p class="quiz-q">agent 第三次犯同一個錯了。你在提示詞裡加了一句更明確的叮嚀。這個做法的主要問題是?</p>
+  <div class="quiz-opts">
+    <button class="quiz-opt">沒有問題 —— 提示詞就是拿來放這種規則的</button>
+    <button class="quiz-opt">它停在最弱的一階,而且叮嚀會累積成噪音、換模型後未必還吃得住</button>
+    <button class="quiz-opt">應該改成在 code review 時人工把關會比較可靠</button>
+  </div>
+  <div class="quiz-fb"
+    data-right="該問的是「這個錯能不能用更強的手段擋」—— 型別?CI 檢查?驗收 scenario?挑做得到的最強那一階,然後把提示詞裡那一句真的刪掉,否則你會同時維護兩份規則。"
+    data-wrong="第一個忽略了提示詞的規則要「被讀到、被記得、被遵守」三關全過才生效。第三個更弱 —— 人工 review 要靠審查者當下想得起來,連「每次都跑」都做不到,比第 5 階還不可靠。"></div>
+</div>
+
+<h3>動手練習</h3>
+
+<p>兩題。第一題比第二題重要得多。</p>
+
+<p><b>(一)拿最近一次 agent 真的犯的錯,跑一次階梯。</b></p>
+
+<div class="drill">
+<textarea spellcheck="false">agent 做錯了什麼(具體到那一行/那個決定):
+
+你當時怎麼處理的:
+
+現在重跑一次階梯 —— 由強到弱,第一個「做得到」的是哪一階?
+  1 型別/會拋例外:做得到嗎?為什麼不行:
+  2 機械檢查:做得到嗎?為什麼不行:
+  3 可執行驗收:做得到嗎?為什麼不行:
+  4 詞彙表/原則:
+
+決定用哪一階,實際要動什麼:
+
+要刪掉的是什麼?(舊的那條叮嚀/規則,現在被取代了)
+</textarea>
+</div>
+
+<p><b>(二)畫出你自己那張網。</b>不用畫全,畫你<b>真的用過</b>的部分就好。</p>
+
+<div class="drill">
+<textarea spellcheck="false">我實際用過的 pattern(不必是這八課的,你自己的做法也算):
+
+它們之間的箭頭 —— 用完 A 之後,通常會需要 B:
+  A ───→ B  因為:
+  A ───→ B  因為:
+
+哪一個 pattern 目前沒有任何箭頭連進去或連出來?
+(孤立的 pattern 通常是還沒真的用過的那個)
+</textarea>
+</div>
+
+<div class="box good">
+  <span class="box-label">自我檢查</span>
+  <ul>
+    <li><b>第一題「為什麼不行」那幾格才是重點。</b>寫「做不到」很容易,
+      寫得出<b>為什麼</b>做不到才有價值——那個理由常常是可以改掉的
+      (例:「型別擋不住,因為那個規則跨三個 Aggregate」→ 那是第 5 課的問題,不是做不到)。</li>
+    <li><b>「要刪掉什麼」那格如果是空的,這次就沒有真的往上搬。</b>
+      只是多加了一層,兩份規則並存 —— 那正是 Meyer 罵的東西。</li>
+    <li>第二題如果箭頭很少,不代表你的做法不好,<b>代表你的 pattern 還是工具箱</b>。
+      箭頭是使用經驗長出來的,不是設計出來的。</li>
+    <li>老毛病,最後問一次:<b>你上面寫的東西裡,有沒有又用到一個沒定義的詞?</b></li>
+  </ul>
+</div>
+
+<footer>
+
+<h2>下一步該讀什麼</h2>
+
+<p><b>原始出處:</b>Christopher Alexander,《A Pattern Language: Towns, Buildings,
+Construction》(1977)。⚠️ <b>這本書不是免費的,我沒有讀過原書。</b>
+上面那兩句引言:「Each pattern describes a problem…」多個來源一致但我沒看到原書頁面;
+「A pattern language is a network of patterns that call upon one another.」與
+「A careful description of a perennial solution to a recurring problem within a building
+context」是透過
+<a href="https://en.wikipedia.org/wiki/Pattern_language">Wikipedia: Pattern language</a>
+轉引,該處註明出自原書 p.1216。<b>要正式引用請查原書。</b></p>
+
+<p><b>繁中:</b>陳建村的
+<a href="http://teddy-chen-tw.blogspot.com/2016/05/cc-agile-sprint-45.html">用模式語言解決設計問題</a>
+(「模式語言由一群相互關聯的模式所組成」、Quality Without A Name 出自這篇)、
+<a href="https://teddy-chen-tw.blogspot.com/2016/08/2.html">領域驅動設計學習筆記(2)</a>
+(他把 DDD 看成用 pattern language 的方法,把 process / analysis / architecture / design /
+test / implementation / CI-CD / HCI 各層的 pattern 串成團隊的 Ubiquitous Language
+——本課「分層」那張表的靈感來源)、
+<a href="http://teddy-chen-tw.blogspot.com/search/label/Patterns">Patterns 標籤</a>。
+⚠️ 只核對引用句,全文未逐字讀完。</p>
+
+<p><b>還沒補的:</b>Alexander 的《The Timeless Way of Building》(pattern language 的
+理論卷,《A Pattern Language》是它的目錄卷)。以及 GoF 對 Alexander 的引用與轉化
+——軟體界的 design patterns 從他那裡拿走了 pattern,但<b>大致沒有拿走 language</b>,
+那個落差本身值得讀。</p>
+
+<h2>本課相關</h2>
+<ul>
+  <li><a href="./0001-ubiquitous-language-第一道閘門.html">第 1 課</a> ·
+    <a href="./0002-bounded-context-邊界.html">第 2 課</a> ·
+    <a href="./0003-given-when-then-機械判定.html">第 3 課</a> ·
+    <a href="./0004-aggregate-一次任務的大小.html">第 4 課</a></li>
+  <li><a href="./0005-簡潔架構-三原則與爆炸半徑.html">第 5 課</a> ·
+    <a href="./0006-cqrs-讀與寫的不對稱.html">第 6 課</a> ·
+    <a href="./0007-event-storming-產物從哪來.html">第 7 課</a> ·
+    <a href="./0008-design-by-contract-這是誰的錯.html">第 8 課</a></li>
+  <li><a href="../practice/0001-交錯練習-前四課.html">交錯練習 01</a>(還沒做)</li>
+  <li><a href="../reference/0001-該畫邊界還是該拆詞.html">參考卡 01:該畫邊界還是該拆詞</a></li>
+  <li><a href="../reference/0002-先問這是什麼-再問它屬於哪一類.html">參考卡 02:先問「這是什麼」</a>
+    —— 各課的真正判準 vs 常被誤用的表面特徵,一張表</li>
+</ul>
+
+<div class="ask-teacher">
+  <b>第一題貼給我。</b>我只看兩格:「為什麼不行」那幾格,以及<b>「要刪掉什麼」</b>。
+  第二格空著的話,這次就只是多疊了一層規則,沒有真的往上搬——
+  而那正是 harness 會慢慢腐爛的方式。
+</div>
+
+</footer>
+
+<script src="../assets/quiz.js"></script>
+<script src="../assets/sorter.js"></script>
+</body>
+</html>

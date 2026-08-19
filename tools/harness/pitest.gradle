@@ -1,0 +1,45 @@
+// 第 3 階的假驗收偵測 —— 貼進骨架的 build.gradle。
+//
+// ⚠️ 目前**沒有**貼進 examples/shop/app/build.gradle:那個檔逐位元組凍結在 4567d31。
+//    這份是待貼的樣板,新骨架成形時才進去。跟 verifyGenerated 同一個處境:
+//    檢查本體有了,綁法還沒。
+//
+// 用法(在骨架的 build.gradle):
+//     plugins { id 'info.solidsoft.pitest' version '1.15.0' }
+//     apply from: "$rootDir/../../tools/harness/pitest.gradle"
+//     tasks.named('check') { dependsOn 'vacuousTests' }   // ← 綁上去才是第 2 階
+
+pitest {
+    targetClasses = ['com.shop.domain.*']
+
+    // 刻意只框 com.shop.*:architecture.ArchitectureTest 是結構檢查,
+    // 本來就不該殺任何行為 mutant —— 放進來會被整批誤判成恆真。
+    targetTests = ['com.shop.*']
+
+    outputFormats = ['XML']
+
+    // 沒有這個就答不出「哪條測試什麼都沒約束到」——
+    // PIT 原生只給 mutation score,而恆真測試不會拉低分數。
+    fullMutationMatrix = true
+
+    // DEFAULTS 沒有「把守衛條件整條拿掉」這種 mutant,只有 NegateConditionals
+    // —— 那會讓合法輸入也拋例外,結果是全班一起紅,守衛測試的獨佔貢獻因此看不見。
+    // 實測(HL2-domain):DEFAULTS 標 6 條、STRONGER 標 3 條,多出來的 3 條全是
+    // *NotBlank 守衛測試 —— 它們不是恆真,是 mutator 表達不出它們守的東西。
+    mutators = ['STRONGER']
+
+    timestampedReports = false
+    junit5PluginVersion = '1.2.1'
+    threads = 4
+}
+
+// 檢查本體是那支 python(runtime 無關);這個 task 只是它在 Gradle 這一側的綁法。
+tasks.register('vacuousTests', Exec) {
+    dependsOn 'pitest'
+    description = '找出貢獻沒有超出共用 setup 的測試(假驗收候選)'
+    group = 'verification'
+    commandLine 'python3',
+            "$rootDir/../../tools/harness/vacuous_tests.py",
+            "$buildDir/reports/pitest/mutations.xml",
+            '--allow-file', "$projectDir/vacuous-allowlist.txt"
+}

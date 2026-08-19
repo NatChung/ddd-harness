@@ -1,0 +1,136 @@
+# 第二幕輸入規格的詞彙表 —— 由 input-SPEC.md L146-L156(詞彙表)與 L169-L172
+# (禁用同義詞清單)轉寫而來
+#
+# ⚠️ 這份是**手工轉寫**,不是落檔 agent 的產出。用途是讓票 08-A 的對譯檢查有一組
+#    **配得上的**對面可以比。
+#
+# ⚠️ **為什麼這份配得上 runs/2026-08-18-act2-rerun/agent-acceptance.yaml:**
+#    那一跑的 RESULT.md 自己寫著輸入就是本目錄的 input-SPEC.md
+#    (25,598 B、md5 `43129b5c…`,與 baseline 逐位元組同一份)。
+#    **同一份規格的散文詞彙表 vs 同一份規格的落檔合約** —— 這是配得上的兩份。
+#    (反例:本輪訪談 act1-opus-rerun 那份規格的情境一份都沒落檔,
+#    拿別份規格的合約去配就是造假,那一份誠實走「不適用」。)
+#
+# ⚠️ **這份詞彙表沒有「對外欄位名」這一欄** —— 原表五欄:詞 | 定義 | DDD 型態 |
+#    單位 / 表示法 | 來源。所以 wire_field 全部留空,而**留空的語意(「這個詞不上線」)
+#    在這裡是假的** —— 這些詞幾乎全部上線。這不是這份轉寫填得掉的東西:
+#    要填,就是我替這份規格補了一格它沒寫的,而這張票要量的正是「它沒寫」。
+#
+# ⚠️ 轉寫時掉了東西,寫下來:
+#    1. **五格來源標記是單值,而散文一格可以混兩三種。**「訂單」那列寫的是
+#       `[Qn]` + `推導自 [Qn][Qn]`;「單價」那列一格裡混了 `[Qn]` / `暫定` / `本案自決`
+#       三種。轉寫只留得住主要那一格,其餘改寫進 provenance_ref 的本文。
+#    2. **「一律改用」可以有兩個替代詞**(某一列同時給了「單項用哪個」「整筆用哪個」),
+#       而關聯欄只裝得下一個。另一半改寫進 note 的本文。
+#    3. 型態欄的反引號是 markdown 排版,去掉;括號註記留著(那是型態的一部分)。
+
+glossary_terms:
+  - term: 訂單
+    definition: 客人按下確定那一刻系統記下的一筆紀錄;成立後內容永不變更
+    ddd_type: Aggregate Root
+    provenance: Qn
+    provenance_ref: "[Q1] — input-SPEC.md L146;同一格另標 推導自 [Q6][Q7](五格單值裝不下)"
+
+  - term: 訂單明細
+    definition: 訂單裡的一項:哪個商品、幾個、當時單價多少
+    ddd_type: Entity(訂單聚合根內)
+    provenance: 推導自
+    provenance_ref: "推導自 [Q2][Q9] — input-SPEC.md L147"
+
+  - term: 已成立
+    definition: 訂單唯一的狀態,不會再變成任何其他狀態
+    ddd_type: 階段或狀態(單一值)
+    provenance: Qn
+    provenance_ref: "[Q6] — input-SPEC.md L148"
+
+  - term: 客人
+    definition: 有帳號、需登入才能下單的人
+    ddd_type: Aggregate Root(訂單之外)
+    provenance: Qn
+    provenance_ref: "[Q12] — input-SPEC.md L149"
+
+  - term: 客人編號
+    definition: 認出是哪個客人的那組編號
+    ddd_type: 識別碼
+    representation: 格式未問到 → 規格沉默
+    provenance: Qn
+    provenance_ref: "[Q12] — input-SPEC.md L150"
+
+  - term: 商品
+    definition: 客人買的東西;在訂單聚合根之外
+    ddd_type: 未定(來源未問到)
+    provenance: 推導自
+    provenance_ref: "推導自 [Q9] — input-SPEC.md L151"
+
+  - term: 數量
+    definition: 每項商品買幾個
+    ddd_type: Value Object
+    representation: 整數,最小 1
+    provenance: Qn
+    provenance_ref: "[Q11] — input-SPEC.md L152"
+
+  - term: 單價
+    definition: 該項商品下單當時的價格,是一份複本
+    ddd_type: Value Object
+    representation: TWD,小數 2 位
+    provenance: Qn
+    provenance_ref: "[Q9] — input-SPEC.md L153;同一格另標 幣別 暫定 [Q13]、小數位 本案自決"
+
+  - term: 總金額
+    definition: 系統以 Σ(單價 × 數量) 算出,無人可手改
+    ddd_type: Value Object
+    representation: TWD,小數 2 位
+    provenance: Qn
+    provenance_ref: "[Q8] — input-SPEC.md L154"
+
+  - term: 幣別
+    definition: 這筆訂單使用的幣
+    ddd_type: Value Object(單價/總金額的一部分)
+    representation: TWD
+    provenance: 暫定
+    provenance_ref: "暫定 [Q13] — input-SPEC.md L155"
+
+  - term: 成立日期
+    definition: 訂單成立的時點
+    ddd_type: Value Object
+    representation: 記到秒
+    provenance: Qn
+    provenance_ref: "[Q2] — input-SPEC.md L156;精度為 本案自決"
+
+banned_synonyms:
+  - banned: 單
+    use_instead: 訂單
+    note: "推導自 [Q1][Q7](逐字稿三種混用)— input-SPEC.md L169"
+  - banned: 單子
+    use_instead: 訂單
+    note: "推導自 [Q1][Q7](逐字稿三種混用)— input-SPEC.md L169"
+  - banned: 這筆單
+    use_instead: 訂單
+    note: "推導自 [Q1][Q7](逐字稿三種混用)— input-SPEC.md L169"
+
+  # ⚠️ 這兩列的「一律改用」指向一個**詞彙表裡不存在的詞**:散文叫人改用那個動作詞,
+  #    而詞彙表只定義了狀態那個詞。**不得為了讓 FK 過而指去狀態那個詞** ——
+  #    那是把一個動作硬說成一個狀態,跟跨 run 硬配對是同一種造假,只是縮到一列。
+  - banned: 建立
+    no_replacement_note: 散文指定的替代詞是一個動作詞,而詞彙表沒有定義它(只定義了狀態那個詞)
+    note: "推導自 [Q1][Q6] — input-SPEC.md L170"
+  - banned: 下單
+    no_replacement_note: 散文指定的替代詞是一個動作詞,而詞彙表沒有定義它(只定義了狀態那個詞)
+    note: "推導自 [Q1][Q6] — input-SPEC.md L170"
+
+  - banned: 價格
+    use_instead: 單價
+    note: "推導自 [Q2][Q8] — input-SPEC.md L171;散文同時給了整筆用的那個詞,關聯欄只裝得下一個"
+  - banned: 金額(裸用)
+    use_instead: 總金額
+    note: "推導自 [Q2][Q8] — input-SPEC.md L171;散文同時給了單項用的那個詞,關聯欄只裝得下一個"
+
+  - banned: 會員 ID
+    use_instead: 客人編號
+    note: "推導自 [Q12] — input-SPEC.md L172"
+  - banned: 使用者 ID
+    use_instead: 客人編號
+    note: "推導自 [Q12] — input-SPEC.md L172"
+  - banned: 帳號
+    use_instead: 客人編號
+    note: "推導自 [Q12] — input-SPEC.md L172"

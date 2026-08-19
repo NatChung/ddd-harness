@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>第 8 課 — Design by Contract:讓「這是誰的錯」有明確答案</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+</head>
+<body>
+
+<p class="lesson-meta">第 8 課 · DDD × Agent Harness</p>
+<h1>Design by Contract</h1>
+<p class="subtitle">依合約設計 —— 順便刪掉你程式裡一半的防禦性檢查。</p>
+
+<h2>第 4 課只做了三分之一</h2>
+
+<p>第 4 課教你把 invariant 寫進 Aggregate:「訂單總額必須等於明細加總」,任何時候都成立。</p>
+
+<p>但 invariant 只管<b>物件自己的狀態</b>。它管不到兩件事:</p>
+
+<ul>
+  <li><b>呼叫我之前,你得先保證什麼?</b>(「訂單必須還在 DRAFT 狀態」)</li>
+  <li><b>我做完之後,保證給你什麼?</b>(「明細一定多一筆,而且 total 一定重算過」)</li>
+</ul>
+
+<p>把這三件事寫全,就是 <span class="term">Design by Contract</span>(依合約設計)。
+Bertrand Meyer 1992 年提出,而且他從一開始就把它當成<b>兩方的合約</b>來談,不是當成檢查。</p>
+
+<h2>先看一份真的合約</h2>
+
+<p>Meyer 原文用的例子是<b>快遞</b>:你在巴黎,要寄一個包裹。</p>
+
+<table>
+  <thead><tr><th>角色</th><th>義務(Obligations)</th><th>權利(Benefits)</th></tr></thead>
+  <tbody>
+    <tr>
+      <td><b>Client</b><br>(你)</td>
+      <td>包裹不超過 5 公斤、每邊不超過 2 公尺。付 100 法郎。</td>
+      <td>包裹在四小時內送達收件人。</td>
+    </tr>
+    <tr>
+      <td><b>Supplier</b><br>(快遞公司)</td>
+      <td>四小時內送達收件人。</td>
+      <td><b>不必處理</b>太大、太重、或沒付錢的包裹。</td>
+    </tr>
+  </tbody>
+</table>
+
+<p>看右下角那格——<b>那是整堂課的重點。</b></p>
+
+<p>Meyer 的說法是,合約保護兩邊:</p>
+
+<blockquote>It protects the client by specifying <i>how much</i> should be done. […]
+It protects the contractor by specifying <i>how little</i> is acceptable:
+The contractor must not be liable for failing to carry out tasks outside of the specified scope.</blockquote>
+<p class="bq-zh">它保護 client,方式是講明「要做到多少」——client 有權得到某個結果。它也保護 contractor,方式是講明「做到多少就算數」:contractor 不必為了沒做約定範圍之外的事而負責。</p>
+
+<p><b>一方的義務,就是另一方的權利。</b>你保證包裹不超重,快遞公司就<b>有權不處理</b>超重的情況——
+它不必寫「如果包裹 500 公斤怎麼辦」的程式碼。</p>
+
+<h2>三種條款</h2>
+
+<p>搬到程式上,合約有三條:</p>
+
+<table>
+  <thead><tr><th>條款</th><th>是什麼</th><th>誰負責</th></tr></thead>
+  <tbody>
+    <tr><td><b>Precondition</b><br>前置條件</td>
+      <td>呼叫這個方法之前必須成立的事</td>
+      <td><b>呼叫方</b>(client)</td></tr>
+    <tr><td><b>Postcondition</b><br>後置條件</td>
+      <td>方法正常結束時保證成立的事</td>
+      <td><b>被呼叫方</b>(supplier)</td></tr>
+    <tr><td><b>Invariant</b><br>不變量</td>
+      <td>這個類別的每個方法進出時都成立的事</td>
+      <td>被呼叫方(第 4 課教的就是這個)</td></tr>
+  </tbody>
+</table>
+
+<p>Meyer 原本的語言 Eiffel 有內建語法(<code>require</code> / <code>ensure</code>)。
+Java 沒有,所以要自己寫:</p>
+
+<pre><code>public class Order {   // invariant: total == sum(items) - discount,任何時候
+
+    public void addItem(ProductId productId, int qty, Money unitPrice) {
+        // ---- precondition:呼叫方的責任 ----
+        if (status != DRAFT)
+            throw new IllegalStateException("訂單成立後不可加明細");
+        if (qty &lt;= 0)
+            throw new IllegalArgumentException("數量必須大於 0");
+
+        items.add(new OrderItem(productId, qty, unitPrice));
+        recalculateTotal();
+
+        // ---- postcondition:我的責任 ----
+        assert total.equals(sumOfItems().minus(discount));
+    }
+}</code></pre>
+
+<p>Meyer 的 Eiffel 版本長這樣,對照著看比較清楚:</p>
+
+<pre><code>put_child (new: NODE) is
+    require
+        new /= Void                          -- precondition
+    do
+        ... Insertion algorithm ...
+    ensure
+        new.parent = Current                 -- postcondition
+        child_count = old child_count + 1     -- old 是呼叫前的值
+    end</code></pre>
+
+<h2>這一課真正的價值</h2>
+
+<p>不是「多寫兩種檢查」。是下面這兩句話,Meyer 原文:</p>
+
+<blockquote>
+  A precondition violation indicates a bug in the client (caller).
+  The caller did not observe the conditions imposed on correct calls.<br><br>
+  A postcondition violation is a bug in the supplier (routine).
+  The routine failed to deliver on its promises.
+</blockquote>
+<p class="bq-zh">違反 precondition,代表 bug 在 client(呼叫方)——呼叫的人沒有遵守正確呼叫該有的條件。違反 postcondition,則是 bug 在 supplier(被呼叫的常式)——它沒有做到自己承諾的事。</p>
+
+<div class="box key">
+  <span class="box-label">這一課的核心</span>
+  <p><b>「這是誰的錯」從此有明確答案,不需要討論。</b></p>
+  <p>程式炸了,看它炸在哪一種條款上:<br>
+  炸在 precondition → <b>呼叫的人錯了</b>,他沒遵守約定。<br>
+  炸在 postcondition → <b>被呼叫的人錯了</b>,他沒做到承諾。</p>
+  <p>沒有契約的時候,同樣一個 NullPointerException,可以吵一個下午:
+  「你應該檢查啊」/「這本來就不該傳 null 進來」。<b>那個爭論的本質是責任沒有事先分配。</b></p>
+</div>
+
+<h2>然後你就可以刪程式碼了</h2>
+
+<p>這是 DbC 最反直覺、也最有用的一條。Meyer 對<b>防禦性程式設計</b>的評語:</p>
+
+<blockquote>Adding possibly redundant code "just in case" only contributes to the software's
+complexity — the single worst obstacle to software quality in general, and to reliability in
+particular. The result of such blind checking is simply to introduce more software,
+hence more sources of things that could go wrong at execution time, hence more checks,
+and so ad infinitum.</blockquote>
+<p class="bq-zh">為了「以防萬一」而加上可能是多餘的程式碼,只會增加軟體的複雜度——而複雜度正是軟體品質最大的單一障礙,對可靠度來說尤其如此。這種盲目檢查的結果,只不過是引入了更多程式碼,因而多出更多執行時可能出錯的來源,因而又需要更多檢查,如此無止盡地循環下去。(<code>ad infinitum</code> 是拉丁文,「以至無窮」。)</p>
+
+<p>注意破折號後面那句修飾的是<b>複雜度</b>,不是「多餘的程式碼」——他說<b>複雜度是頭號敵人</b>,
+而「以防萬一」的程式碼只是製造複雜度的一種方式。而且這是一個沒有停止點的迴圈:
+檢查碼本身也是程式碼,也會出錯,於是又想加檢查來防它。</p>
+
+<p>他給了一條<b>絕對規則</b>:</p>
+
+<blockquote>Either you have the condition in the Require, or you have it in an If instruction
+in the body of the routine, but never in both.</blockquote>
+<p class="bq-zh">這個條件要嘛放在 require(前置條件)裡,要嘛放在常式內文的 if 裡,絕不兩邊都放。</p>
+
+<p>並且直說:「This principle is the exact opposite of the idea of defensive programming,
+since it directs programmers to avoid redundant tests.」
+(<b>這條原則跟防禦性程式設計的想法剛好相反,因為它要求程式設計師避免多餘的檢查。</b>)</p>
+
+<p>換句話說:<b>每個條件只有一個負責人。</b>寫進 precondition,就是呼叫方的事,
+方法裡面<b>不准</b>再檢查一次;要方法自己處理,那就別放進 precondition。
+兩邊都寫,等於兩邊都不負責。</p>
+
+<div class="box warn">
+  <span class="box-label">最容易搞混的一件事</span>
+  <p><b>「庫存不足」不是契約違反。</b></p>
+  <p>契約條款講的是<b>錯誤</b>——不該發生、發生了就是有人寫錯程式。
+  而「庫存不足」「付款被拒」「網路逾時」是<b>預期之內的結果</b>,它們是正常業務流程的一部分,
+  該用一般的回傳值或例外處理,不是用 assert。</p>
+  <p>Meyer 講得很清楚:assertion 不是用來描述那些「特殊但預期得到、需要特別處理」的情況——
+  那種請用普通的 if。</p>
+  <p><b>快篩:這件事發生了,是「有人程式寫錯」還是「今天生意就是這樣」?</b>
+  前者才是契約。</p>
+  <p>還是覺得抽象?換這個更好用的問法——<b>這件事真的發生時,你希望使用者看到什麼?</b></p>
+  <table>
+    <thead><tr><th>使用者該看到</th><th>判定</th></tr></thead>
+    <tbody>
+      <tr><td>「很抱歉,此商品庫存不足」</td>
+        <td><b>業務結果</b>——正常流程,要好好處理</td></tr>
+      <tr><td>500 錯誤、工程師半夜被叫起來</td>
+        <td><b>契約違反</b>——這是 bug,該當場炸掉</td></tr>
+    </tbody>
+  </table>
+  <p>把業務結果寫成 precondition 的後果很具體:<b>庫存不足會變成丟例外、變成 500、
+  進 error log、觸發告警——你會被自己的正常生意吵醒。</b></p>
+</div>
+
+<div class="box good">
+  <span class="box-label">分兩層問,不要一次判</span>
+<pre><code>Q1  這件事發生了,是「有人程式寫錯」還是「今天生意就是這樣」?
+        生意就是這樣  → 不是契約,結束
+        有人寫錯      → 進 Q2
+
+Q2  它什麼時候必須成立?
+        呼叫某方法之前   → Precondition
+        某方法結束時     → Postcondition
+        隨時            → Invariant</code></pre>
+  <p>下面的分類練習,最常錯的不是 Q2 分不清楚,而是<b>整個跳過 Q1</b>
+  ——因為業務規則跟契約條款寫成句子的時候長得一模一樣。</p>
+</div>
+
+<h2>寫不出契約的時候,通常是邊界錯了</h2>
+
+<p>陳建村用 DbC 的角度重看他的看板系統,發現一件事:
+<code>Card.move()</code> 的 precondition 需要知道「目標 Stage 裡總共有幾張卡」——
+但 <code>Card</code> 這個 Aggregate <b>根本沒有那個資訊</b>。</p>
+
+<p>結論不是「想辦法把資訊塞進 Card」,而是<b>這個方法放錯地方了</b>,該搬到 <code>Workflow</code>。</p>
+
+<p>他的結論句是:<b>「透過撰寫合約讓領域模型與通用語言更加完整。」</b></p>
+
+<div class="box good">
+  <span class="box-label">所以契約是一種診斷工具</span>
+  <ul>
+    <li><b>precondition 寫不出來</b>(需要的資訊不在這個物件手上)→
+      第 4 課的 Aggregate 邊界劃錯了,或方法放錯物件</li>
+    <li><b>postcondition 寫不出來</b>(說不清楚做完會變怎樣)→
+      這個方法做了太多事,該拆</li>
+    <li><b>條件裡出現一個沒定義的詞</b>(「訂單必須是<i>有效的</i>」)→
+      第 1 課的老問題,「有效」是什麼意思</li>
+  </ul>
+  <p>寫契約的過程本身會逼出這些問題,而且是在寫實作之前。</p>
+</div>
+
+<h2>這對 harness 的用途</h2>
+
+<div class="box inference">
+  <span class="box-label">以下的對應是推論</span>
+  <p>DbC 是既有方法(Meyer 1992)。但下面「LLM 是天生的 defensive programmer」、
+  以及「precondition 是給 agent 的減法指令」這兩個用法,是本教學自己接上去的。</p>
+</div>
+
+<p><b>LLM 是天生的防禦性程式設計師。</b>你叫 agent 寫一個方法,它會加 null 檢查、
+加邊界檢查、加 try-catch、加「以防萬一」的分支——因為<b>它不知道什麼是被保證的</b>,
+所以它把所有情況都當成可能發生。</p>
+
+<p>那正是 Meyer 在罵的東西,而且在 agent 場景下更嚴重:那些多出來的分支沒有測試涵蓋、
+沒有人看得懂為什麼存在,而且下一個 agent 看到它們會<b>再加更多</b>。</p>
+
+<table>
+  <thead><tr><th>契約的性質</th><th>對 agent 的意義</th></tr></thead>
+  <tbody>
+    <tr>
+      <td><b>precondition 是保證</b></td>
+      <td><b>它是一道減法指令:「這些情況你不必處理。」</b>
+        agent 最缺的就是這個——它永遠不知道可以不做什麼。</td>
+    </tr>
+    <tr>
+      <td><b>違反時的歸屬明確</b></td>
+      <td>agent 改壞了東西,例外訊息本身就說得出是它<b>呼叫錯</b>還是<b>實作錯</b>。
+        不用人去判讀。</td>
+    </tr>
+    <tr>
+      <td><b>契約寫在方法簽章旁邊</b></td>
+      <td>它跟程式碼放在一起,<b>不會像文件那樣過期</b>,
+        而且 agent 讀那個方法時一定會讀到——不必塞進提示詞。</td>
+    </tr>
+  </tbody>
+</table>
+
+<p>跟第 3 課的分工:<b>Given-When-Then 是外部驗收</b>,一個 scenario 測一條路徑,
+跑測試時才檢查;<b>契約是內建的</b>,每一次呼叫都檢查,包含你沒想到要測的那些路徑。
+兩個一起用——測試守回歸,契約守每一次呼叫。</p>
+
+<h2>分分看</h2>
+
+<p>下面每一句,是哪一種條款——還是根本不是契約?</p>
+
+<div class="sorter" data-buckets="Precondition|Postcondition|Invariant|不是契約,是正常業務結果">
+  <div class="sorter-item" data-answer="0"
+    data-why="「呼叫之前必須成立」→ precondition,呼叫方的責任。違反了就是呼叫方的 bug。">呼叫 cancel() 之前,訂單狀態必須是「已成立」</div>
+  <div class="sorter-item" data-answer="1"
+    data-why="「方法回來之後保證成立」→ postcondition,被呼叫方的承諾。違反了是這個方法的 bug。">addItem() 回來之後,total 一定等於明細加總</div>
+  <div class="sorter-item" data-answer="2"
+    data-why="「任何時候」是 invariant 的標記。它不屬於某一個方法,而是約束這個類別的每一個方法 —— 第 4 課教的就是這個。">訂單的 total 任何時候都等於明細加總減折扣</div>
+  <div class="sorter-item" data-answer="3"
+    data-why="陷阱題,而且是本課最重要的一題。這句話的形狀很像前置條件(「下單前庫存必須足夠」),所以很多人選 Precondition —— 但套上使用者測試:庫存不足時,使用者看到「很抱歉,此商品庫存不足」是完全正常的。這是每天都會發生的生意,不是有人寫錯程式。寫成 precondition 的後果:庫存不足會變成丟例外、變成 500、進 error log —— 你會被自己的正常生意吵醒。">庫存不足時,下單會失敗</div>
+  <div class="sorter-item" data-answer="0"
+    data-why="對參數的要求 → precondition。這一條寫進去之後,方法內部就「不准」再檢查一次 —— Meyer 的絕對規則:require 或 if,絕不兩邊都放。">傳進來的 quantity 必須大於 0</div>
+  <div class="sorter-item" data-answer="1"
+    data-why="「存完之後查得到」是 save() 的承諾 → postcondition。這種條款寫下來常常會逼出一個問題:那如果是非同步寫入呢?—— 契約當診斷工具的例子。">save() 回來之後,這筆訂單一定查得到</div>
+  <div class="sorter-item" data-answer="3"
+    data-why="外部系統逾時是預期之內會發生的事,不是誰程式寫錯。它需要的是重試、補償、或告訴使用者 —— 都是正常流程,不是契約違反。">付款閘道逾時沒有回應</div>
+  <div class="sorter-item" data-answer="2"
+    data-why="跟第四題成對,方向相反。折扣大於總金額 → 那是資料已經壞了,永遠不該發生,而且沒有任何使用者需要看到「很抱歉,您的折扣比總額還高」—— 該看到它的是工程師。所以它是契約,不是業務結果。而它沒有指定在哪個方法前後、隨時都必須成立 → Invariant。注意它跟第五題(quantity > 0)的差別:那個是對「傳進來的參數」的要求,這個是對「物件自己的狀態」的要求。">訂單的折扣金額不得大於總金額</div>
+</div>
+
+<h2>換你了</h2>
+
+<div class="quiz" data-answer="0">
+  <p class="quiz-q">程式在 precondition 這一行炸了。這是誰的 bug?</p>
+  <div class="quiz-opts">
+    <button class="quiz-opt">呼叫方的 —— 他沒有遵守呼叫這個方法的條件</button>
+    <button class="quiz-opt">被呼叫方的 —— 它應該把這種情況處理掉,不該讓它炸</button>
+    <button class="quiz-opt">要看情況,得先討論才知道</button>
+  </div>
+  <div class="quiz-fb"
+    data-right="Meyer 原話:「A precondition violation indicates a bug in the client (caller).」而 postcondition 炸了才是被呼叫方的 bug。歸屬事先就定好了,不需要當場討論。"
+    data-wrong="第二個正是 DbC 要消滅的想法 —— 「它應該處理掉」就是防禦性程式設計,結果是每個方法都在檢查每件事,複雜度爆炸。第三個描述的是「沒有契約」時的日常:同一個 NPE 可以吵一個下午,因為責任從來沒有事先分配。"></div>
+</div>
+
+<div class="quiz" data-answer="2">
+  <p class="quiz-q">一個條件已經寫進 precondition 了,方法內部要不要再檢查一次比較保險?</p>
+  <div class="quiz-opts">
+    <button class="quiz-opt">要,多一層檢查總是比較安全,成本也很低</button>
+    <button class="quiz-opt">要,因為呼叫方不一定可靠,不能假設他會遵守</button>
+    <button class="quiz-opt">不要 —— 每個條件只能有一個負責人,兩邊都寫等於兩邊都不負責</button>
+  </div>
+  <div class="quiz-fb"
+    data-right="Meyer 的絕對規則:「Either you have the condition in the Require, or you have it in an If instruction in the body of the routine, but never in both.」他明講這跟防禦性程式設計「剛好相反」。"
+    data-wrong="「成本很低」是錯覺 —— 多出來的分支要維護、要測試、而且會生出更多分支(Meyer:more checks, and so ad infinitum)。至於「呼叫方不一定可靠」:那正是重點 —— 他不可靠時你要的是「當場炸掉並指出是他的錯」,不是默默幫他兜住,那只會讓 bug 藏得更深、更晚被發現。"></div>
+</div>
+
+<h3>動手練習</h3>
+
+<p>挑你系統裡<b>一個真的 public 方法</b>,幫它補一份合約:</p>
+
+<div class="drill">
+<textarea spellcheck="false">方法簽章:
+
+Precondition(呼叫我之前,你必須保證):
+
+Postcondition(我正常結束時,保證給你):
+
+這個類別的 Invariant(任何時候都成立):
+
+現在的程式碼裡,有沒有「precondition 已經寫了、方法內部又檢查一次」的?
+
+上面三格裡,有沒有出現一個沒定義的詞?(「有效的」「正常的」「合法的」)
+
+寫的過程有沒有卡住?卡在哪一格,為什麼:
+</textarea>
+</div>
+
+<div class="box good">
+  <span class="box-label">自我檢查</span>
+  <ul>
+    <li><b>你寫的 precondition 裡,有沒有其實是「業務會失敗」的東西?</b>
+      (「庫存必須足夠」通常不是 precondition ——庫存不足是生意的常態,不是呼叫方的錯。)</li>
+    <li><b>postcondition 那格如果寫不出來</b>,通常是這個方法做了太多事。
+      試著用一句話講完它保證什麼——講不完就該拆。</li>
+    <li><b>第五格(卡住的地方)才是最有價值的一格。</b>
+      卡在 precondition = 需要的資訊不在這個物件手上 → Aggregate 邊界可能錯了;
+      卡在用詞 = 第 1 課的老毛病又出現了。</li>
+    <li>如果第四格找到了重複檢查:<b>先別急著刪</b>。先問「這個條件到底該是誰的責任」,
+      決定了再刪掉另一邊——這才是 Meyer 那條規則的意思。</li>
+  </ul>
+</div>
+
+<footer>
+
+<h2>下一步該讀什麼</h2>
+
+<p><b>原始出處:</b>
+<a href="https://se.inf.ethz.ch/~meyer/publications/computer/contract.pdf">Applying "Design by Contract" — Bertrand Meyer, IEEE Computer, October 1992</a>(免費 PDF)。
+本課的快遞合約例子、precondition/postcondition 的歸屬、對防禦性程式設計的批評、
+以及那條「never in both」的絕對規則,全部出自這篇。
+<b>這篇我實際讀過</b>(前五頁,即概念的部分),引用句都是原文。
+⚠️ 後半的例外處理與 rescue clause 機制沒讀,本課也沒講。</p>
+
+<p><b>繁中:</b><a href="https://teddy-chen-tw.blogspot.com/2021/03/14.html">領域驅動設計學習筆記(14):透過合約讓領域模型與通用語言更精確 — 搞笑談軟工</a>。
+術語:<b>依合約設計</b>、<b>前置條件</b>。看板系統那個「契約寫不出來 → 方法放錯 Aggregate」
+的例子出自這篇。⚠️ 只核對引用句,全文未逐字讀完。</p>
+
+<h2>本課相關</h2>
+<ul>
+  <li><a href="./0004-aggregate-一次任務的大小.html">第 4 課:Aggregate</a>
+    —— 那課的 invariant 是本課三種條款之一;本課補上另外兩種</li>
+  <li><a href="./0003-given-when-then-機械判定.html">第 3 課:Given-When-Then</a>
+    —— 外部驗收 vs 內建契約,兩個一起用</li>
+  <li><a href="./0001-ubiquitous-language-第一道閘門.html">第 1 課:Ubiquitous Language</a>
+    —— 契約寫不出來,常常是因為詞沒定義</li>
+  <li><a href="./0007-event-storming-產物從哪來.html">第 7 課:Event Storming</a></li>
+  <li><a href="./0009-pattern-language-讓它會長大.html">第 9 課:Pattern Language</a>
+    —— 把前八課收攏成一套會長大的語言</li>
+</ul>
+
+<div class="ask-teacher">
+  <b>那份合約貼給我,我只看兩格:</b>
+  你有沒有把「業務會失敗」寫成 precondition(最常見的錯),
+  以及<b>你卡住的那一格</b>——契約當診斷工具的價值全在那裡。
+</div>
+
+</footer>
+
+<script src="../assets/quiz.js"></script>
+<script src="../assets/sorter.js"></script>
+</body>
+</html>

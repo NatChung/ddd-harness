@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>開場 — 五級演化:從照抄流程到機械驗收</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<style>
+  /* 投影用:字少、圖大、一段一個重點。細節現場講。 */
+  .punch {
+    font-size: 1.3rem;
+    font-weight: 700;
+    line-height: 1.5;
+    margin: 1.2rem 0;
+    padding-left: 1rem;
+    border-left: 4px solid var(--accent);
+  }
+  .level-no {
+    font-family: var(--mono);
+    font-size: 0.78rem;
+    letter-spacing: 0.08em;
+    color: var(--ink-faint);
+    display: block;
+    margin-bottom: 0.2rem;
+  }
+  figure { margin: 1.6rem 0; }
+  figure svg { width: 100%; height: auto; display: block; }
+  figcaption {
+    font-family: var(--sans);
+    font-size: 0.85rem;
+    color: var(--ink-soft);
+    text-align: center;
+    margin-top: 0.5rem;
+  }
+  .dg-box { fill: none; stroke: var(--ink); stroke-width: 1.5; }
+  .dg-box-dim { fill: none; stroke: var(--ink-faint); stroke-width: 1.5; }
+  .dg-box-hot { fill: var(--warn-bg); stroke: var(--warn); stroke-width: 2; }
+  .dg-box-ok  { fill: var(--good-bg); stroke: var(--good); stroke-width: 2; }
+  .dg-box-list{ fill: var(--good-bg); stroke: var(--good); stroke-width: 2; stroke-dasharray: 7 4; }
+  .dg-lg { stroke: var(--good); stroke-width: 2; fill: none; }
+  .dg-t  { font-family: var(--sans); font-size: 15px; fill: var(--ink); text-anchor: middle; }
+  .dg-tb { font-family: var(--sans); font-size: 15px; font-weight: 700; fill: var(--ink); text-anchor: middle; }
+  .dg-s  { font-family: var(--sans); font-size: 12.5px; fill: var(--ink-soft); text-anchor: middle; }
+  .dg-w  { font-family: var(--sans); font-size: 13px; font-weight: 700; fill: var(--warn); text-anchor: middle; }
+  .dg-g  { font-family: var(--sans); font-size: 13px; font-weight: 700; fill: var(--good); text-anchor: middle; }
+  .dg-l  { stroke: var(--ink); stroke-width: 1.5; fill: none; }
+  .dg-lw { stroke: var(--warn); stroke-width: 2; fill: none; }
+</style>
+</head>
+<body>
+
+<p class="lesson-meta">開場 · DDD × Agent Harness</p>
+<h1>五級演化</h1>
+<p class="subtitle">從照抄流程,到機械驗收。</p>
+
+<h2>賭注</h2>
+
+<p class="punch">同一份需求,今天這個模型跑出一個東西,下個月換一個模型跑出另一個<br>
+——而你沒辦法一眼說出哪個對。</p>
+
+<div class="box key">
+  <span class="box-label">整條路只追一件事</span>
+  <p>模型不會變 deterministic,那是它的本質。
+  <b>你能做的是讓「對不對」變 deterministic。</b></p>
+</div>
+
+<hr>
+
+<h2><span class="level-no">第 1 級</span>照抄組織圖</h2>
+
+<p>公司本來怎麼跑,就讓 agent 怎麼跑:一條線走下去,<b>任何一關說不行就退回</b>。</p>
+
+<figure>
+<svg viewBox="0 0 780 250" role="img" aria-label="一條角色鏈,退回的線在下面指來指去">
+  <defs>
+    <marker id="a1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="var(--ink)"/>
+    </marker>
+    <marker id="a1w" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="var(--warn)"/>
+    </marker>
+  </defs>
+
+  <rect x="15"  y="40" width="90" height="52" rx="4" class="dg-box"/>
+  <text x="60"  y="72" class="dg-t">需求</text>
+  <rect x="125" y="40" width="90" height="52" rx="4" class="dg-box"/>
+  <text x="170" y="72" class="dg-t">PM</text>
+  <rect x="235" y="40" width="90" height="52" rx="4" class="dg-box"/>
+  <text x="280" y="72" class="dg-t">設計</text>
+  <rect x="345" y="40" width="90" height="52" rx="4" class="dg-box"/>
+  <text x="390" y="72" class="dg-t" style="font-size:13px">Stakeholder</text>
+  <rect x="455" y="40" width="90" height="52" rx="4" class="dg-box"/>
+  <text x="500" y="72" class="dg-t">RD</text>
+  <rect x="565" y="40" width="90" height="52" rx="4" class="dg-box"/>
+  <text x="610" y="72" class="dg-t">開發</text>
+  <rect x="675" y="40" width="90" height="52" rx="4" class="dg-box"/>
+  <text x="720" y="72" class="dg-t">QA</text>
+
+  <line x1="107" y1="66" x2="121" y2="66" class="dg-l" marker-end="url(#a1)"/>
+  <line x1="217" y1="66" x2="231" y2="66" class="dg-l" marker-end="url(#a1)"/>
+  <line x1="327" y1="66" x2="341" y2="66" class="dg-l" marker-end="url(#a1)"/>
+  <line x1="437" y1="66" x2="451" y2="66" class="dg-l" marker-end="url(#a1)"/>
+  <line x1="547" y1="66" x2="561" y2="66" class="dg-l" marker-end="url(#a1)"/>
+  <line x1="657" y1="66" x2="671" y2="66" class="dg-l" marker-end="url(#a1)"/>
+
+  <path d="M390,94 C390,122 280,122 280,96" class="dg-lw" marker-end="url(#a1w)"/>
+  <path d="M720,94 C720,122 610,122 610,96" class="dg-lw" marker-end="url(#a1w)"/>
+  <path d="M500,94 C500,154 170,154 170,96" class="dg-lw" marker-end="url(#a1w)"/>
+  <path d="M720,94 C720,192 60,192 60,96"   class="dg-lw" marker-end="url(#a1w)"/>
+
+  <text x="390" y="22"  class="dg-s">一條線走下去</text>
+  <text x="390" y="216" class="dg-w">說不行就退回 —— 越後面才發現,退得越遠</text>
+  <text x="390" y="239" class="dg-s">AI 讓每一格變快;來回的次數一次都沒少</text>
+</svg>
+<figcaption>照抄組織圖 = 連它的退回一起抄進來</figcaption>
+</figure>
+
+<p class="punch">AI 加速的是<b>每一格</b>。<br>真正吃掉時間的是<b>退回</b>,而那條路一格都沒短。</p>
+
+<div class="box inference">
+  <span class="box-label">說明</span>
+  <p>這是一條真實跑過的線,已抽象化、不點名。拆掉它那筆 commit 第一句是:
+  <b>「推行不下去,棄案。」</b></p>
+</div>
+
+<hr>
+
+<h2><span class="level-no">第 2 級</span>照抄 Scrum</h2>
+
+<p>不抄整個組織,<b>只抄一格:Planning。</b>
+輸入 User Story,產出 <b>What(AC)</b> 與 <b>How(Task)</b>,後面直接交給 AI 去翻 code。</p>
+
+<figure>
+<svg viewBox="0 0 780 250" role="img" aria-label="AI 化的範圍只有 Planning 那一格">
+  <defs>
+    <marker id="a2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="var(--ink)"/>
+    </marker>
+    <marker id="a2w" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="var(--warn)"/>
+    </marker>
+  </defs>
+
+  <rect x="8" y="34" width="466" height="104" rx="6" fill="none"
+        stroke="var(--ink-faint)" stroke-width="1.5" stroke-dasharray="6 5"/>
+  <text x="241" y="26" class="dg-s">AI 化的範圍就這一格:Planning</text>
+
+  <rect x="24"  y="62" width="110" height="52" rx="4" class="dg-box"/>
+  <text x="79"  y="94" class="dg-t">User Story</text>
+
+  <rect x="172" y="54" width="132" height="68" rx="4" class="dg-box"/>
+  <text x="238" y="80" class="dg-tb">Planning</text>
+  <text x="238" y="102" class="dg-s">What 跟 How</text>
+
+  <rect x="342" y="54" width="116" height="68" rx="4" class="dg-box-hot"/>
+  <text x="400" y="80" class="dg-tb">AC + Task</text>
+  <text x="400" y="102" class="dg-w">品質全押這裡</text>
+
+  <rect x="516" y="62" width="116" height="52" rx="4" class="dg-box"/>
+  <text x="574" y="86" class="dg-t">AI 翻 code</text>
+  <text x="574" y="104" class="dg-s">自己找上下文、實作</text>
+
+  <rect x="670" y="62" width="98"  height="52" rx="4" class="dg-box"/>
+  <text x="719" y="94" class="dg-t">跑測試</text>
+
+  <line x1="136" y1="88" x2="168" y2="88" class="dg-l" marker-end="url(#a2)"/>
+  <line x1="306" y1="88" x2="338" y2="88" class="dg-l" marker-end="url(#a2)"/>
+  <line x1="460" y1="88" x2="512" y2="88" class="dg-l" marker-end="url(#a2)"/>
+  <line x1="634" y1="88" x2="666" y2="88" class="dg-l" marker-end="url(#a2)"/>
+
+  <path d="M719,118 L719,176 L400,176 L400,126" class="dg-lw" marker-end="url(#a2w)"/>
+  <text x="560" y="198" class="dg-w">測不過 → 人回頭改 AC / 重拆 Task</text>
+  <text x="390" y="228" class="dg-s">AC 寫得含糊、Task 拆得太大 → 這個迴圈就一直跑</text>
+</svg>
+<figcaption>輸出穩不穩,取決於 AC 與 Task 怎麼拆</figcaption>
+</figure>
+
+<p class="punch">它把「對不對」推給 AC,<b>但沒有人在檢查 AC 本身寫得夠不夠。</b></p>
+
+<div class="box good">
+  <span class="box-label">這個形狀現在滿地都是</span>
+  <p><a href="https://github.com/github/spec-kit">GitHub Spec Kit</a> ·
+  <a href="https://github.com/Fission-AI/OpenSpec">OpenSpec</a> ·
+  <a href="https://github.com/bmad-code-org/BMAD-METHOD">BMAD-METHOD</a>(角色分得最像 Scrum:
+  analyst / PM / architect / scrum master / dev / QA)·
+  <a href="https://kiro.dev/">Kiro</a>(AWS,把 spec 做進 IDE)· Taskmaster · Agent OS。</p>
+  <p>名字不一樣,骨架都是<b>需求 → 規格 → 任務 → 實作</b>。挑哪個不是重點,
+  <b>重點是它們都停在同一個地方。</b></p>
+</div>
+
+<hr>
+
+<h2><span class="level-no">第 3 級</span>Superpowers</h2>
+
+<p>一套定義完整的 AI 工作流:<b>寫死的九步</b>,一步一步逼你走完才准動工。</p>
+
+<figure>
+<svg viewBox="0 0 780 210" role="img" aria-label="Superpowers 的九步工作流,第 6、7 步是紅綠燈">
+  <line x1="64" y1="72" x2="112" y2="72" stroke="var(--ink-faint)" stroke-width="2" stroke-dasharray="5 4"/>
+  <line x1="150" y1="72" x2="198" y2="72" stroke="var(--ink-faint)" stroke-width="2" stroke-dasharray="5 4"/>
+  <line x1="236" y1="72" x2="284" y2="72" stroke="var(--ink-faint)" stroke-width="2" stroke-dasharray="5 4"/>
+  <line x1="322" y1="72" x2="370" y2="72" stroke="var(--ink-faint)" stroke-width="2" stroke-dasharray="5 4"/>
+  <line x1="408" y1="72" x2="456" y2="72" stroke="var(--ink-faint)" stroke-width="2" stroke-dasharray="5 4"/>
+  <line x1="494" y1="72" x2="542" y2="72" stroke="var(--ink-faint)" stroke-width="2" stroke-dasharray="5 4"/>
+  <line x1="580" y1="72" x2="628" y2="72" stroke="var(--ink-faint)" stroke-width="2" stroke-dasharray="5 4"/>
+  <line x1="666" y1="72" x2="714" y2="72" stroke="var(--ink-faint)" stroke-width="2" stroke-dasharray="5 4"/>
+  <circle cx="45" cy="72" r="19" class="dg-box"/>
+  <text x="45" y="78" class="dg-t" style="font-size:14px">1</text>
+  <circle cx="131" cy="72" r="19" class="dg-box"/>
+  <text x="131" y="78" class="dg-t" style="font-size:14px">2</text>
+  <circle cx="217" cy="72" r="19" class="dg-box"/>
+  <text x="217" y="78" class="dg-t" style="font-size:14px">3</text>
+  <circle cx="303" cy="72" r="19" class="dg-box"/>
+  <text x="303" y="78" class="dg-t" style="font-size:14px">4</text>
+  <circle cx="389" cy="72" r="19" class="dg-box"/>
+  <text x="389" y="78" class="dg-t" style="font-size:14px">5</text>
+  <circle cx="475" cy="72" r="19" class="dg-box-ok"/>
+  <text x="475" y="78" class="dg-g" style="font-size:14px">6</text>
+  <circle cx="561" cy="72" r="19" class="dg-box-ok"/>
+  <text x="561" y="78" class="dg-g" style="font-size:14px">7</text>
+  <circle cx="647" cy="72" r="19" class="dg-box"/>
+  <text x="647" y="78" class="dg-t" style="font-size:14px">8</text>
+  <circle cx="733" cy="72" r="19" class="dg-box"/>
+  <text x="733" y="78" class="dg-t" style="font-size:14px">9</text>
+  <text x="45" y="118" class="dg-s">釐清目標</text>
+  <text x="131" y="118" class="dg-s">寫規格</text>
+  <text x="217" y="118" class="dg-s">寫計畫</text>
+  <text x="303" y="118" class="dg-s">拆任務</text>
+  <text x="389" y="118" class="dg-s">設計</text>
+  <text x="475" y="118" class="dg-s">寫測試</text>
+  <text x="561" y="118" class="dg-s">實作</text>
+  <text x="647" y="118" class="dg-s">審查</text>
+  <text x="733" y="118" class="dg-s">收尾</text>
+
+  <rect x="452" y="140" width="220" height="46" rx="4" class="dg-box-ok"/>
+  <text x="562" y="160" class="dg-g">先寫測試,才准寫實作</text>
+  <text x="562" y="178" class="dg-s">卡在真實測試結果上 —— 機器說了算</text>
+  <path d="M449,130 L587,130" stroke="var(--good)" stroke-width="1.5" fill="none"/>
+  <path d="M518,130 L518,140" stroke="var(--good)" stroke-width="1.5" fill="none"/>
+
+  <text x="200" y="160" class="dg-w">整條是寫死的</text>
+  <text x="200" y="180" class="dg-s">想改一行,也要從頭走完</text>
+</svg>
+<figcaption>第一次:「對不對」不用人看 —— 但代價是整條流程不能繞</figcaption>
+</figure>
+
+<p class="punch">綠色那兩步是<b>唯一機器說了算</b>的地方。<br>其餘七步,還是模型說了算。</p>
+
+<div class="box warn">
+  <span class="box-label">先埋一條界線,第 5 級回收</span>
+  <p>該隨模型能力縮的是<b>流程步驟</b>(它防的是<b>偏題</b>,模型變聰明就抵銷了),
+  <b>不是</b> red-green 這種機械關卡(它防的是<b>作弊</b>,永遠不會被抵銷)。</p>
+  <p>混在一起講,就會得到「模型變強就不用寫測試了」——那是錯的。</p>
+</div>
+
+<hr>
+
+<h2><span class="level-no">第 4 級</span>mattpocock-skills</h2>
+
+<p>完全相反的走法:<b>一個 skill 只解一個問題,做完收工,可自由拼裝。</b></p>
+
+<figure>
+<svg viewBox="0 0 780 250" role="img" aria-label="可自由拼裝的小 skill 積木">
+  <rect x="14"  y="52" width="132" height="56" rx="4" class="dg-box"/>
+  <text x="80"  y="76" class="dg-tb">grill-me</text>
+  <text x="80"  y="96" class="dg-s">反過來拷問你</text>
+  <rect x="170" y="52" width="132" height="56" rx="4" class="dg-box"/>
+  <text x="236" y="76" class="dg-tb">to-spec</text>
+  <text x="236" y="96" class="dg-s">規格裡不准有 code</text>
+  <rect x="326" y="52" width="132" height="56" rx="4" class="dg-box"/>
+  <text x="392" y="76" class="dg-tb">to-tickets</text>
+  <text x="392" y="96" class="dg-s">照功能切,不照分層</text>
+  <rect x="482" y="52" width="132" height="56" rx="4" class="dg-box"/>
+  <text x="548" y="76" class="dg-tb">implement</text>
+  <text x="548" y="96" class="dg-s">TDD</text>
+  <rect x="638" y="52" width="128" height="56" rx="4" class="dg-box"/>
+  <text x="702" y="76" class="dg-tb">code-review</text>
+  <text x="702" y="96" class="dg-s">具名的爛味道清單</text>
+
+  <text x="390" y="30" class="dg-s">每一支都能單獨叫用 —— 規格是誰寫的都行,從中間插進來</text>
+
+  <rect x="150" y="150" width="480" height="66" rx="4" class="dg-box-hot"/>
+  <text x="390" y="176" class="dg-w" style="font-size:16px">問什麼 · 補什麼 · 差什麼</text>
+  <text x="390" y="200" class="dg-tb">← 全部由 LLM 決定</text>
+</svg>
+<figcaption>工具切小了,但「該問什麼」還在 AI 手上</figcaption>
+</figure>
+
+<p>強在兩件事:</p>
+
+<ul>
+  <li><b>短到誇張。</b>那支爆紅的拷問 skill,扣掉 front-matter,
+  <b>整份指令 4 行、106 個英文字</b>——因為他用的是<b>模型訓練資料裡的經典術語</b>當指令。
+  說一句 <code>Data Clumps</code>,等於說了一百字。</li>
+  <li><b>不綁架你。</b>沒有非走不可的順序,你手上有什麼就從哪一支接進去。</li>
+</ul>
+
+<p>2026-08-19 從本機安裝的版本抄出來的<b>現況</b>(不是二手轉述):</p>
+
+<pre><code><b>/grilling</b> —— 整份指令就這 4 行(106 字)
+  1. 相逼問到我們達成共識為止;走過決策樹的每一個分支,
+     一個一個解掉決策之間的相依。<b>每一題都給你的建議答案。</b>
+  2. 一次只問一題,等我回覆才問下一題。一次問一堆會讓人不知所措。
+  3. <b>事實,你自己去環境裡查(檔案、工具),不要問我;
+     決定,是我的 —— 每一個都拿到我面前等我回答。</b>
+  4. 在我確認達成共識之前,不准動手。
+
+<b>/grill-me</b>        →「Run a `/grilling` session.」            ← 1 行,4 個字
+<b>/grill-with-docs</b> →「Run a `/grilling` session,
+                        using the `/domain-modeling` skill.」   ← 1 行,8 個字</code></pre>
+
+<div class="box key">
+  <span class="box-label">注意最後那一行</span>
+  <p>「拷問 + 領域建模」這件事,在他手上<b>就是一行 skill</b>——把 <code>/grilling</code>
+  接上 <code>/domain-modeling</code>。</p>
+  <p><b>他已經把 DDD 掛上去了。</b>差別只在:那一行沒有規定要問哪些問題。</p>
+</div>
+
+<p class="punch">AI 幫你找洞。<b>但洞的清單是 AI 列的</b> —— 它不知道你的 domain 有哪些坑。</p>
+
+<h3>把三份 prompt 打開來數</h3>
+
+<p>三份都做「動工前先把事情問清楚」,長度差很多——但真正的差別不是長度,是<b>字花在哪</b>:</p>
+
+<table>
+  <thead><tr><th>prompt</th><th>非空行</th><th>字元</th><th>字花在</th></tr></thead>
+  <tbody>
+    <tr>
+      <td><code>/grilling</code><br><span class="term">mattpocock</span></td>
+      <td><b>4</b></td><td><b>542</b></td>
+      <td><b>怎麼問</b><br>一次一題、每題附建議答案、事實自己查</td>
+    </tr>
+    <tr>
+      <td><code>brainstorming</code><br><span class="term">Superpowers</span></td>
+      <td>110</td><td>8,506</td>
+      <td><b>怎麼走完流程</b><br>HARD-GATE、9 步 checklist、流程圖、存檔路徑、自審、審核關卡</td>
+    </tr>
+    <tr>
+      <td><code>interview-prompt.md</code><br><span class="term">第 5 級</span></td>
+      <td>171</td><td>5,391</td>
+      <td><b>問什麼、答案落到哪一格</b><br>四條鐵律、五格來源標記、路由表、§1–§11 產出合約</td>
+    </tr>
+  </tbody>
+</table>
+
+<p>前兩份加起來 9,048 個字元,<b>沒有任何一句規定要問什麼</b>。
+<code>brainstorming</code> 最接近的一句是「ask clarifying questions —
+understand purpose / constraints / success criteria」:三個桶子,沒有清單。</p>
+
+<p class="punch">問什麼交給 LLM,你就<b>沒有分母</b>。<br>
+「還缺什麼」這句話,在那個世界裡問不出口。</p>
+
+<div class="box key">
+  <span class="box-label">第 5 級多的就三件事</span>
+  <ul>
+    <li><b>要問什麼</b> —— 每一題都得標「它補哪一格」。標不出來的題不要問,那是閒聊。</li>
+    <li><b>要什麼答案</b> —— 答案有固定的落點:哪個詞、哪條規則、哪條驗收。</li>
+    <li><b>答案要有依據</b> —— 他親口說的 / 推導出來的 / 我們自己決定的,一律標清楚。</li>
+  </ul>
+</div>
+
+<hr>
+
+<h2><span class="level-no">第 5 級</span>DDD + Clean Architecture</h2>
+
+<p class="punch">前四級都在改流程。<br>第五級改的是:<b>問題本身從哪裡來。</b></p>
+
+<figure>
+<svg viewBox="0 0 780 305" role="img" aria-label="第五級的生產線:虛線綠是清單級,實線綠是 script 級">
+  <defs>
+    <marker id="a5" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="var(--ink)"/>
+    </marker>
+    <marker id="a5g" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="var(--good)"/>
+    </marker>
+  </defs>
+
+  <rect x="6"   y="70" width="76"  height="52" rx="4" class="dg-box"/>
+  <text x="44"  y="101" class="dg-t">一句話</text>
+
+  <rect x="100" y="60" width="112" height="72" rx="4" class="dg-box-list"/>
+  <text x="156" y="86" class="dg-tb">固定的提問</text>
+  <text x="156" y="108" class="dg-g">清單是你的</text>
+
+  <rect x="230" y="60" width="92"  height="72" rx="4" class="dg-box-list"/>
+  <text x="276" y="86" class="dg-tb">表</text>
+  <text x="276" y="108" class="dg-g">空格看得見</text>
+
+  <rect x="340" y="60" width="86"  height="72" rx="4" class="dg-box"/>
+  <text x="383" y="86" class="dg-tb">YAML</text>
+  <text x="383" y="107" class="dg-s" style="font-size:11px">人 diff 得出來</text>
+
+  <rect x="444" y="60" width="96"  height="72" rx="4" class="dg-box-ok"/>
+  <text x="492" y="86" class="dg-tb">匯入 DB</text>
+  <text x="492" y="107" class="dg-g" style="font-size:10.5px">CHECK/FK 擋這</text>
+
+  <rect x="558" y="70" width="96"  height="52" rx="4" class="dg-box-ok"/>
+  <text x="606" y="101" class="dg-t">GWT 驗收</text>
+  <rect x="672" y="70" width="102" height="52" rx="4" class="dg-box-ok"/>
+  <text x="723" y="101" class="dg-t">TDD → code</text>
+
+  <line x1="84"  y1="96" x2="96"  y2="96" class="dg-l" marker-end="url(#a5)"/>
+  <line x1="214" y1="96" x2="226" y2="96" class="dg-l" marker-end="url(#a5)"/>
+  <line x1="324" y1="96" x2="336" y2="96" class="dg-l" marker-end="url(#a5)"/>
+  <line x1="428" y1="96" x2="440" y2="96" class="dg-l" marker-end="url(#a5)"/>
+  <line x1="542" y1="96" x2="554" y2="96" class="dg-l" marker-end="url(#a5)"/>
+  <line x1="656" y1="96" x2="668" y2="96" class="dg-l" marker-end="url(#a5)"/>
+
+  <path d="M276,136 L276,166 L156,166 L156,136" class="dg-lg" marker-end="url(#a5g)"/>
+  <text x="230" y="186" class="dg-g">哪一格空的?哪兩格互相矛盾? → 改問法重跑</text>
+
+  <rect x="8" y="206" width="402" height="86" rx="4" class="dg-box-ok"/>
+  <text x="209" y="228" class="dg-g">而且 script 在數「還少什麼」</text>
+  <text x="209" y="248" class="dg-s">landing_check:問出去的題,下一輪落點表裡有沒有</text>
+  <text x="209" y="265" class="dg-s">glossary_check:欄位名對不到詞彙表的,差幾個</text>
+  <text x="209" y="282" class="dg-s">provenance_check:宣稱「他說的」,逐字稿真的有嗎</text>
+
+  <rect x="428" y="206" width="344" height="86" rx="4" class="dg-box-ok"/>
+  <text x="600" y="228" class="dg-g">ArchUnit:架構規矩用測試擋</text>
+  <text x="600" y="248" class="dg-s">prompt 只有模型讀得到,這個是 CI 讀得到</text>
+  <text x="600" y="265" class="dg-s">package_landing_check:規則會不會靜靜地不適用</text>
+  <text x="600" y="282" class="dg-s">vacuous_tests:哪條測試什麼都沒約束到</text>
+  <line x1="606" y1="202" x2="606" y2="126" class="dg-lg" marker-end="url(#a5g)"/>
+
+  <text x="390" y="26" class="dg-s">虛線綠 = 清單級(LLM 查,照固定清單)　·　實線綠 = script 級(機器跑,跑不過就是紅的)</text>
+</svg>
+<figcaption>問 → 表 → 機械驗收。<b>review 的對象是表,不是 code</b>;而表缺幾格,script 數得出來</figcaption>
+</figure>
+
+<div class="box key">
+  <span class="box-label">三句話</span>
+  <p><b>1. 落成表,不落成散文。</b>散文讀起來很順,但你數不出它缺幾格。</p>
+  <p><b>2. review 的對象是表。</b>在表上抓缺漏,比在 code 裡抓便宜一百倍。</p>
+  <p><b>3. 回收第 3 級那條界線。</b>ArchUnit 跟 red-green 同一類——機械關卡,不隨模型變聰明而縮。</p>
+</div>
+
+<div class="box good">
+  <span class="box-label">誰在查:語意歸 LLM,「少了什麼」歸 script</span>
+  <p>「這兩格矛不矛盾」是<b>語意判斷</b>,LLM 做。但它跟「叫 AI 自己看看有沒有問題」差很遠
+  ——<b>該有哪幾格不是它決定的</b>,清單先寫死了。</p>
+  <p>而<b>「少了什麼」有 script 在數</b>,六支,判準<b>刻意寫笨</b>
+  (寫成「大致上都有記到」這支就白做了):</p>
+  <ul>
+    <li><code>landing_check</code> —— 第 N 輪問出去的每一題,<b>有沒有出現在第 N+1 輪那張落點表裡</b></li>
+    <li><code>glossary_check</code> —— 每個對外欄位名對不對得到詞彙表:<b>差幾個、差哪幾個</b></li>
+    <li><code>provenance_check</code> —— 宣稱「他親口說的」值,<b>逐字稿裡真的有嗎</b></li>
+    <li><code>contract_triage</code> —— 哪幾條契約守不住、哪幾條指不出測試</li>
+    <li><code>package_landing_check</code> —— 規格宣告的 package,實作真的有 class 嗎</li>
+    <li><code>vacuous_tests</code> —— 哪條測試什麼都沒約束到</li>
+  </ul>
+  <p>還有一條共用鐵律:<b>「不適用」不算「通過」</b>——沒東西可查的,自成一類、有自己的離開碼,
+  不准折進通過數裡。<b>守衛沒有壞掉,是不再適用了,而不適用不會有人發現。</b></p>
+  <p>所以整堂課的強制有三級:</p>
+  <table>
+    <thead><tr><th>層級</th><th>誰在擋</th><th>在哪一級</th></tr></thead>
+    <tbody>
+      <tr><td><b>script 級</b></td><td>red-green、ArchUnit ——機器跑,跑不過就是紅的</td><td>第 3、5 級</td></tr>
+      <tr><td><b>清單級</b></td><td>LLM 查<b>語意</b>,但照固定清單查;缺什麼很明顯</td><td>第 5 級的表</td></tr>
+      <tr><td><b>模型自覺</b></td><td>「你檢查一下」——查得好不好全看它今天怎麼樣</td><td>前四級的 review</td></tr>
+    </tbody>
+  </table>
+  <p><b>清單級不如 script 級,但比模型自覺強太多</b>——差別就在「缺漏會不會現形」。</p>
+</div>
+
+<div class="box key">
+  <span class="box-label">為什麼中間要過一次 DB —— 不然 GWT 會生錯,而且指向錯的地方</span>
+  <p><b>YAML 擋不住任何東西</b>:沒有型別、沒有外鍵,<b>寫錯的 YAML 一樣是合法的 YAML</b>。
+  它只買到兩件事——agent 寫得順、人 diff 得出來。</p>
+  <p>擋的工作全在<b>匯入</b>那一步:schema 的每一條 CHECK / FK,都取代了散文裡的一句叮嚀。
+  <b>叮嚀會被忽略,CHECK 不會。</b>所以圖上綠的是<b>匯入</b>那一格,不是 YAML。</p>
+  <p><b>那為什麼不叫 agent 直接寫進 DB?</b>因為 YAML 買到的是另外兩件事:
+  <b>agent 寫得順</b>,以及<b>人 diff 得出來、進得了 git 給人 review</b>。
+  直接寫 DB 就沒有那份可審的中間產物了。</p>
+  <p>最要命的那個例子:明細寫「<b>2 雙 × 3200 元</b>」,期望的總金額卻寫 <b>3200</b>。</p>
+  <ul>
+    <li><b>沒有 DB</b>:測試生得出來、跑起來紅。你去查實作 —— 實作算 6400,<b>是對的</b>。
+      錯的是規格,<b>但規格是驗收的來源,沒有人會去懷疑它</b> ——
+      你只會覺得實作有 bug,然後把對的實作改成錯的去迎合規格。</li>
+    <li><b>有 DB</b>:匯入當場說「期望 3200,但各明細的數量 × 單價加總是 6400 —— 兩者不一致」。</li>
+  </ul>
+  <p class="punch" style="font-size:1.1rem;margin:0.8rem 0 0">
+  沒有 DB,錯誤延後到<b>跑測試</b>才爆,而且爆出來的樣子<b>指向錯的地方</b>。</p>
+</div>
+
+<h3>提問清單:借 DDD 的詞</h3>
+
+<table>
+  <thead><tr><th>詞</th><th>逼你回答什麼</th></tr></thead>
+  <tbody>
+    <tr><td><b>Ubiquitous Language</b></td><td>這個詞在我們這裡<b>到底指哪一刻</b>?</td></tr>
+    <tr><td><b>Bounded Context</b></td><td>同一個詞在兩群人嘴裡是<b>不同的東西</b> → 畫線,兩邊各自定義</td></tr>
+    <tr><td><b>Aggregate</b></td><td>哪些東西必須<b>一起對</b>?(順便決定一次任務該多大)</td></tr>
+    <tr><td><b>Given-When-Then</b></td><td>給定什麼、發生什麼、就必須得到什麼 → 機器判得動</td></tr>
+  </tbody>
+</table>
+
+<div class="box inference">
+  <span class="box-label">為什麼只有四個</span>
+  <p>DDD 戰術層的 building block 一般列<b>七個</b>:Entity、Value Object、<b>Aggregate</b>、
+  Domain Event、Repository、Factory、Service。</p>
+  <p>這門課<b>只借其中一個</b>(Aggregate),另外三個是戰略層兩個 + BDD 一個。
+  因為這裡要的是<b>一份提問清單</b>,不是建模百科——七個全教會變成「又一套方法論」。</p>
+</div>
+
+<p>Clean Architecture 那一層(分層、相依方向、爆炸半徑)在第 5 課。這條路線的源頭是
+<a href="https://teddysoft.tw/courses/ai-coding-pl/">陳建村(Teddy)的「馴服 AI 寫出可維護的系統:模式語言驅動開發」</a>
+——本教材是照著那份能力清單自己走一遍。</p>
+
+<hr>
+
+<h2>真的跑完過一次</h2>
+
+<table>
+  <tbody>
+    <tr><td>一句話需求</td><td>1</td></tr>
+    <tr><td>訪談</td><td>6 輪 30 題</td></tr>
+    <tr><td>規格</td><td>550 行</td></tr>
+    <tr><td>寫出來的 GWT</td><td>17 條</td></tr>
+    <tr><td>進得了 store 的</td><td><b>5 條</b></td></tr>
+    <tr><td>其中真的是驗收的</td><td><b>1 條</b></td></tr>
+    <tr><td>跑起來</td><td>9/9 全綠 + 23 個實作 class</td></tr>
+  </tbody>
+</table>
+
+<div class="box warn">
+  <span class="box-label">四條但書 —— 有人說「所以 AI 能寫完整個系統了」的時候用</span>
+  <ol>
+    <li><b>「全綠」只證明了 1 條真情境。</b></li>
+    <li><b>17 條 GWT 只有 1 條走到實作面前。</b>掉的是庫存鎖、付款、退費、狀態流轉
+      ——真正的生意邏輯。</li>
+    <li><b>架構那幾條綠燈是骨架繼承來的。</b>空專案上 ArchUnit 必然綠,一位元的資訊都沒有。</li>
+    <li><b>只有一份實作。</b>「兩個模型被同一套驗收判定」還沒做到。</li>
+  </ol>
+</div>
+
+<hr>
+
+<h2>五級是同一個動作,做了五次</h2>
+
+<table>
+  <tbody>
+    <tr><td>1 → 2</td><td>「誰該進來審」:從人的行事曆 → 流程</td></tr>
+    <tr><td>2 → 3</td><td>「對不對」:從人的眼睛 → red-green</td></tr>
+    <tr><td>3 → 4</td><td>「該怎麼走」:從寫死的流程 → 可拼裝的工具</td></tr>
+    <tr><td>4 → 5</td><td>「該問什麼」:從 AI 手上 → 你的 domain</td></tr>
+  </tbody>
+</table>
+
+<p class="punch">這個梯子不是我事後排的,是它自己在爬。</p>
+
+<p>那條照抄組織圖的線,被拆掉之前<b>自己把拷問式問法加進了第一關</b>;
+寫那套小 skill 的人,<b>自己接上了 DDD 的共用術語表</b>。兩邊都往同一個方向走了一格。</p>
+
+<footer>
+
+<h2>接下來</h2>
+
+<p>這一頁只是地圖。第 5 級那四個詞,一課一個,從
+<a href="./0001-ubiquitous-language-第一道閘門.html">第 1 課</a>開始;
+整條線跑完那一次的逐格拆解在<a href="./0010-訪談-一句話到驗收.html">第 10 課</a>。</p>
+
+<ul>
+  <li><a href="../index.html">教材目錄</a></li>
+  <li><a href="../MISSION.md">MISSION.md</a> —— 目標與範圍</li>
+  <li><a href="../RESOURCES.md">RESOURCES.md</a> —— 每則引用的出處與可信度標註</li>
+</ul>
+
+</footer>
+
+</body>
+</html>

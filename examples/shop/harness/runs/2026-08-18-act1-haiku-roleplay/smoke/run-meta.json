@@ -1,0 +1,11 @@
+{
+  "rounds": 2,
+  "interviewer_model": "haiku",
+  "stakeholder_model": "haiku",
+  "template_dir": "/Users/natchung/orca/workspaces/kc-log/DDD-2/examples/shop/harness/act1",
+  "input_blobs": {
+    "interview-prompt.md": "fa32e71e32ad26d1c0878828bdef7f750017c2c2",
+    "interviewer/prompt.txt": "a4c172ce4f475f6a414a1b86d131c8c3fb83e597",
+    "stakeholder/prompt.txt": "5ef5873291749ed5664626df90ed846d5bc6bb08"
+  }
+}

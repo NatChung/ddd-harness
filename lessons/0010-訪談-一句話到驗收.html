@@ -1,0 +1,1346 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>第 10 課 — 一句話到驗收:訪談怎麼把含糊的需求逼成可執行的驗收</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+</head>
+<body>
+
+<p class="lesson-meta">第 10 課 · DDD × Agent Harness</p>
+<h1>一句話到驗收</h1>
+<p class="subtitle">前九課是工具。這一課是拿著它們,從一句廢話走到跑得起來的驗收。</p>
+
+<h2>丟進去的只有這一句</h2>
+
+<blockquote>我要一個系統,客人能下單,我能看到所有訂單。</blockquote>
+
+<p>沒有附件、沒有既有系統、沒有架構模板。這一課跟著 <b>2026-08-19 那一整條真的跑完的線</b>走八段:
+訪談者問了什麼、需求方怎麼答、據此追什麼、落成什麼、進 store 變成什麼、
+生成的 Java 長什麼樣、跑起來紅在哪、實作填完之後全綠到底證明了什麼。</p>
+
+<div class="box inference">
+  <span class="box-label">這一跑跟先前幾跑不一樣的地方</span>
+  <p><b>需求方是真人</b>(<code>run-meta.json</code>:<code>"stakeholder": "human: Nat"</code>),
+  不是扮演需求方的 agent。而且訪談者<b>刻意沒拿到</b>平常那份開場 prompt ——
+  run-meta 逐字寫著理由:「那份會白送三樣情報:需求方的身分與技術程度、
+  『沒有既有系統』、『沒有既有架構模板文件』—— <b>最後一項正是「模板既定」造假那一格的答案</b>。
+  本跑要它自己問出來。」</p>
+  <p>同一份檔也寫著:<b>因此本跑不得與先前給了 prompt.txt 的跑比較基線。</b>
+  下面所有數字都只描述這一跑。</p>
+  <p>⚠️ 出處講清楚:上面那句需求是<b>這條線的固定輸入</b>(<code>PIPELINE.md</code> L15、
+  <code>act1/interviewer/prompt.txt</code> L6)。而<b>這一跑自己的產出裡逐字 attest 的是後半句</b>
+  ——SPEC 有三處寫著「需求方<b>第一句原話</b>『我能看到所有訂單』」(§1 後台人員、§2 G13、§6 A-8)。
+  整句與那半句的差別不影響下面任何一個數字,但別把它當成這一跑量到的東西。</p>
+</div>
+
+<p><b>每一段結尾都問同一件事:這一段擋掉什麼。</b>道理從實例後面帶出來,不要反過來。</p>
+
+<div class="box key">
+  <span class="box-label">這一課的核心</span>
+  <p><b>含糊不會消失,它只會換一個人填。</b></p>
+  <p>需求方沒講的東西,下游一定有人補上——不是實作 agent 憑訓練分佈猜一個,
+  就是訪談者「因為看起來合理」自己寫進去。整條線的每一道閘門,做的都是同一件事:
+  <b>讓「誰填的」變成查得出來的一格,而不是不留痕跡地被填掉。</b></p>
+  <p>這一跑走完之後,還多了第二句:<b>查得出來的那一格,要能活過每一道邊界。</b>
+  這一跑的主發現就是它沒有活過去(第五段、第八段)。</p>
+</div>
+
+<div class="box good">
+  <span class="box-label">整條線的漏斗 —— 這一跑的真實數字</span>
+  <pre><code>一句話
+  → 6 輪 30 題(真人回答,逐字落檔)
+  → SPEC-draft.md   550 行 / 42,601 B / §1–§11
+  → 17 條 GWT
+  → 落檔 5 條情境
+  → 生成 1 條真驗收 + 4 條代理編碼
+  → 空骨架 5 紅 4 綠(而那 4 綠是「不適用」)
+  → 實作後 9/9 全綠、23 個實作 class</code></pre>
+  <p>⚠️ 最後那個「全綠」<b>只證明了 1 條真情境</b>。這一課最後一段就在講這件事。</p>
+</div>
+
+<h2>一、第一輪:五個決定點</h2>
+
+<p>訪談者開工只讀一份東西:<code>interview-prompt.md</code>(四條鐵律、追問表、產出合約)。
+那句需求是<b>丟給它的</b>,不是它自己去撈的;而這一跑連需求方是誰、懂不懂技術都沒告訴它。</p>
+
+<div class="box warn">
+  <span class="box-label">五題不是題數上限,是「決定點」上限</span>
+  <p>工作指示原文:「沒有題數上限,但<b>一次不要丟超過 5 個需要他做決定的點</b>——超過他會漏答。
+  <b>子問題也算決定點,不要用 (a)(b)(c)(d) 把十個問題塞進一個編號。</b>」</p>
+  <p>第二句是補漏洞用的。少了它,「Q1(a)(b)(c)(d)(e)」就形式滿足了上限,
+  而人照樣會漏答——<b>規則寫得可被形式滿足,就會被形式滿足</b>,這一課會看到它至少五種變體。</p>
+</div>
+
+<p>第一輪的五題,逐字:</p>
+
+<table>
+  <thead><tr><th>題</th><th>問什麼(括號是訪談者自己標的「補哪一格」)</th></tr></thead>
+  <tbody>
+    <tr><td><b>Q1</b></td><td>你這門生意賣的、或提供的是什麼?<br>
+      <small>(補:小尺度—§1 GLOSSARY 名詞)</small></td></tr>
+    <tr><td><b>Q2</b></td><td>客人下一張單,這張單上面要有哪些內容,你才算收到了一張單?<br>
+      <small>(補:小尺度—§1 GLOSSARY 訂單的組成)</small></td></tr>
+    <tr><td><b>Q3</b></td><td>從客人決定要買,到這張單進到你手上為止,中間實際會經過哪些步驟?<br>
+      <small>(補:需求—§2 GWT 主路徑)</small></td></tr>
+    <tr><td><b>Q4</b></td><td>你說「我能看到所有訂單」——你看這些訂單,是要拿來做什麼事?<br>
+      <small>(補:需求—§2 GWT;後續 §1.2 列表欄位的依據)</small></td></tr>
+    <tr><td><b>Q5</b></td><td>你們手上有沒有一份現成的文件,規定系統要怎麼蓋(例如開發規範、架構模板這類的)?<br>
+      <small>(補:§9 ARCHITECTURE 出處判定)</small></td></tr>
+  </tbody>
+</table>
+
+<p><b>每一題後面都掛著「補哪一格」的帳。</b>標不出來的題就不要問——那是閒聊。
+這是四條鐵律的第三條,而且它同時是判斷訪談者有沒有在亂問的機械判準。</p>
+
+<div class="box key">
+  <span class="box-label">Q5 是這一輪最值錢的一題,而它問的不是需求</span>
+  <p>來源標記有五格,其中一格是 <code>模板既定 &lt;文件名 L行號&gt;</code> ——
+  「架構常備前提」。工作指示對它的限制寫得比別格都重:
+  <b>「只能指向明確授權為『架構模板』的文件。本份訪談指示不是架構模板,不得引用它的行號。
+  沒有這種文件時,這一格就是空的——寧可空著,也不要找一份指得出行號的東西來充數。」</b>
+  再加一句:<b>「嚴禁把 <code>本案自決</code> 偽裝成 <code>模板既定</code>。這是最常見、也最貴的一種造假。」</b></p>
+  <p>需求方對 Q5 的回答是<b>「沒有」</b>。於是最終規格 §9 開頭寫著:
+  「本案沒有被授權為『架構模板』的文件(<code>[Q5]</code>「沒有」),因此『出處』欄的
+  <code>模板既定</code> 為零筆」——<b>而那個零是它自己問出來的,不是別人告訴它的。</b></p>
+  <p>先前幾跑這件事是白送的(開場 prompt 裡就寫著「沒有既有架構模板文件」)。
+  這一跑把那句話拿掉,就是為了看它會不會自己去要。<b>它要了。</b></p>
+</div>
+
+<p>需求方的回答,逐字(<code>rounds/r1-answers.md</code>,連全形箭頭都照原樣):</p>
+
+<blockquote>
+1 ＝》球鞋<br>
+2 ＝》鞋子SKU,單價,數量,總價 ,運費 ,收貨地址,付費成功,客戶基本資訊<br>
+3 ＝》要先有該鞋數量,客戶選進購物車,能結帳成功,產生訂單<br>
+4 ＝》還不確定,可以分析或管理<br>
+5 ＝》 沒有
+</blockquote>
+
+<div class="box warn">
+  <span class="box-label">真人的答案長這樣:293 字的問題,換到 104 字的答案</span>
+  <p>六輪的字數(帳本記的,不是我數的):問 293 / 336 / 424 / 369 / 353 / 475,
+  答 <b>104 / 109 / 78 / 74 / 149 / 72</b>。<b>問的字數是答的三到六倍</b>,而且答案一路在變短。</p>
+  <p>這不是需求方不配合。這是「一次五個決定點」這條規則在真實條件下的樣子:
+  <b>他每一格都答了,只是每格三到五個字。</b>訪談者要從這些字裡挖出 550 行規格,
+  靠的全是後面五輪的追問。</p>
+</div>
+
+<p>而 <code>[Q2]</code> 那一行八個名詞,是整份規格的骨架起點:<b>鞋子 SKU / 單價 / 數量 /
+總價 / 運費 / 收貨地址 / 付費成功 / 客戶基本資訊</b>。追問表第一列說:聽到一個<b>名詞</b>,
+就追問「這個詞別的部門講的是同一件事嗎」,餵給 §1 詞彙表;不一樣就切 Bounded Context。
+最後 §1 詞彙表 <b>31 列</b>,大半的根都在這一行。</p>
+
+<div class="box key">
+  <span class="box-label">這一段擋掉什麼</span>
+  <ul>
+    <li><b>擋掉「從需求句直接開工」。</b>「我能看到所有訂單」沒有 <code>[Qn]</code> 錨點,
+      得由 Q4 問回來;而它問到的是「還不確定」——<b>那句廢話後面根本沒有東西</b>,
+      直接開工的話就是替他發明一個報表。</li>
+    <li><b>擋掉「無中生有的架構」。</b>Q5 把「有沒有模板」變成一題,答「沒有」就寫死 0 筆
+      ——不能事後說「照慣例」。</li>
+    <li><b>擋掉「一次問二十題把人問死」。</b>5 個決定點是硬上限,而且堵死了用子問題偷渡。</li>
+    <li><b>擋掉「問了卻沒地方放」。</b>每題括號裡的「補哪一格」,在產出合約裡都有對應的必填欄。</li>
+  </ul>
+</div>
+
+<h2>二、第二、三輪:從答案裡挖洞</h2>
+
+<p>第一輪那八個名詞,每一個都還是一團含糊。第二輪(Q6–Q10)挖的是<b>動詞與失敗</b>:</p>
+
+<table>
+  <thead><tr><th>題</th><th>問什麼</th><th>補哪一格</th></tr></thead>
+  <tbody>
+    <tr><td><b>Q6</b></td><td>你寫的「總價」,是哪些東西加起來的?</td>
+      <td>§1 量值組成;連帶 §3 invariant</td></tr>
+    <tr><td><b>Q7</b></td><td>客人要結帳的時候,那雙鞋的數量不夠了,會怎麼樣?</td>
+      <td>§2 失敗路徑<b>第 1 類</b>(業務規則不通過);連帶 §3 precondition</td></tr>
+    <tr><td><b>Q8</b></td><td>付費沒有成功的時候,這張單會怎麼樣?</td>
+      <td>§2 失敗路徑<b>第 2 類</b>(外部系統回失敗);§3 失敗 postcondition</td></tr>
+    <tr><td><b>Q9</b></td><td>訂單產生之後,接下來還會發生什麼事?</td>
+      <td>§4 Domain Event 清單</td></tr>
+    <tr><td><b>Q10</b></td><td>你上一輪說看訂單「可以分析或管理」——你想分析的是什麼、或想管理的是什麼?</td>
+      <td>§2 查詢行為;§1.2 列表欄位的依據</td></tr>
+  </tbody>
+</table>
+
+<blockquote>
+6＝》鞋子單價 x 數量 ＝ 總價<br>
+7 ＝》 就報錯,跟客人道歉,但無法結帳,要進入結帳一定要先鎖起來,最多結帳失敗再釋放<br>
+8 ＝》沒有成功就沒有訂單,之前條件是付費成功後有訂單<br>
+9 ＝》就準備出貨<br>
+10 => 銷售
+</blockquote>
+
+<div class="box key">
+  <span class="box-label">Q7 那 33 個字,生出了整個 Bounded Context 切界</span>
+  <p>「要進入結帳一定要先鎖起來,最多結帳失敗再釋放」——這句話裡有三個新東西,
+  需求方一個都沒有命名:<b>庫存</b>(有一個數量要被獨立守住)、<b>庫存鎖定</b>(被保留、不可再賣的數量)、
+  <b>結帳作業</b>(鎖的載體)。</p>
+  <p>而切界的理由不是「兩個部門講不同的話」。§1.1 逐字寫著:
+  <b>「訪談沒有出現兩個部門對同一個詞講不同意思……切界的實際依據是生命週期不一致 ——
+  <code>[Q7]</code> 說庫存鎖定在『進入結帳』時就建立,<code>[Q8]</code> 說訂單要『付費成功後』才存在,
+  所以<u>鎖比訂單早出生</u>,無法住在訂單這個聚合根裡。」</b></p>
+  <p>兩句話的<b>時間差</b>,推出五個 context 與兩個端點(<code>POST /checkouts</code> 與
+  <code>POST /orders</code>)。第 2 課與第 4 課在這裡合流:<b>邊界不是照組織畫的,是照生命週期畫的。</b></p>
+</div>
+
+<p>第三輪(Q11–Q15)追的是錢與中途失敗:</p>
+
+<blockquote>
+11 => 單價x數量+運費<br>
+12 ＝》TWD<br>
+13 ＝》目前沒想到<br>
+14 ＝》優先確認有費用 但沒訂單,先退費,因為內容也不見了<br>
+15 ＝》 第三方支付
+</blockquote>
+
+<div class="box warn">
+  <span class="box-label">Q11 一出來,規格就有矛盾了 —— 而訪談者沒有修它</span>
+  <p><code>[Q6]</code>「鞋子單價 x 數量 ＝ 總價」(沒有運費);<code>[Q11]</code>「單價x數量+運費」。
+  同一個人,隔一輪,兩個答案。</p>
+  <p>最省事的做法是自己判定「當然要含運費啊」然後寫進規格。規格會很漂亮,而且<b>是假的</b>
+  ——那正是鐵律一說的「因為看起來合理就自己填」。</p>
+  <p>訪談者做的是:<b>把它原樣掛進 §7 內部矛盾</b>,等它再收集到第三種說法,
+  然後在最後一輪<b>當面要他裁一個</b>(Q26)。</p>
+</div>
+
+<p><code>[Q14]</code> 是產出合約明文規定<b>不得缺席</b>的那一類:「系統中途失敗」。
+追問表那一列寫的是「聽到『當…就…』,就追問<b>做到一半、系統掛掉的時候呢</b>」。
+他的回答被逐字寫進 G5,並附一句實作禁令:</p>
+
+<blockquote>需求方原話:「優先確認有費用 但沒訂單,先退費,因為內容也不見了」——<b>他選的是退費,
+不是補建訂單,實作不得改成事後補單</b>。</blockquote>
+
+<h3>轉交這件事本身,也要記帳</h3>
+
+<div class="box warn">
+  <span class="box-label">而這一跑,轉述者(我)自己污染了語料</span>
+  <p>真人需求方跟訪談者之間隔著一個轉述的人。<code>relay_ledger.py</code> 就是為此存在的
+  ——它的 docstring 記著上一次的事故:<b>「orchestrator 問了 4 輪、卻只轉交 3 輪的答案……
+  <u>沒有任何一方知道</u>:訪談者以為訪談中止,需求方以為自己答完了。」</b>
+  判準刻意寫得很笨:<b>每一筆 <code>answered</code>,都必須有一筆對應的 <code>relayed</code>,而且字數要相等。</b></p>
+  <p>這一跑的落檔 commit 逐字寫著發生了什麼:</p>
+  <pre><code>⚠️ 轉述者(我)一開始把答案的全形箭頭正規化了,五輪共少 39 字。
+已逐字還原,並用真正的格式重建帳本。relay_ledger.verify 現在綠。
+這正是帳本第 2 條檢查(relayed 字數 = answered 字數)存在的理由,
+而我手寫的帳本格式錯到根本跑不了 verify —— 守衛在,只是沒接上。</code></pre>
+  <p><b>兩個病一次到齊:</b>語料被無聲加工(把 <code>＝》</code> 改成 <code>=&gt;</code>,
+  看起來完全無害),以及<b>守衛存在但沒有真的跑過</b>。
+  第二個才是嚴重的那個 —— 一支跑不起來的檢查,在報表上跟「沒有問題」長得一模一樣。</p>
+</div>
+
+<div class="box key">
+  <span class="box-label">這一段擋掉什麼</span>
+  <ul>
+    <li><b>擋掉「訪談者順手把矛盾修掉」。</b>Q6 vs Q11 原樣進 §7,不替他選一邊。</li>
+    <li><b>擋掉「只問成功路徑」。</b>三類失敗路徑各有指名的題(Q7 / Q8 / Q14),
+      而「系統中途失敗」那類在產出合約裡是<b>不得缺席</b>的。</li>
+    <li><b>擋掉「兩個名詞擠在一個詞裡」。</b>Q7 一句話拆出庫存 / 庫存鎖定 / 結帳作業三個詞,
+      而切界的依據是<b>生命週期</b>,寫在 §1.1 裡,不是憑感覺。</li>
+    <li><b>沒擋掉:轉交過程的加工。</b>檢查是有的,而這一跑它一開始<b>跑不起來</b>。
+      有守衛跟守衛有跑過,是兩件事。</li>
+  </ul>
+</div>
+
+<h2>三、第四、五輪:問到第三次才有答案</h2>
+
+<p>第三輪的 <code>[Q13]</code> 是「除了結帳失敗,還有什麼情況這個鎖會被放開?」,
+回答是<b>「目前沒想到」</b>。未答項不會消失——它進了追蹤清單,下一輪重問。</p>
+
+<p>第四輪換了個問法重問(訪談者自己在題目裡註明了):</p>
+
+<blockquote><b>Q17.</b> 客人進入結帳之後就不動了,那雙被鎖起來的鞋會怎麼樣?
+<small>(補:微尺度—§3 postcondition;需求—§2 失敗路徑。<b>這題是第 13 題換個問法重問,你上一輪說「目前沒想到」</b>)</small><br><br>
+<b>17 ＝》 就變成可出貨</b></blockquote>
+
+<div class="box warn">
+  <span class="box-label">這是「有答案」還是「沒答案」?</span>
+  <p>他答了一句完整、合理、聽起來像答案的話。而訪談者在 §11 的落點欄裡是這樣記的:</p>
+  <blockquote><b>答的是成功路徑,不是我問的缺口</b> → §3 C10、§2 G8、§4 <code>StockMarkedShippable</code>;
+  <b>原缺口回 §8,第 22 題才補上</b></blockquote>
+  <p>「就變成可出貨」講的是<b>訂單成立之後</b>庫存鎖定的下場,而問的是<b>訂單永遠不會成立</b>時的下場。
+  兩件事。訪談者<b>把答案收下來當成另一條規格</b>(它確實生出了 C10 / G8 / 一個 Domain Event),
+  <b>同時把原本的洞放回未答清單</b>。</p>
+  <p>這一格如果判錯,後果是靜的:<code>[Q13]</code> 會被標成「已答」,
+  逾時釋放那條規則就永遠不存在,而<b>沒有任何一步查得出它消失過</b>。</p>
+</div>
+
+<p>第五輪第三次問同一件事:</p>
+
+<blockquote><b>Q22.</b> 客人進到結帳,然後就離開了、再也沒有回來——那雙已經被鎖起來的鞋,你希望它最後怎麼樣?
+<small>(補:微尺度—§3 postcondition。<b>這是第 13、17 題的同一個缺口,第三次問</b>;
+你上一輪答的「就變成可出貨」我當成另一件事收下了)</small><br><br>
+<b>22 ＝》釋放,離開可能是網頁關掉,我們還是先把購物者留著,會先問他要不要清空!如果他沒回就走,就設定時間: 1小時</b></blockquote>
+
+<div class="box good">
+  <span class="box-label">Q13 → Q17 → Q22:問了三次,才拿到「釋放 / 1 小時」</span>
+  <p>那個「1 小時」後來變成:§3 的 <b>C7</b>(建立訂單時結帳作業必須尚未過期)、
+  <b>C15</b>(滿 1 小時未產生訂單則釋放鎖定)、§2 的 <b>G7</b>、
+  §1.2 回應裡的 <code>expiresAt</code> 欄、以及 <code>410 CHECKOUT_EXPIRED</code> 這個錯誤碼。
+  <b>一個具體數字撐起五處規格。</b></p>
+  <p>而它是第三次問才出現的。前兩次的正確記法是「沒有」,不是「大概是……吧」。</p>
+</div>
+
+<div class="box warn">
+  <span class="box-label">對照:上一場的 agent 需求方,同類題目答得出來 —— 而那是現編的</span>
+  <p>先前用 agent 扮演需求方時量到過(<code>.scratch/ddd-harness/issues/04</code>):
+  它的 prompt 明寫「<b>你心裡沒有的東西就說你還沒想過。不要現編。</b>」,而實測是
+  <b>「守得住範圍、守不住細節」</b> ——
+  被問庫存 / 付款 / 地址時正確答「先不考慮」;<b>被問具體格式時就現編一個</b>:</p>
+  <ul>
+    <li>訂單編號「比如 <code>ORD-20260818-001</code> 這樣」 → 凍結 SPEC 裡 <code>ORD-</code> 出現 <b>0 次</b></li>
+    <li>延遲「最好是秒級的」 → 凍結 SPEC <b>一個字都沒提效能</b></li>
+  </ul>
+  <p><b>現編的答案標得出完全合法的 <code>[Qn]</code>。</b>逐字稿裡真的有那句話,
+  來源標記檢查會說「有來源」,而那句話本身是編的。
+  真人需求方答「目前沒想到」的時候,那是<b>真的沒有</b>——這是這一跑最貴、也最不像產出的產出。</p>
+</div>
+
+<h3>三條矛盾,訪談者一條都沒有替他調和</h3>
+
+<p>§7 那一節,原樣照抄:</p>
+
+<table>
+  <thead><tr><th>#</th><th>打架的兩條</th><th>狀態</th></tr></thead>
+  <tbody>
+    <tr><td><b>§7-1</b></td>
+      <td>「總價」三種說法:<code>[Q6]</code> 單價×數量 /
+        <code>[Q11]</code> 單價×數量+運費 /
+        <code>[Q21]</code>「(每雙的單價x該鞋的數量加總) + 運費」</td>
+      <td><b>已由需求方裁決</b> —— <code>[Q26]</code>「最後一個」。
+        <code>[Q6]</code> 的舊語意<b>進禁用同義詞清單</b></td></tr>
+    <tr><td><b>§7-2</b></td>
+      <td><code>[Q19]</code>「(購物車)不在這裡,會另外開單」 ⟷
+        <code>[Q22]</code>「我們還是先把購物者留著,會先問他要不要清空!」</td>
+      <td><b>未裁決,需求方裁決。</b>「<b>我不自行調和,也不擅自把『購物者』判成『購物車』的錯字。</b>」</td></tr>
+    <tr><td><b>§7-3</b></td>
+      <td><code>[Q24]</code>「只會更改狀態: 已出貨/收到<b>...</b>」的刪節號 ⟷
+        <code>[Q27]</code>「先給: 已出貨/收到 就好」</td>
+      <td><b>未裁決。</b>「他自己用刪節號表示還有別的狀態,被追問時卻說『先給…就好』
+        ——這是<b>暫定</b>,不是完整清單。」</td></tr>
+  </tbody>
+</table>
+
+<div class="box key">
+  <span class="box-label">§7-2 那半句,是整份規格裡紀律最硬的一處</span>
+  <p><b>「不擅自把『購物者』判成『購物車』的錯字。」</b></p>
+  <p>那幾乎肯定就是錯字。一個人在寫「客人離開了那雙鞋怎麼辦」的時候寫下「把購物者留著」,
+  99% 是在講購物車。<b>而訪談者不准替他決定那 1%。</b></p>
+  <p>代價寫在同一格裡:「本次實作一律不含購物車(取較保守的 <code>[Q19]</code>),
+  但『問客人要不要清空』這個行為<b>因此也沒有被實作</b>。」
+  ——<b>洞留著,而且標明留洞的後果是什麼</b>,不是靜靜地選一邊。</p>
+  <p>為什麼要這麼硬:錯字判對了沒人會發現,判錯了也沒人會發現。
+  <b>一個不留痕跡就能做的判斷,做了一百次之後,規格裡有多少是需求方說的、多少是訪談者腦補的,
+  誰都答不出來。</b></p>
+</div>
+
+<div class="box key">
+  <span class="box-label">這一段擋掉什麼</span>
+  <ul>
+    <li><b>擋掉「問一次沒答就算了」。</b>Q13 的洞被追了三輪,而且第二次的「像是答案的答案」
+      被正確地判成<b>另一件事</b>。</li>
+    <li><b>擋掉「誘導出一個答案」。</b>三次都是原樣重問或明說「這是重問」,
+      不是換個講法問到他隨便給一個 —— 誘導出來的答案照樣標得出合法的 <code>[Qn]</code>。</li>
+    <li><b>擋掉「訪談者替需求方拿主意」。</b>三條矛盾原樣列出,連錯字都不判。</li>
+    <li><b>擋掉「暫定被當成定案」。</b><code>暫定 [Qn]</code> 是五格來源標記裡獨立的一格,
+      「先給…就好」寫進規格時帶著這個標記,下游看得到它不穩。</li>
+  </ul>
+</div>
+
+<h2>四、最後一輪:要他裁決,然後收尾</h2>
+
+<p>第六輪五題裡有三題不是在問新東西,是在<b>把前面五輪的爛帳結掉</b>:</p>
+
+<blockquote>
+<b>Q26.</b>「總價」這個詞你前後講了三次,三次不一樣……請你定一個:<b>總價</b>指的是哪一個?<br>
+<b>26 ＝》最後一個</b><br><br>
+<b>Q27.</b> 你上一輪寫「已出貨/收到…」後面用了刪節號,請把省略掉的補完。<br>
+<b>27 ＝》先給: 已出貨/收到 就好</b><br><br>
+<b>Q28.</b>「轉下定給上游公司」這件事,是這個系統要做的嗎?<br>
+<b>28 ＝》我再另外開單做,不算在這次,但是這個系統沒錯</b><br><br>
+<b>Q29.</b> 你說看訂單是為了「銷售」——你想從訂單看到銷售的什麼?<br>
+<b>29 每月銷量</b><br><br>
+<b>Q30.</b> 第 2 題你說的是「收貨地址」,第 20 題你說的是「地址」,這兩個是同一個東西嗎?<br>
+<b>30 YES</b>
+</blockquote>
+
+<div class="box good">
+  <span class="box-label">Q30 是一題只值兩個字的題,而它買到一整列禁用同義詞</span>
+  <p>「地址」與「收貨地址」是不是同一個。答「YES」之後,§1 的禁用同義詞清單多一列:</p>
+  <blockquote>禁止裸用<b>「地址」</b> —— Q2 講「收貨地址」、Q20 講「地址」,Q30 確認是同一個。
+  <b>裸用會讓人以為另有帳單地址</b>。一律改用 <b>收貨地址</b> / <code>shippingAddress</code>。</blockquote>
+  <p>第 1 課那句「Ubiquitous Language 的第一道閘門」在這裡具體化:
+  <b>閘門不是「取好名字」,是「把同義詞明文禁掉」。</b>沒有這一列,兩個人寫程式時
+  一個叫 <code>address</code> 一個叫 <code>shippingAddress</code>,而<b>兩邊都覺得自己照規格做了</b>。</p>
+</div>
+
+<p><code>[Q28]</code> 的答法很特別:<b>「不算在這次,但是這個系統沒錯。」</b>
+訪談者把這半句拆成兩個決定 —— 「本次不實作」進 §5,「屬於本系統」讓
+<code>Upstream Purchasing</code> 保留為未來的 context 而<b>不當成外部系統</b>,
+連帶 §9 明寫「<code>upstream</code> 本次<b>不建 package</b>,但 <code>OrderPlaced</code>
+事件必須發出且可被訂閱」。<b>「以後要做」跟「別人做」是兩種不在範圍,架構後果完全不同。</b></p>
+
+<h3>收尾:30 題落成散文規格長什麼樣</h3>
+
+<p>訪談者的產出合約是 §1–§11,<b>缺一即未完成</b>。這場訪談填出來的:</p>
+
+<div class="tablewrap">
+<table>
+  <thead><tr><th>節</th><th>這一跑的實際內容</th></tr></thead>
+  <tbody>
+    <tr><td>§1 詞彙表</td><td><b>31 列</b>。訂單 <code>Aggregate Root</code>、結帳作業 <code>Aggregate Root</code>、
+      庫存 <code>Aggregate Root</code>、金額 <code>Value Object</code>(TWD 整數、單位「元」)、
+      已出貨 / 收到 <code>暫定 [Q27]</code>…… + <b>禁用同義詞 7 列</b></td></tr>
+    <tr><td>§1.1 Context</td><td><b>五個</b>:Ordering / Checkout+Inventory / Payment(外部)/ Reporting /
+      Upstream Purchasing(本次不實作)。<b>切界依據 = 生命週期不一致</b></td></tr>
+    <tr><td>§1.2 wire shape</td><td>整節 <code>本案自決</code>(需求方不懂技術,<b>沒問過他任何欄位名</b>)
+      —— <b>但逐欄寫成合約</b>:5 個端點、一張 11 列的名詞對照表</td></tr>
+    <tr><td>§2 GWT</td><td><b>17 條</b>(G1–G17)。主路徑 2、失敗路徑三類俱全、
+      訂單成立後 4、查詢 3、值域 2。其中 <b>G15 明寫「在 B-2 解決前不得實作」</b></td></tr>
+    <tr><td>§3 契約</td><td><b>17 條</b>(C1–C17),每條有型態 / 守在哪個物件內 / 指名測試 / 來源。
+      <b>5 條標 ⚠️ 跨聚合根</b>,而且每條都要有處置</td></tr>
+    <tr><td>§4 Domain Event</td><td><b>9 個</b>。<code>OrderPlaced</code> 那格逐字寫著
+      「<b>故本次只發出事件,沒有訂閱者</b>」——<b>這是內容,不是留白</b></td></tr>
+    <tr><td>§5 不在範圍</td><td>訪談否決 5 項;<b>規格沉默 10 條</b>(B-1~B-10),
+      <b>其中 2 條阻斷級</b>:單價從哪裡來、身分驗證</td></tr>
+    <tr><td>§6 ASSUMPTIONS</td><td><b>13 條</b>(A-1~A-13),每條:自決內容 / 依據 / 待確認點。
+      A-7 自己標著「<b>這是權宜,不是設計</b>」</td></tr>
+    <tr><td>§7 內部矛盾</td><td><b>3 條</b>,1 條已裁決、<b>2 條原樣掛著</b></td></tr>
+    <tr><td>§8 未答追蹤</td><td>11 列原樣保留 + 一張「<b>以下 13 條沒人答,是照建議填的</b>」</td></tr>
+    <tr><td>§9 架構</td><td><b>10 條</b>(R1–R10),<code>模板既定</code> <b>0 筆</b>,
+      每條指名「由誰強制」;<b>R8 / R9 誠實寫「目前無機械檢查(第 4 階)」</b></td></tr>
+    <tr><td>§10 PROMPT</td><td>骨架必須提供什麼(9 套驗收 + 5 套 ArchUnit)、
+      完成的定義「<b>共 14 套全綠,不接受『測試通過』這種說法,要逐套指名</b>」、
+      <b>不得開工清單 = 那 2 條阻斷級</b></td></tr>
+    <tr><td>§11 訪談紀錄</td><td><b>30 題逐題落點</b>,結尾一句完成判準檢查:
+      「Q1–Q30 每一題都指得出落點……<b>無漏接</b>」</td></tr>
+  </tbody>
+</table>
+</div>
+
+<div class="box key">
+  <span class="box-label">「照建議填」與「不照建議填」,分界只有一句話</span>
+  <p>判準是 <b>「猜錯了,誰賠錢或被客訴?」</b>:</p>
+  <ul>
+    <li>答案是「只是工程不好維護」→ <b>技術判斷</b> → 採用建議、標 <code>本案自決</code>、列待確認點。
+      <b>這一跑 13 條</b>(金額表示法、單號格式、狀態能不能往回改…)。</li>
+    <li>答案是「客人或公司會賠錢 / 被客訴」→ <b>業務政策</b> → <b>不採用</b>,留在「規格沉默」。
+      <b>這一跑 10 條</b>,每條都寫明賠在哪:B-1 單價從哪來「賣錯價、被竄改 → 公司賠錢」;
+      B-2 身分驗證「用戶看到別人的訂單 → 個資外洩、客訴」。</li>
+  </ul>
+  <p>兩條阻斷級的洞,<b>被寫進 §10 給實作 agent 的「不得開工清單」</b>,附逐條指示:
+  「<b>不得建立任何商品主檔 / 價目表 / 商品聚合根</b>」「<b>不得實作任何登入、token、權限或使用者身分模型</b>」。</p>
+  <p>§10 最後一句:<b>「規格包裡有洞是正常的;把洞交出去而不標明,實作 agent 就會自己填。」</b></p>
+</div>
+
+<div class="box good">
+  <span class="box-label">這一幕真正的產出,只有一個檔</span>
+  <p><b><code>SPEC-draft.md</code></b> —— 550 行 / 42,601 B 的散文規格。<b>下一幕只吃它,別的都不吃。</b></p>
+  <p>另外留下來的是<b>逐輪的問答語料</b>(六個問題檔、六個答案檔)與<b>轉交帳本</b> ——
+  不是為了管線,是為了驗 §11 那條「逐字稿的每個答案都指得出落點」。
+  沒有語料,那條判準只能靠人記憶。</p>
+</div>
+
+<h2>五、進 store:哪些寫得進去,哪些寫不進去</h2>
+
+<p>第二幕做的是兩段轉換,中間隔著一道海關:</p>
+
+<pre><code>SPEC-draft.md  ──agent──▶  三份 yaml  ──import──▶  spec.db  ──▶  Java
+  散文(人讀)            交件單(進 git)      唯一真相      生成物
+                                            (不進 git,每次重建)</code></pre>
+
+<p>這一跑:<b>Opus,21 turns / 15.2 分 / $6.21</b>,交出 <code>acceptance.yaml</code> /
+<code>glossary.yaml</code> / <code>contracts.yaml</code>。</p>
+
+<h3>散文 → YAML:把一個 agent 關進空房間</h3>
+
+<ol>
+  <li><b>工作目錄整個砍掉重建</b> —— 每次從零,不留上次的殘骸。</li>
+  <li><b>房間裡只放三個檔</b>:散文規格、<code>schema.sql</code>(合約)、匯入工具。
+    <b>生成器、驗收 harness、任何既有的 yaml 都不放</b> —— 那些是答案卷。</li>
+  <li><b>完成的定義寫死在 prompt 裡</b>:「跑 <code>import</code>,它會印出逐條錯誤,
+    <b>改到它印 ok 為止</b>」。所以這是一個 <b>agent 自己跑得動的迴圈</b>:
+    寫 → 匯入 → 讀錯誤 → 改 → 再匯入。中間沒有人審。</li>
+</ol>
+
+<div class="box warn">
+  <span class="box-label">⚠️ 而「答案卷不能進房間」這條,這一跑差點被自己的警語破功</span>
+  <p><code>schema.sql</code> 是複製給受測 agent 讀的兩個檔之一。它裡面有一句凍結紀律:</p>
+  <blockquote>⚠️ 註解不要寫具體資料值。2026-08-18 這裡曾寫著「Alice 與 Bob」,
+  而 Bob 只存在於 agent 拿不到的 <code>data.sql</code>;受測 agent 讀了這行註解、照著填,並誠實揭露來源。
+  <b>schema 註解是 agent 讀得到的東西,寫進去的具體值就是洩題。</b></blockquote>
+  <p><b>那句警語自己把那兩個名字寫在裡面。</b>它一邊說「不要寫具體資料值」,
+  一邊示範了兩個具體資料值,而它躺在受測 agent 讀得到的檔裡。已改掉,並補一句:</p>
+  <blockquote>講失效模式不需要舉實際的值 —— <b>舉了就等於把答案附在警語後面</b>。</blockquote>
+  <p>同一次清掉五處(還有前一個案子的實際欄位名)。<b>「寫在該寫的地方」不保證那句話沒有副作用</b>
+  ——警語跟它警告的東西,住在同一個會被讀到的檔裡。</p>
+</div>
+
+<div class="box warn">
+  <span class="box-label">prompt 裡有第三種欄位分類:「條件式必填」</span>
+  <p>原文:<b>「不是選填,用得到就一定要有,否則對應的檢查會靜靜地不適用。」</b></p>
+  <p>這一跑有兩條,而<b>第二條把 agent 逼進了一個死角</b>:</p>
+  <ul>
+    <li><code>res_total_field</code>(列表的總金額欄)—— 只要有任何一條「列表某欄等於某數字」的斷言就必須給。
+      「總額 = Σ(數量 × 單價)」那條不變式<b>靠它認人,沒宣告就永遠不檢查</b>。</li>
+    <li><code>res_customer_id_field</code>(列表的客人編號欄)—— <b>只要有任何一條預期被拒的情境就必須給</b>,
+      因為每個被拒的請求都要斷言「列表裡沒有這個客人的列」,而它比對這一欄。</li>
+  </ul>
+  <p>而這份規格<b>從頭到尾沒有「客人編號」這個東西</b>:§1 的「客戶」是角色、沒有識別碼,
+  而 B-2「誰是誰」是<b>阻斷級</b>,§10 明寫不得實作任何使用者身分模型。</p>
+  <p>agent 的處理,逐字抄自它的 YAML 註解:</p>
+  <blockquote>⚠️ 本案<b>沒有客戶識別碼</b>……<b>憑空發明一個 <code>customerId</code> 等於替 B-2 投票。</b>
+  E3 的列表一列裡真的能認出「這一列是誰的」的欄位只有 <code>customerName</code>,
+  所以本合約以它當比對鍵;fixture 的 <code>customer_id</code> 因此就是客人的名字。</blockquote>
+  <p><b>這個判斷是對的。</b>而下一段會看到,這段話下游一個字都看不到。</p>
+</div>
+
+<h3>YAML → DB:六步,而順序本身是設計</h3>
+
+<ol>
+  <li>讀 YAML,頂層必須是 mapping</li>
+  <li><b>跨列檢查(第 2 階)全部先跑完</b> —— 有問題就 <b>一次印出全部</b>,不是撞到第一個就停</li>
+  <li><b>舊的 db 先刪掉</b> —— db 是產物,不是資產</li>
+  <li>現場從 <code>schema.sql</code> 建表</li>
+  <li><b>打開 FK 檢查</b> —— SQLite 預設不檢查外鍵</li>
+  <li>逐表寫入。<b>schema 的 CHECK / FK / TRIGGER 在這一步擋 = 第 1 階</b></li>
+</ol>
+
+<div class="box key">
+  <span class="box-label">兩個設計點</span>
+  <p><b>「任何一條掛掉就整個不寫 —— 部分匯入比匯入失敗更難查。」</b>
+  要嘛拿到一個完整的 db,要嘛什麼都沒有 ——
+  跟需求方在 <code>[Q14]</code> 講的「有費用但沒訂單就先退費,不要留一半」是<b>同一條原子性</b>。</p>
+  <p><b>第 2 階跑在第 1 階前面。</b>python 那層能一次印出所有問題,讓 agent 一輪改完;
+  schema 是撞到一條就中止,拿它當主要迴圈會變成一次只修一個。</p>
+</div>
+
+<div class="box warn">
+  <span class="box-label">第 5 步那行 PRAGMA:一個被修過的例子</span>
+  <p><b>SQLite 預設不檢查外鍵。</b>少掉 <code>PRAGMA foreign_keys = ON</code>,
+  所有 FK 守衛<b>全部靜靜失效</b> —— schema 檔看起來一模一樣,匯入照樣印 ok,測試照樣全綠,
+  只是什麼都不擋了。同一句 INSERT,差別只在有沒有那行:</p>
+  <pre><code>開了  → 擋下:FOREIGN KEY constraint failed
+沒開  → 寫進去了,違法 fixture 成功掛在成功情境上</code></pre>
+  <p>⚠️ 這件事的<b>紀錄本身</b>也被修正過兩次,而修正的方向很有教育意義:</p>
+  <ul>
+    <li>先前寫著「這句 PRAGMA 只有一份載體,刪掉就全滅」。實測發現<b>有兩份</b>
+      (<code>schema.sql</code> 與 <code>spec_store.py</code>),而且<b>任一份單獨存在就足以讓 FK 生效</b>
+      —— 要兩份都刪才會靜靜失效。</li>
+    <li>先前寫著「沒有任何測試在驗它真的開了」。現在有了,而且<b>刻意驗行為、不驗「那一行還在」</b>:
+      兩支測試各自隔離一份載體,<b>每一支都先確認「破壞本身生效了」</b>,不然會拿到假通過。</li>
+  </ul>
+  <p>那兩支測試的註解記著它們自己犯過的錯:原本各自寫 <code>assert PRAGMA_LINE not in stripped</code>,
+  而那是<b>恆真形狀</b> —— 常數一旦跟 <code>schema.sql</code> 對不上(空白、大小寫),
+  <code>replace</code> 是 no-op,<b>而那句 assert 恰好因此空洞地成立</b>。
+  實測過:把 <code>= ON;</code> 改成語意相同的 <code>=ON;</code>,測試照樣綠。</p>
+  <p><b>連「驗守衛的測試」自己都會恆真。</b>破壞要先證明破壞生效了,才輪得到證明守衛擋得住。</p>
+</div>
+
+<h3>為什麼要 YAML 這一層,不讓 agent 直接寫 DB</h3>
+
+<p><b>YAML 擋不住任何東西。</b>沒有型別、沒有外鍵、沒有跨列不變式 ——
+寫錯的 YAML 一樣是合法的 YAML。它只買到兩件事:agent 寫得順,
+以及<b>人 diff 得出來、進得了 git 給人 review</b>。</p>
+
+<p>擋的工作全在匯入那一步。所以那句「匯入印 ok」才有意義 ——
+<b>那個 ok 是海關蓋的章,不是 agent 自己說的。</b></p>
+
+<div class="box key">
+  <span class="box-label">核心設計</span>
+  <p><b>schema 的每一條 CHECK / FK / TRIGGER,都取代了散文裡的一句叮嚀。</b></p>
+  <p>散文說「來源標記五格,不得自創第六格」→ schema 寫成
+  <code>provenance CHECK IN ('Qn','暫定','推導自','模板既定','本案自決')</code>。</p>
+  <p>差別是:<b>叮嚀會被忽略,CHECK 不會。</b></p>
+</div>
+
+<h3>不用 DB 會怎樣 —— 三個真的會發生的</h3>
+
+<p>用點餐單想:第一格先勾「哪一種」,勾便當要填主菜,勾飲料要填冰塊甜度。
+沒人管的話,你可以勾飲料然後填「主菜=雞腿」—— <b>單子看起來填好了,廚房做不出東西</b>。
+DB 就是那個會當場說「你勾飲料,冰塊沒填」的店員。</p>
+
+<div class="box warn">
+  <span class="box-label">① 忘了填期望值</span>
+  <p>某條斷言寫「<code>status</code> 這一欄要等於某個字」,卻忘了寫那個字是什麼。</p>
+  <p><b>沒有 DB</b>:YAML 合法,沒人抱怨。生成器拿到空的期望值 →
+  生出「<code>status</code> 必須等於 <b>null</b>」。於是<b>實作寫對了反而紅</b>,
+  而你會盯著實作看半天。</p>
+  <p><b>有 DB</b>:匯入當場說「該帶 <code>expected_text</code>,實際帶了(無)」。</p>
+</div>
+
+<div class="box warn">
+  <span class="box-label">② 欄位名打錯一個字</span>
+  <p>寫成 <code>statuss</code>。</p>
+  <p><b>沒有 DB</b>:生成器去 JSON 撈 <code>statuss</code> → 撈不到 → null → 測試紅。
+  <b>你會以為實作壞了,跑去改實作</b>,找一小時才發現是規格打錯字。</p>
+  <p><b>有 DB</b>:FK 擋住 ——「你斷言了欄位 <code>statuss</code>,但規格宣告的欄位清單裡沒有它」。</p>
+</div>
+
+<div class="box warn">
+  <span class="box-label">③ 規格自己算錯 —— 這個最要命</span>
+  <p>明細寫「2 雙 × 3200 元」,期望的總金額卻寫 3200。</p>
+  <p><b>沒有 DB</b>:測試生得出來、跑得起來、<b>紅</b>。你去查實作 —— 實作算 6400,
+  <b>是對的</b>。錯的是規格。</p>
+  <p>但<b>規格是驗收的來源,沒有人會去懷疑它</b>。你只會覺得「實作有 bug」,
+  然後<b>把對的實作改成錯的</b>去迎合它。</p>
+  <p><b>有 DB</b>:匯入當場說「期望 3200,但各明細的『數量 × 單價』加總是 6400 —— 兩者不一致」。</p>
+</div>
+
+<div class="box key">
+  <span class="box-label">一句話的差別</span>
+  <p><b>沒有 DB,錯誤會延後到「跑測試」才爆,而且爆出來的樣子指向錯的地方。</b>
+  有 DB,錯誤在「交件」當場爆,而且指得出是哪一列、哪一欄。</p>
+</div>
+
+<table>
+  <thead><tr><th>階</th><th>誰擋</th><th>擋得住什麼</th></tr></thead>
+  <tbody>
+    <tr><td><b>第 1 階</b></td><td>schema 的 CHECK / FK / TRIGGER</td>
+      <td>五格來源標記寫不進第六格;違法 fixture 只掛得上「預期被拒」的情境;
+        斷言指向沒宣告的欄位寫不進去;<code>模板既定</code> 指不出授權文件就 ABORT</td></tr>
+    <tr><td><b>第 2 階</b></td><td>匯入工具的跨列不變式</td>
+      <td>總額 ≠ Σ(數量×單價) 匯不進去;拒絕情境的客人不得借用成功情境的;
+        指名測試指到不存在的情境</td></tr>
+  </tbody>
+</table>
+
+<h3>這一跑實際落進 store 的東西</h3>
+
+<div class="tablewrap">
+<table>
+  <thead><tr><th>表</th><th>列數</th><th>說明</th></tr></thead>
+  <tbody>
+    <tr><td><code>acceptance_scenario</code></td><td><b>5</b></td><td>散文有 <b>17 條 GWT</b></td></tr>
+    <tr><td><code>scenario_step</code> / <code>step_item</code></td><td>5 / 6</td><td>成功情境送出去的請求</td></tr>
+    <tr><td><code>scenario_assertion</code></td><td><b>27</b></td><td>成功情境的斷言</td></tr>
+    <tr><td><code>rejected_request</code> / <code>rejected_assertion</code></td><td>3 / <b>6</b></td><td>預期被拒的情境</td></tr>
+    <tr><td><code>wire_list_field</code></td><td>7</td><td>列表一列的欄位</td></tr>
+    <tr><td><code>glossary_term</code></td><td><b>31</b></td><td>其中<b>只有 14 個宣告了對外欄位名</b></td></tr>
+    <tr><td><code>glossary_banned_synonym</code></td><td>14</td>
+      <td>散文 7 列 —— 一列列了好幾種講法的(<code>orderTotal / grandTotal / finalPrice / amount</code>),
+        agent 拆成一列一個詞,<b>因為「一律改用」是 FK,指得回詞彙表的一個詞</b></td></tr>
+    <tr><td><code>domain_contract</code></td><td><b>17</b></td><td>5 條標跨聚合根,與散文吻合</td></tr>
+    <tr><td><code>contract_named_test</code></td><td><b>4</b></td><td>17 條契約裡只有 4 條指得出情境</td></tr>
+    <tr><td><code>architecture_rule</code></td><td><b>0</b></td><td>⚠️ 散文 §9 有 <b>10 條</b></td></tr>
+  </tbody>
+</table>
+</div>
+
+<div class="box warn">
+  <span class="box-label">那個 0,原因笨得不像話</span>
+  <p>第二幕的 prompt 只點名三份 yaml:acceptance / glossary / contracts。<b>沒有 architecture。</b>
+  agent 沒交,因為沒人叫它交。而 <code>architecture_rule</code> 是這個 store 裡<b>最老的一張表</b>,
+  配著<b>從第一天就在的生成器</b> <code>gen_archunit</code>。</p>
+  <p>生成器對它的回應是一句誠實話:</p>
+  <pre><code>不適用(不是通過):store 裡沒有生成得出來的規則,沒有東西可生成</code></pre>
+  <p><b>這是 prompt 的一次改動弄丟的</b> —— 把「一份 yaml」擴成「三份」時補了詞彙與契約,
+  沒補架構。教訓:<b>擴充受測品的時候,要對照 store 現有的表逐張確認有沒有人交。</b>
+  store 有五組,prompt 只點名了四組。</p>
+</div>
+
+<div class="box warn">
+  <span class="box-label">⚠️ 主發現:它三次都選擇誠實,而三次都寫在存不下來的地方</span>
+  <div class="tablewrap">
+  <table>
+    <thead><tr><th>撞到什麼</th><th>它做了什麼</th><th>誠實寫在哪</th><th>進得了 store 嗎</th></tr></thead>
+    <tbody>
+      <tr><td><code>req_currency_field</code> NOT NULL,而請求範例沒有幣別欄</td>
+        <td>自決補上 <code>currency</code>,附規格授權行號</td><td><b>YAML 註解</b></td><td>❌</td></tr>
+      <tr><td>規格全份沒有客人編號,而 <code>customer_id</code> NOT NULL</td>
+        <td>拿客人姓名當比對鍵,並把 <code>res_customer_id_field</code> 設成 <code>customerName</code></td>
+        <td><b>YAML 註解</b></td><td>❌</td></tr>
+      <tr><td>欄位叫 <code>unit_price_cents</code>,而規格金額是 TWD 整數「<b>元</b>」</td>
+        <td>值照填 <code>3200</code>,不換算</td><td><b>YAML 註解</b>(明寫單位是元)</td><td>❌</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p><b>YAML 註解在解析時被丟掉。</b>下游拿到的是 <code>unit_price_cents: 3200</code>
+  與 <code>customer_id: 王小明</code> —— <b>看不到任何一句它的說明</b>。</p>
+  <p style="font-size:1.1em"><b>它沒有造假,它把真話寫在一個活不過邊界的地方。</b></p>
+  <p>這跟先前量到的<b>一模一樣</b>:上一份落檔 agent 把完整的中英對譯寫進 YAML 註解,
+  做對了,而機器一個字都看不到。<b>同一種失效,換一個位置又發生一次。</b></p>
+  <p>而且這一次它<b>寫得很明白</b>,所以至少證明了「它發現了」。真正的問題因此更清楚:
+  <b>發現了,而且說了,只是說在存不下來的地方。</b>
+  (這個丟失一路傳到了實作 —— 第八段。)</p>
+</div>
+
+<h3>逃生口:<code>proxy_for</code></h3>
+
+<p>schema 有一欄 <code>proxy_for</code>:fixture 若不包含它宣稱的那個動作,必填。
+用意是讓誠實揭露從「躺在註解裡」變成 <code>SELECT … WHERE proxy_for IS NOT NULL</code>
+查得出來的分診佇列。<b>這一跑 5 條情境裡有 4 條填了它。</b></p>
+
+<div class="box warn">
+  <span class="box-label">它同時做了另一件事</span>
+  <p><b>把「表達不出來」這個硬失敗訊號,降級成一個軟註記。</b></p>
+  <p>完成的定義是「匯入印 ok」。有了 <code>proxy_for</code>,<b>任何情境都湊得出 ok</b>。
+  先前一次實測:同一份散文規格逐位元組沒變,只改 harness 與 prompt,
+  落檔數從 <b>4/12 變成 12/12</b>,而其中<b>真實表達得出來的只從 3 變成 8</b>,
+  代理編碼從 1 變成 4。<b>落檔率因此不再是覆蓋率的代理指標。</b></p>
+  <p>這一跑的 5 條裡 4 條是代理編碼 —— 只看「三份 yaml 都交了、import 印 ok」的話,
+  <b>17 條 GWT 掉到 5 條、而那 5 條裡 4 條是湊的,完全隱形。</b></p>
+  <p>而 agent <b>沒有作弊</b>:四條自白都精確。G1 那條寫著:「本檔的 fixture 詞彙
+  <b>沒有運費</b>……後果:C2 公式『Σ(單價 × 數量) + 運費』只有前半被驗到,
+  <b>『+ 運費』那一半本檔驗不到</b>。」</p>
+</div>
+
+<div class="box warn">
+  <span class="box-label">寫不進去的那一半:動詞不夠</span>
+  <p>schema 認得的動作只有「送一張訂單」和「看列表」。掉的 12 條 GWT 幾乎全是需要<b>別的動詞</b>的:
+  兩段式端點(先結帳、後下單)、逾時釋放、付款失敗、退費冪等、狀態轉移、每月銷量。</p>
+  <p><b>而規格裡最貴的那幾條,正好全在這一半。</b></p>
+</div>
+
+<div class="box key">
+  <span class="box-label">這一段擋掉什麼(以及沒擋掉什麼)</span>
+  <ul>
+    <li><b>擋掉「來源標記自己發明一格」</b>——CHECK IN 五格。</li>
+    <li><b>擋掉最貴的那種造假</b>——<code>本案自決</code> 偽裝成 <code>模板既定</code>,TRIGGER + 白名單。
+      這一跑的 <code>模板既定</code> 本來就必須是 0 筆,<b>現在那是資料庫保證的,不是自律</b>。</li>
+    <li><b>擋掉「斷言指向不存在的欄位或情境」</b>——FK,而且斷言的 FK 帶的是<b>複合鍵</b>
+      <code>(情境, alias)</code>,不然 S1 的斷言可以指到 S2 的那筆訂單。</li>
+    <li><b>擋掉「違法資料混進成功情境」</b>——正負兩組表分開,靠 FK 分流。</li>
+    <li><b>沒擋掉:「表達不出來就用近似的湊」。</b>設計一個「誠實出口」時,
+      要同時問它會不會變成「失敗出口」。</li>
+    <li><b>沒擋掉:註解裡的誠實。</b>唯一寫得下的地方,而那個地方沒接上。</li>
+    <li><b>沒擋掉:沒人叫它交的那一節。</b>§9 的 10 條架構規則,從落檔到跑起來,
+      <b>一路上沒有任何一步碰過它</b>。</li>
+  </ul>
+</div>
+
+<h2>六、生成的 Java 長什麼樣</h2>
+
+<p>第三幕<b>沒有 agent</b>,是兩支純程式直接讀 spec store ——
+而它們對應的是兩個不同的尺度,驗收方式剛好相反:</p>
+
+<table>
+  <thead><tr><th>生成器</th><th>產物</th><th>管什麼</th><th>它自己怎麼被驗</th></tr></thead>
+  <tbody>
+    <tr><td><code>gen_archunit</code></td><td><code>ArchitectureTest</code></td>
+      <td><b>結構有沒有爛</b>(簡潔架構:package 相依方向、禁用 annotation、禁用回傳型別)</td>
+      <td>綠 <b>+ 逐條可紅</b></td></tr>
+    <tr><td><code>gen_acceptance</code></td><td><code>OrderAcceptanceTest</code><br><code>OrderProxyAcceptanceTest</code></td>
+      <td><b>行為對不對</b>(BDD)</td>
+      <td><b>空骨架必須全紅</b> —— 純綠是壞消息</td></tr>
+  </tbody>
+</table>
+
+<div class="box inference">
+  <span class="box-label">這一跑只有 BDD 那支有東西</span>
+  <p>上一段那個 <code>architecture_rule</code> 是 0 列,所以 <code>gen_archunit</code>
+  印「不適用(不是通過)」,一個檔都沒生。<b>下面看到的全是 BDD 那半</b>,
+  不要誤以為架構檢查也一起生出來了 —— 第七段那 4 個綠燈是<b>別的地方</b>來的。</p>
+</div>
+
+<div class="box key">
+  <span class="box-label">「沒有 agent」不是省事,是後面那道檢查的前提</span>
+  <p>幕一、幕二、幕四都有 agent,<b>只有這一幕是確定性的</b>:同一份 spec 重新生成一次,
+  結果必須<b>逐位元組一樣</b>。</p>
+  <p>有 agent 就沒有這個性質 —— 每次生出來的 Java 都不一樣,
+  那「跟 commit 的比,不一樣就紅」(drift check)整件事就不成立。
+  <b>確定性換來的是:生成物可以進 git、可以被 review、可以被 diff。</b></p>
+</div>
+
+<h3>⚠️ 這一跑最反直覺的一格:唯一的真驗收,是那條「拒絕」的情境</h3>
+
+<p>兩個 acceptance class 的分工是固定的:</p>
+
+<table>
+  <thead><tr><th>class</th><th>內容</th><th>意義</th><th>這一跑幾條</th></tr></thead>
+  <tbody>
+    <tr><td><code>OrderAcceptanceTest</code></td><td>真情境</td><td><b>全綠 = 驗收通過</b></td>
+      <td><b>1 條:G16</b></td></tr>
+    <tr><td><code>OrderProxyAcceptanceTest</code></td><td>代理編碼的情境</td><td><b>全綠不代表那些條文成立</b></td>
+      <td><b>4 條:G1 G2 G13 G17</b></td></tr>
+  </tbody>
+</table>
+
+<div class="box warn">
+  <span class="box-label">停下來看清楚這件事</span>
+  <p>直覺會說:真驗收當然是<b>主路徑</b>(下一張單、看得到它),代理編碼是那些奇怪的邊角。</p>
+  <p><b>這一跑正好相反。</b>四條主路徑(G1 下單、G2 多品項、G13 看列表、G17 負價)全部落進代理 class,
+  因為 fixture 詞彙<b>沒有運費、沒有身分</b>,而散文的 Given/When 裡有。
+  唯一站得住的真驗收是 <b>G16:數量 0 或負數的請求要回 400,而且列表裡不能出現這個客人。</b></p>
+  <p>換句話說:<b>這條管線這一次逼出來的、可以拿去判定實作對錯的東西,只有「不合法的請求要被拒」這一件事。</b></p>
+</div>
+
+<p>唯一那條真驗收,生出來長這樣(逐字):</p>
+
+<pre><code>/** G16 —— 來源:本案自決 SPEC.md L286;依據 §6 A-6「數量為 ≥ 1 的整數」(L375)、§3 C5(L299) */
+@Test
+@DisplayName("G16: Given 下單請求裡的數量是 0,或是負數(-1)。 Then 兩筆都回 400;訂單列表裡沒有任何一列屬於這兩個下單者 …")
+void scenario_G16() {
+    ResponseEntity&lt;String&gt; resZeroQuantity = placeOrder("""
+            {"customer":"cust-rej-qty-zero","items":[
+              {"sku":"NIKE-DUNK-LOW-US9","quantity":0,"unitPrice":3200,"currency":"TWD"}
+            ]}""");
+    ResponseEntity&lt;String&gt; resNegativeQuantity = placeOrder("""
+            {"customer":"cust-rej-qty-negative","items":[
+              {"sku":"NIKE-DUNK-LOW-US9","quantity":-1,"unitPrice":3200,"currency":"TWD"}
+            ]}""");
+
+    assertThat(resZeroQuantity.getStatusCode().value())
+            .as("請求應被拒絕,body=%s", resZeroQuantity.getBody())
+            .isEqualTo(400);
+    assertThat(customerIdsInList())
+            .as("請求被拒了,列表卻出現屬於這個客人的訂單")
+            .doesNotContain("cust-rej-qty-zero");
+    …
+}</code></pre>
+
+<p>兩條斷言成對出現,是 prompt 逼的:<b>「只斷言狀態碼的話,『回了 400 但還是寫了一筆』會通過。」</b></p>
+
+<p>store 裡的幾列資料,對回 Java 就是這幾行 —— 這張表是整條線的核心:</p>
+
+<div class="tablewrap">
+<table>
+  <thead><tr><th>store 裡的</th><th>Java 裡的</th></tr></thead>
+  <tbody>
+    <tr><td><code>acceptance_scenario</code> 的 <code>given_when</code> + <code>then_expect</code></td>
+      <td><code>@DisplayName("G16: Given … Then …")</code></td></tr>
+    <tr><td><code>acceptance_scenario</code> 的 <code>provenance</code> + <code>provenance_ref</code></td>
+      <td>javadoc 第一行 <code>/** G16 —— 來源:本案自決 SPEC.md L286… */</code></td></tr>
+    <tr><td><code>rejected_request</code> + <code>rejected_request_item</code>(2 + 2 列)</td>
+      <td>兩段 <code>placeOrder("""{"customer":…,"items":[…]}""")</code></td></tr>
+    <tr><td><code>rejected_assertion</code> 的 <b>4 列</b></td>
+      <td><b>4 行 <code>assertThat(...)</code></b></td></tr>
+  </tbody>
+</table>
+</div>
+
+<p>整份 5 條情境,store 裡共 <b>33 列斷言</b>,生出來是 <b>35 行 <code>assertThat</code></b>。
+差的兩行不是誤差:<code>list_field_is_iso_date</code> 這一種<b>一列生兩行</b>
+(先斷言不為 null,再斷言 parse 得出日期),而這一跑剛好有兩列。
+<b>對照表得逐 kind 對,不能記成「一列 = 一行」。</b></p>
+
+<p>連 <code>placeOrder()</code> / <code>orderIdOf()</code> / <code>findInList()</code> /
+<code>customerIdsInList()</code> 這些 helper 也是生成器一起生的 ——
+生成物是一個<b>完整可跑的檔</b>,不依賴任何手寫的 base class。</p>
+
+<p>而 javadoc 第一行是<b>來源標記一路長進 Java</b>:
+跑測試的人看得到這條情境是哪一問哪一答來的,追溯不需要回頭查 store。</p>
+
+<div class="box key">
+  <span class="box-label">整份驗收刻意不 import 任何實作類別</span>
+  <p>唯一引用的專案類別是啟動用的 <code>Application</code>,全部只走 HTTP,
+  所以它不綁實作的類名、不綁內部結構。</p>
+  <p>這不是潔癖,是目標的字面實作:<b>同一份規格餵兩個 model,產出兩份長得完全不同的實作,
+  能被同一套驗收明確判定。</b>驗收一旦 import 了實作類別,那句話就不成立了。</p>
+  <p><b>而這件事做得到的前提,是簡潔架構。</b>領域行為要能從 HTTP 邊界完整觀察到
+  (adapter 在外層、領域在內層),outside-in 的驗收才寫得出來。
+  領域邏輯若散在 controller 裡、或要 mock 內部類別才測得到,這種驗收根本寫不出來
+  —— <b>第 5 課那三條原則不是另一個主題,是這一套能成立的必要條件。</b></p>
+</div>
+
+<h3>欄位名不是猜的</h3>
+
+<p>那些 <code>customer</code> / <code>sku</code> / <code>unitPrice</code> / <code>customerName</code>,
+生成器<b>不寫死</b>——全部從規格宣告的 wire 合約讀,請求側與回應側兩邊讀同一份。
+<b>規格沒宣告的欄位就不生對應的斷言。</b></p>
+
+<p>理由是實測撞出來的:規格不宣告 wire shape,下游兩個模型會各取各的名字,
+同一份規格產出的兩份實作<b>兩邊都過不了同一套驗收</b>,而失敗訊息全長成
+<code>but was: null</code>——領域行為對不對完全看不見,紅的原因看不出是命名。</p>
+
+<div class="box warn">
+  <span class="box-label">UL 這一跑第一次被機器量了 —— 而數字很難看</span>
+  <p><b>詞彙表(§1)對內</b>:約束實作的類別 / 方法 / 變數名 + 禁用同義詞。<br>
+  <b>wire 合約(§1.2)對外</b>:約束 HTTP 的 JSON 欄位名。</p>
+  <p>先前這兩者之間<b>沒有任何機械連結</b>,因為 store 裡根本沒有詞彙表。
+  這一跑詞彙表進 store 了(31 條),對譯檢查第一次跑得起來:</p>
+  <pre><code>詞彙表:31 條
+  宣告了對外欄位名的:14 條;空白的:17 條
+
+--- 對譯檢查(列表欄位) ---
+  7 個欄位:對得到 2 個、**對不到 5 個**
+    ✅ orderId → 訂單識別碼      ✅ totalAmount → 總價
+    ❌ currency  ❌ customerName  ❌ itemCount  ❌ placedAt  ❌ status
+
+--- 對譯檢查(請求側欄位) ---
+  6 個欄位:對得到 5 個、**對不到 1 個**   (❌ currency)
+
+--- 反向:詞彙表宣稱上線、而合約沒有這個欄位 ---
+  ⚠️ 訂單→orders  結帳識別碼→checkoutId  品項小計→lineSubtotal
+     運費→shippingFee  收貨地址→shippingAddress  名字→name  email→email</code></pre>
+  <p><b>而散文本身是完整的</b> —— §1.2 有一張 <b>11 列</b>的名詞對照表,
+  <code>customerName</code> / <code>placedAt</code> / <code>status</code> / <code>currency</code>
+  在那張表裡都有。<b>對照表在散文裡是完整的,落檔時掉了一半。</b></p>
+  <p>順帶,禁用同義詞那張表被逼出一件散文自己沒發現的事:「『總價』指全單不含運費的金額」
+  這一列,散文說「一律改用<b>商品金額合計</b>」,而 <b>§1 詞彙表裡根本沒有這個詞條</b>
+  —— 它只出現在禁用清單的那一格。落檔 agent 因此只能把「一律改用」留空,
+  並寫下理由:「<b>指得到的替代詞不存在,不是沒有替代概念;要補的是 §1 少一個詞條。</b>」
+  <b>一條 FK 逼出了散文的一個洞。</b></p>
+  <p>反向那 7 條更直接:詞彙表宣稱要上線的 <code>shippingFee</code>(運費)、
+  <code>checkoutId</code>(結帳識別碼),<b>合約裡根本沒有這個欄位</b>
+  —— 那正是第五段講的、掉在 store 外面的那半份規格,從另一個方向被量到。</p>
+  <p>所以 Ubiquitous Language 在這條線上的狀態,現在是有數字的:</p>
+  <ul>
+    <li>需求方的話 ↔ 詞彙表:✅ 來源標記綁著</li>
+    <li>詞彙表 ↔ wire 欄位名:⚠️ <b>有檢查了,但它住第 2 階(報告,不是硬擋)</b>,而且這一跑
+      列表側 <b>5/7 對不到</b></li>
+    <li>詞彙表 ↔ <b>實作的類別 / 方法名</b>:❌ <b>完全沒有東西在看</b></li>
+  </ul>
+  <p>最後那條不是忘了做,是<b>結構性的</b>:驗收刻意不 import 實作類別,
+  它就<b>天生看不到實作叫什麼名字</b>,而且不能靠放寬驗收來解 ——
+  放寬就毀掉「兩份不同實作被同一套驗收判定」。
+  唯一看得到類別名的是 ArchUnit,而現有三種規則<b>沒有一種是命名類的</b>。</p>
+  <p>⚠️ 而對譯檢查做成<b>報告</b>不做成 FK,是刻意的:硬擋只拿得到「匯入失敗」,
+  <b>拿不到「7 個裡差幾個」那個數字</b>,而這件事的價值就在那個數字上。</p>
+</div>
+
+<h3>代理編碼那個 class 的 javadoc</h3>
+
+<blockquote>⚠️ <b>這個 class 全綠,不代表這些規格條文成立。</b>這裡每一條的 fixture 都<b>不包含它的
+Given/When 所描述的那個動作</b>—— schema 沒有那個動詞,所以規格作者用別的東西近似它,
+並在 <code>proxy_for</code> 裡自白覆蓋到哪一半。<b>每個測試方法的 javadoc 都帶著那段自白,逐條讀得到。</b></blockquote>
+
+<p>而每一條方法上面真的帶著它:</p>
+
+<pre><code>/** G1 —— 來源:Qn SPEC.md L213-L216(來源 [Q3] [Q8],逐字見 L521、L526)
+ * &lt;p&gt;⚠️ 代理編碼(綠了不等於原文成立):散文的 G1 有運費 120、Then 的 totalAmount 是 6520。
+ * 本檔的 fixture 詞彙**沒有運費** …… 後果:C2 公式「Σ(單價 × 數量) + 運費」只有前半被驗到,
+ * **「+ 運費」那一半本檔驗不到**;庫存 5 雙、結帳作業、付款回報這三個 Given/When
+ * 也不在 fixture 裡,本情境驗的是「一次下單請求成立並落進列表」。 */</code></pre>
+
+<p><b>為什麼還是生出來跑</b>:它們仍擋得住「連近似的那一半都壞了」,而且留著才看得見缺口多大。
+補上缺的動詞之後,<b>這個 class 會自己變空——它的大小就是缺口的大小</b>。
+這一跑它裝了 4 條,而真驗收只有 1 條 —— <b>缺口比驗收大。</b></p>
+
+<div class="box warn">
+  <span class="box-label">這裡踩過一次「揭露死在邊界」</span>
+  <p><code>proxy_for</code> 剛做好時,生成器只在「預期被拒」那條路徑印警語,
+  而當時的代理編碼全是<b>成功情境形狀</b>——於是生成的 Java 裡「代理編碼」四個字出現 <b>0 次</b>。
+  揭露好好地躺在 store 裡,讀 Java 的人看到的是一疊乾淨的情境。</p>
+  <p><b>揭露要走到讀的人面前才算數,存在 store 裡不算。</b>
+  ——而上一段剛講過,這一跑同一件事在<b>更上游</b>又發生一次:註解裡的誠實,連 store 都沒進去。</p>
+</div>
+
+<h3>生成物進 git,再檢查它沒漂</h3>
+
+<p>drift check 重新從 spec 生成一次,跟 commit 的內容比,不一樣就紅。它同時擋兩條路:</p>
+<ul>
+  <li><b>agent 手改生成物</b> → 重新生成的結果跟 commit 的不一樣 → 紅</li>
+  <li><b>agent 改 spec 想放寬檢查</b> → 生成物跟 spec 不一致 → 紅
+    (它改 spec 又重新生成的話,diff 會出現在 git 裡,而生成物在凍結清單內)</li>
+</ul>
+
+<div class="box key">
+  <span class="box-label">這一段擋掉什麼</span>
+  <ul>
+    <li><b>擋掉「驗收綁死某一份實作」</b>——不 import 實作類別、只走 HTTP。</li>
+    <li><b>擋掉「欄位名用猜的」</b>——從 wire 合約讀,沒宣告就不生。</li>
+    <li><b>擋掉「手改測試讓它變綠」</b>——drift check 雙向擋。</li>
+    <li><b>擋掉「湊出來的情境混進驗收數字」</b>——分 class,自白從 store 一路長進 javadoc。</li>
+    <li><b>擋掉「來源在傳遞中掉了」</b>——來源標記跟著條文長進 Java 的 javadoc。</li>
+    <li><b>沒擋掉:實作的內部命名。</b>驗收看不到類別名(而那是刻意的),
+      ArchUnit 又沒有命名類的規則 —— <b>詞彙表管得到邊界,管不到裡面</b>。</li>
+  </ul>
+</div>
+
+<div class="box warn">
+  <span class="box-label">但這一段有一塊「做了還沒接上」</span>
+  <p><b>drift check 沒有綁進任何 build。</b>那個 build 檔逐位元組凍結,綁不進去;現在是手動或 hook 在跑。
+  <b>檢查本體是第 2 階,綁法還住第 4 階。</b></p>
+  <p>這是整條線反覆出現的那個病的另一個實例:<b>寫在該寫的地方 ≠ 接上了。</b>
+  要問的是——實際會讀到它的那條路徑,經過這裡嗎?</p>
+</div>
+
+<h2>七、跑起來紅在哪、綠在哪</h2>
+
+<p>第四幕開始之前,先把生成的驗收丟進<b>空骨架</b>(build 檔、啟動點、生成的測試,
+<code>main/java</code> 底下一個實作 class 都沒有)跑一次。結果:</p>
+
+<pre><code>5 紅                       G16(真驗收 1 條) + G1 G2 G13 G17(代理編碼 4 條)
+4 綠                       ArchitectureTest 的四條
+                           ⚠️ 而這 4 綠是「不適用」,不是「通過」</code></pre>
+
+<p>而「全綠」這件事本身要先被驗過,檢查它的東西分三段:</p>
+
+<table>
+  <thead><tr><th>段</th><th>問什麼</th><th>適用範圍</th></tr></thead>
+  <tbody>
+    <tr><td><b>1 空骨架</b></td><td>還沒有任何實作時,<b>是不是全紅</b>?</td>
+      <td><b>永遠適用</b>,與被測規格是哪一份無關</td></tr>
+    <tr><td><b>2 可滿足性</b></td><td>有一份能讓它全綠的實作嗎?</td>
+      <td>只有宣告同一份 wire 合約的 spec,才拿既有實作當綠燈預言機</td></tr>
+    <tr><td><b>3 逐條可紅</b></td><td>最小破壞一處,<b>只有</b>對應那條變紅嗎?</td>
+      <td>破壞清單綁特定情境語意,換 spec 會<b>撞名不撞義</b></td></tr>
+  </tbody>
+</table>
+
+<p>第 1 段最反直覺:<b>純粹「跑得綠」反而是壞消息</b>。骨架沒有實作,不該有任何東西會過
+——會過就表示這套驗收有恆真的成分。</p>
+
+<div class="box key">
+  <span class="box-label">為什麼第 1 段不夠,一定要配第 2 段</span>
+  <p>全紅只證明「這套驗收<b>不是恆真</b>」。但它也可能是<b>無解</b>的
+  —— 寫了一條沒有任何實作能通過的情境(互相矛盾的斷言、要求一個不可能的狀態),
+  那也會全紅,而且長得一模一樣。</p>
+  <p><b>「不是恆真」與「有解」是兩件事,兩個都要證。</b>少一個就有漏洞:
+  只證前者 → 可能永遠填不完;只證後者 → 可能一開始就綠。</p>
+  <p>(這一跑的第 2 段是由<b>第四幕本身</b>回答的:實作 agent 真的填到全綠了 —— 第八段。)</p>
+</div>
+
+<h3>那 4 個綠燈,一位元的資訊都沒有</h3>
+
+<div class="box warn">
+  <span class="box-label">三件事疊在一起,才長出那 4 個假綠燈</span>
+  <ol>
+    <li><b>它們不是這份規格生的。</b><code>architecture_rule</code> 是 0 列(第五段),
+      <code>gen_archunit</code> 一個檔都沒生。跑起來的那支 <code>ArchitectureTest</code>
+      是<b>從凍結骨架繼承來的</b>,守的是 <code>com.shop.domain</code> /
+      <code>usecase</code> / <code>adapter</code> —— 而<b>那幾個 package 名是那個檔案發明的</b>,
+      不是這份規格宣告的。</li>
+    <li><b>它們在空專案上必然綠。</b>每條規則都帶 <code>allowEmptyShould(true)</code>,
+      這是刻意的(骨架階段 domain 還是空的,骨架的紅燈只該來自驗收)。
+      後果是:<b>那個 <code>that()</code> 命中 0 個 class,綠燈裡沒有任何資訊。
+      一個什麼都不寫的 agent 在這裡是免費綠的。</b></li>
+    <li><b>而 agent 只要把 class 放到別的 package,整套就靜靜地不適用</b>
+      —— 不是紅、不是報錯,是<b>綠</b>,而且<b>看起來跟「完全遵守架構規則」一模一樣</b>。</li>
+  </ol>
+  <p>補這個洞的是另一支檢查 <code>package_landing_check</code>:
+  <b>store 裡宣告過的每一個自有 package,原始碼樹底下必須至少有一個 class 落在它裡面。</b>
+  它對這一跑的判定是:</p>
+  <pre><code>宣告過的 package:0 個 → 本次不適用(不是通過)     exit 3</code></pre>
+  <p style="font-size:1.1em"><b>沒有那支檢查,報表會是「9 條測試 4 條綠」。</b></p>
+</div>
+
+<div class="box key">
+  <span class="box-label">「不適用」是刻意的第三態,而且它出現了三次</span>
+  <p>對不同合約印 <code>❌ 0/4 綠</code>,讀起來像壞了——<b>而壞掉的東西會被拿去修</b>。
+  真相是「這一段對這份 spec 問錯了問題」,不是「這份 spec 沒過」。</p>
+  <p>這一跑「不適用」出現在三個地方,都是<b>不同的東西</b>:</p>
+  <ul>
+    <li><code>gen_archunit</code>:<b>store 裡沒有規則可生成</b></li>
+    <li><code>package_landing_check</code>:<b>一個 package 都沒被檢查到</b>(exit 3)</li>
+    <li>空骨架的 ArchUnit 4 綠:<b>規則掃到 0 個 class</b></li>
+  </ul>
+  <p>三個都不是通過,而且<b>三個都會被折進「綠燈數」裡</b>,如果沒有人堅持把它們印在最上面。
+  這條規矩在這條線上是寫死的:<b>「不適用」不准算成「通過」,它自成一類。</b></p>
+</div>
+
+<h3>假驗收有兩層,不要混</h3>
+
+<div class="box key">
+  <span class="box-label">先分開再談</span>
+  <table>
+    <thead><tr><th></th><th>規格層</th><th>實作層</th></tr></thead>
+    <tbody>
+      <tr><td>長什麼樣</td><td><b>代理編碼</b> —— fixture 不含它宣稱的動作,
+        「不可能因為自己宣稱要測的理由而失敗」</td>
+        <td><b>恆真測試</b> —— 不管實作怎麼寫都會綠</td></tr>
+      <tr><td>誰產生的</td><td>落檔 agent(第二幕)</td><td>實作 agent 寫的內圈測試</td></tr>
+      <tr><td>怎麼發現</td><td>讀 <code>proxy_for</code> 欄 / 讀那條斷言在斷言什麼</td>
+        <td>mutation testing 的分診佇列</td></tr>
+      <tr><td>這一跑</td><td><b>4 條</b>(佔 5 條的八成)</td><td>見第八段</td></tr>
+    </tbody>
+  </table>
+  <p><b>兩層的偵測方法完全不同,不能互相代替。</b></p>
+</div>
+
+<p>綠燈擋不住「不管實作怎麼寫都會綠」的測試。用 mutation testing 去問
+「哪條測試什麼都沒約束到」——而這件事最有價值的部分,是它<b>記下了三個試過並失敗的指標</b>。</p>
+
+<div class="box inference">
+  <span class="box-label">這三個數字的來源</span>
+  <p>下面的 47 條、HL1/HL2,量的是<b>另一個實驗裡手寫的單元測試</b>,
+  <b>不是這條管線生成的驗收</b>。列在這裡是因為那三次失敗本身是可轉移的教訓。</p>
+</div>
+
+<ul>
+  <li><b>「殺了 0 個 mutant」→ 錯。</b>拿一條已知的恆真測試去驗,它殺了 7 個——
+    因為 <code>@BeforeEach</code> 讓 fixture 建構路徑上的 mutant 會弄倒全班,
+    恆真測試<b>繼承了它沒賺到的擊殺</b>。</li>
+  <li><b>「獨佔擊殺 = 0」→ 訊號被雜訊淹掉。</b>47 條裡標了 33 條——健康的測試本來就互相重疊。</li>
+  <li><b>「貢獻沒超出全班共同集合」→ 第二個已知陽性上漏抓。</b>
+    那條在測試內自己 <code>new Order(...)</code>,交集因此不含它殺的建構子 mutant。</li>
+</ul>
+
+<div class="box warn">
+  <span class="box-label">最重要的一句</span>
+  <p><b>mutation testing 分不出「恆真」與「碰不到」。</b>
+  兩者長得一模一樣:都沒有獨佔貢獻、都只死在很多測試共用的 mutant 上。</p>
+  <p>所以它交的是<b>分診佇列</b>——把 47 條縮到 8 條要人讀,而不是替人判。
+  判別要靠讀那條測試在斷言什麼。</p>
+</div>
+
+<div class="box key">
+  <span class="box-label">這一段擋掉什麼</span>
+  <ul>
+    <li><b>擋掉「綠燈就是通過」。</b>空骨架必須全紅,否則驗收有恆真成分。</li>
+    <li><b>擋掉「不適用被讀成通過」。</b>三態報表,而這一跑三處不適用<b>全部是綠色的樣子</b>。</li>
+    <li><b>擋掉「規則掃到 0 個 class 卻算它守住了」。</b><code>package_landing_check</code> 判 exit 3。</li>
+    <li><b>擋掉「用一個看起來合理的指標宣布乾淨」。</b>三個候選指標都在
+      <b>已知陽性</b>上驗過才被否掉,而不是想一想覺得不錯就上。</li>
+  </ul>
+</div>
+
+<h2>八、走完之後:全綠了,然後呢</h2>
+
+<p>第四幕:實作 agent 拿到<b>骨架</b>、<b>生成的驗收</b>(紅著)、<b>一份工作契約</b>
+(凍結清單 / 要填的範圍 / 完成的定義 / 不得開工的部分),自己填到全綠。
+<b>Opus,38 turns / 14.4 分 / $6.32。</b></p>
+
+<div class="box good">
+  <span class="box-label">結果:9/9 全綠,而且綠是真的</span>
+  <pre><code>驗收(生成物)        1/1 綠   G16
+代理編碼(不算驗收)   4/4 綠   G1 G2 G13 G17
+機械檢查(ArchUnit)   4/4 綠
+合計 9 條,0 條紅       ./gradlew test EXIT=0
+./gradlew innerTest    EXIT=0(9 條內圈測試)</code></pre>
+  <p><b>四項獨立查核,綠不是假的:</b></p>
+  <table>
+    <thead><tr><th>查核</th><th>結果</th></tr></thead>
+    <tbody>
+      <tr><td>生成物有沒有被手改</td><td>✅ 三支測試檔對第三幕產出 / 骨架<b>逐位元組相同</b></td></tr>
+      <tr><td>受保護檔有沒有被動</td><td>✅ 雜湊比對:<code>受保護檔沒有被動過</code></td></tr>
+      <tr><td>架構那 4 綠是不是空的</td><td>✅ <b>不是</b> —— <code>domain</code> 10 /
+        <code>usecase</code> 5 / <code>adapter</code> 12 個 class,規則真的掃到東西了</td></tr>
+      <tr><td>內圈測試有沒有算進完成的定義</td><td>✅ 沒有 —— <code>test</code> task 按 class 名只跑那三支</td></tr>
+    </tbody>
+  </table>
+  <p><b>產出</b>:23 個實作 class(domain 9 / usecase 4 / adapter 10)、
+  6 支內圈測試檔 9 個方法、<code>ASSUMPTIONS.md</code> 75 行。</p>
+</div>
+
+<div class="box warn">
+  <span class="box-label">⚠️ 這一課最重要的一句話</span>
+  <p style="font-size:1.15em"><b>「全綠」只證明了 1 條真情境。</b></p>
+  <p>另外 4 條是代理編碼(綠了不代表原文成立),4 條是空專案也會綠的架構檢查。
+  <b>一個只讓 G16 過的實作——也就是「任何請求一律回 400、列表永遠是空的」——也會全綠。</b></p>
+  <p>這次的 agent 做得多得多(23 個 class、五個端點裡實作了兩個、8 條契約有內圈測試),
+  <b>但那是這個模型的行為,不是驗收逼出來的。</b>換一個模型、或同一個模型換一次,
+  這條管線<b>沒有任何機制</b>保證還會拿到一樣的東西。</p>
+  <p><b>寫斷言的時候要問的那句話,在這裡是最貴的:如果這條綠了,我到底知道了什麼?</b></p>
+</div>
+
+<h3>漏斗合起來看</h3>
+
+<div class="tablewrap">
+<table>
+  <thead><tr><th>幕</th><th>進去</th><th>出來</th><th>掉在地上的</th></tr></thead>
+  <tbody>
+    <tr><td>一 訪談</td><td>一句話</td><td>6 輪 30 題 → 550 行規格、17 條 GWT、17 條契約、10 條架構規則</td>
+      <td>2 條阻斷級的洞(<b>明寫,不准實作</b>)、2 條未裁決的矛盾</td></tr>
+    <tr><td>二 落檔</td><td>550 行散文</td><td><b>5 條情境</b>、17 條契約、31 個詞</td>
+      <td><b>12 條 GWT</b>(schema 沒那些動詞)、<b>10 條架構規則</b>(沒人叫它交)、
+        <b>三處寫在註解裡的誠實</b></td></tr>
+    <tr><td>三 生成</td><td>store</td><td><b>1 條真驗收 + 4 條代理編碼</b></td>
+      <td><code>ArchitectureTest</code> 生不出來(0 列規則)</td></tr>
+    <tr><td>四 實作</td><td>骨架 + 紅的驗收</td><td>9/9 全綠、23 個 class、<b>契約落點 8/17</b></td>
+      <td><b>9 條契約沒有落腳處</b></td></tr>
+  </tbody>
+</table>
+</div>
+
+<div class="box key">
+  <span class="box-label">掉的那 9 條契約,不是實作偷懶</span>
+  <pre><code>指得出內圈測試的:C2 C3 C4 C5 C8 C9 C16 C17
+指不出來的     :C1 C6 C7 C10 C11 C12 C13 C14 C15</code></pre>
+  <p><b>掉的九條全部是跨聚合根 / 結帳 / 付款 / 庫存那一組</b> —— 也就是<b>在第二幕就落不了檔</b>的那些。
+  實作 agent 自己在 <code>ASSUMPTIONS.md</code> 裡逐條交代了:
+  「它們守的不是訂單,而是庫存 / 結帳作業 / 支付這三個本次沒有建立的聚合根與 port……
+  <b>它們不是被忘記,是這次交付裡沒有它們的落腳處。</b>」</p>
+  <p>⚠️ 反過來也值得看:<b>驗收只逼出 1 條真情境,而內圈長出了 8 條契約的載體。</b>
+  工作契約把「seam 由契約表指定」寫進 prompt 是有效的 ——
+  <b>契約表在這一跑真的當了 seam 清單用</b>(第 8 課那半在這裡兌現)。</p>
+</div>
+
+<h3>⚠️ 主發現:規格與它自己的驗收互相打架,而規格輸了</h3>
+
+<div class="tablewrap">
+<table>
+  <thead><tr><th>規格 §1.2 說</th><th>釘死的驗收要求</th><th>被犧牲的是</th></tr></thead>
+  <tbody>
+    <tr><td><code>GET /orders</code> 回 <code>{"orders":[...]}</code></td><td>裸的 JSON 陣列</td><td>規格</td></tr>
+    <tr><td><code>placedAt</code> 是 ISO-8601 帶時區</td><td>只有日期 <code>yyyy-MM-dd</code>
+      (驗收用 <code>LocalDate.parse</code>)</td>
+      <td>規格 —— <b>「同一天兩張訂單誰先誰後」在對外合約上整個消失</b></td></tr>
+    <tr><td><code>POST /orders</code> request 是 <code>{checkoutId, paymentId}</code></td>
+      <td><code>{customer:&lt;字串&gt;, items:[…]}</code></td>
+      <td>規格 —— <b>兩階段(先結帳、後下單)整套對不上</b></td></tr>
+    <tr><td>客戶 = 名字 + email + 收貨地址</td><td>只送得進一個字串</td>
+      <td>規格 —— <b>email 與收貨地址在本次實作中根本沒有落地</b></td></tr>
+  </tbody>
+</table>
+</div>
+
+<p><b>它選了驗收,而且選對了</b>(驗收不得修改是硬規則),然後<b>逐條寫明「被犧牲掉的是規格的哪一句」</b>。
+這四條全是實作 agent<b>自己發現並寫下來的</b>,沒有任何一步檢查提示過它。</p>
+
+<div class="box warn">
+  <span class="box-label">這條鏈怎麼斷的 —— 一路追回去</span>
+  <pre><code>規格說         POST /orders = {checkoutId, paymentId}
+  ↓ 幕二        store 的 wire_contract 表達不了兩階段
+                → agent 改用單階段的欄位,並在 YAML 註解裡說明
+  ↓            **註解在 import 時被丟掉**
+  ↓ 幕三        生成器照 store 生,生出來的是單階段的形狀
+  ↓ 幕四        實作 agent 看到規格說 X、測試要 Y,選了 Y 並寫進 ASSUMPTIONS</code></pre>
+  <p style="font-size:1.1em"><b>規格在第二幕就輸了,而輸的那一刻沒有任何機械檢查在看。</b></p>
+  <p>整條鏈上<b>只有最後一個 agent 發現並寫下來</b>,而它寫在一份靠人讀的 markdown 裡。
+  第五段那三處「寫在註解裡的誠實」,在這裡看到了它的下游後果:
+  <b>它不只是丟了一句說明,它改寫了對外合約。</b></p>
+</div>
+
+<h3>TDD 與 BDD 的分工,第一次在真實資料上兌現</h3>
+
+<table>
+  <thead><tr><th></th><th>外圈</th><th>內圈</th></tr></thead>
+  <tbody>
+    <tr><td>從哪來</td><td>GWT → store → 生成的驗收</td><td>agent 自己在 red-green 迴圈裡寫的</td></tr>
+    <tr><td>會不會 import 實作類別</td><td><b>不會</b>(只走 HTTP)</td><td><b>會</b>(<code>Order</code>、<code>Money</code>…)</td></tr>
+    <tr><td>agent 能不能改</td><td><b>不能</b>(雜湊比對)</td><td>它自己的</td></tr>
+    <tr><td>算不算「完成」</td><td><b>算</b></td><td><b>不算</b></td></tr>
+    <tr><td>這一跑</td><td>5 條(1 真 + 4 代理)</td><td>9 條 / 6 個檔</td></tr>
+  </tbody>
+</table>
+
+<p>而「不算完成」是用<b>結構</b>做的,不是靠自律 —— gradle 設定檔逐字:</p>
+
+<pre><code>// `test` task 只跑生成的那三個 class —— 那是完成的定義,內圈**不算進去**。
+// 完成的定義按 class 名釘死,不是按目錄。
+tasks.named('test') {
+    filter {
+        includeTestsMatching 'acceptance.OrderAcceptanceTest'
+        includeTestsMatching 'acceptance.OrderProxyAcceptanceTest'
+        includeTestsMatching 'architecture.ArchitectureTest'
+    }
+}</code></pre>
+
+<p><b>按 class 名釘死,不是按目錄</b> —— 因為按目錄的話,把測試放進那個目錄就算數了。
+這是「規則寫得可被形式滿足,就會被形式滿足」的一次<b>預防</b>,不是事後補救。</p>
+
+<div class="box good">
+  <span class="box-label">而檔案時間戳留下了紅綠交替的痕跡</span>
+  <pre><code>06:20:10  OrderTotalAmountTest.java   ← 先寫測試(C2)
+06:20:44  OrderItem / Money 相關的 domain class   ← 34 秒後才有實作
+06:23:22  MoneyTest.java + Money.java
+06:23:47  OrderItemsRequiredTest.java
+06:24:16  OrderStatusTransitionTest.java
+06:24:28  Order.java / OrderStatus.java            ← 12 秒後
+06:24:53  OrderImmutabilityTest.java
+06:29:13  QuantityTest.java + Quantity.java</code></pre>
+  <p><b>測試 → 實作 → 下一條測試</b>,而不是「先寫一堆實作再一起補測試」。
+  這件事沒有任何檢查在看 —— 是事後從時間戳讀出來的。</p>
+</div>
+
+<div class="box warn">
+  <span class="box-label">⚠️ 但 TDD 產出的測試,沒抓到 TDD 產出的 bug</span>
+  <p>事後的架構 review 在這 9 條內圈測試上找到<b>兩個已知陽性</b>。兩個都綠著。</p>
+
+  <p><b>陽性一:守 C8 的測試用 <code>!isStatic</code> 過濾,看不見 <code>Order.restore</code>。</b></p>
+  <pre><code>// Order.java  ——  place 有守不變式
+public static Order place(…) {
+    if (items == null || items.isEmpty()) {
+        throw new DomainRuleViolation("EMPTY_ORDER", "訂單至少要有一個訂單品項");
+    }
+    return new Order(…, OrderStatus.PLACED);
+}
+
+// Order.java  ——  restore 沒有,直接進 private constructor
+public static Order restore(…, OrderStatus status) {
+    return new Order(…, status);
+}
+
+// OrderImmutabilityTest.java —— 它這樣列舉「改得動訂單的入口」
+boolean isInstanceApi = Modifier.isPublic(method.getModifiers())
+        &amp;&amp; !Modifier.isStatic(method.getModifiers());</code></pre>
+  <p><code>restore</code> 是 static,<b>被濾掉了</b>。一支宣稱「訂單身上沒有第二個改得動它的東西」的測試,
+  <b>看不見那條能憑空造出任意狀態訂單的路</b>。</p>
+  <p>⚠️ 而落點檢查會說「C8 有內圈測試 ✅」——<b>而它是對的,也是沒用的</b>。
+  落點存在,但那條測試的<b>列舉範圍</b>漏掉了半個 interface。
+  <b>這是第三種病:不是恆真(加一個 public 實例 mutator 它就紅),是<u>範圍不足</u>
+  ——落點檢查抓不到,恆真分診也抓不到。</b></p>
+
+  <p><b>陽性二:<code>changeStatusTo(null)</code> 讓狀態變成 null。</b></p>
+  <pre><code>// OrderStatus.java —— 終點回 null
+case RECEIVED -&gt; null;
+
+// Order.java —— 守衛用 != 比對它
+public void changeStatusTo(OrderStatus target) {
+    if (target != status.next()) {
+        throw new DomainRuleViolation("INVALID_STATUS_TRANSITION", …);
+    }
+    this.status = target;
+}</code></pre>
+  <p>一張 <code>RECEIVED</code> 的訂單:<code>status.next()</code> 是 <code>null</code>,
+  <code>changeStatusTo(null)</code> → <code>null != null</code> → <b>false</b> → 不丟例外 →
+  <b><code>this.status = null</code></b>。而 C9(單向前進)與 C17(被拒時原地不動)
+  宣稱擋的正是這個 —— <b>那三條非法轉移測試,一條都沒有試 <code>null</code></b>。</p>
+  <p>⚠️ 這兩條合起來說明一件事:<b>「每條契約都指得出一條內圈測試」是一個可被形式滿足的規則。</b>
+  8/17 這個數字是真的,而數字背後那 8 條裡,至少有一條看不見它該看的一半。</p>
+</div>
+
+<h3>這條線上反覆出現的同一種失效</h3>
+
+<div class="box key">
+  <span class="box-label">一句話</span>
+  <p><b>規則寫得可被形式滿足,就會被形式滿足。</b></p>
+</div>
+
+<ul>
+  <li><b>驗收</b>寫得可被形式滿足 → 發現會被驗收吃掉(這一跑:5 條裡 4 條代理編碼)</li>
+  <li><b>完成訊號</b>寫得可被形式滿足 →「匯入印 ok」「9 條測試全綠」</li>
+  <li><b>誠實出口</b>寫得可被形式滿足 → <code>proxy_for</code> 讓任何情境都湊得出 ok</li>
+  <li><b>來源標記</b>寫得可被形式滿足 → 需求方現編的答案照樣產出合法的 <code>[Qn]</code></li>
+  <li><b>落點檢查</b>寫得可被形式滿足 → 方法名叫 <code>C8_xxx</code> 就算有落點</li>
+  <li><b>連驗守衛的測試自己</b>都可被形式滿足 → <code>assert X not in stripped</code> 在 replace 是 no-op 時空洞成立</li>
+</ul>
+
+<p>還有一條<b>不同</b>的病:<b>寫在該寫的地方 ≠ 接上了。</b>
+而這一跑給了它到目前為止最完整的一個實例 ——</p>
+
+<div class="box warn">
+  <span class="box-label">同一句真話,死了三次</span>
+  <ol>
+    <li>落檔 agent 發現規格與 schema 對不上,<b>寫進 YAML 註解</b> → 註解不進 store</li>
+    <li>生成器照 store 生,生出<b>單階段的合約</b> → 讀 Java 的人看不到那句話</li>
+    <li>實作 agent 撞上同一個矛盾,<b>再發現一次</b>,寫進 <code>ASSUMPTIONS.md</code> → 靠人讀</li>
+  </ol>
+  <p><b>三個 agent 都做對了,而規格的對外合約還是被悄悄改掉了。</b>
+  要問的永遠是同一句:<b>實際會讀到它的那條路徑,經過這裡嗎?</b></p>
+</div>
+
+<div class="box good">
+  <span class="box-label">寫斷言、寫完成訊號、寫預測時,都先問同一句</span>
+  <p style="font-size:1.1em"><b>如果這條綠了 / 中了,我到底知道了什麼?</b></p>
+  <p>這一跑的答案是:<b>9 條綠燈,知道了 1 件事</b> ——「數量 0 或負數的請求會被拒,而且不會留下殘骸」。
+  <b>那也是真的知道了一件事</b>,而且是從一句廢話一路逼出來的。
+  剩下的 16 條 GWT、9 條契約、10 條架構規則<b>去哪裡了,現在每一條都查得出來。</b>
+  ——這才是這條線目前真正買到的東西。</p>
+</div>
+
+<footer>
+
+<h2>本課相關</h2>
+<ul>
+  <li><a href="./0001-ubiquitous-language-第一道閘門.html">第 1 課</a> ·
+    <a href="./0002-bounded-context-邊界.html">第 2 課</a> ·
+    <a href="./0003-given-when-then-機械判定.html">第 3 課</a> ·
+    <a href="./0004-aggregate-一次任務的大小.html">第 4 課</a></li>
+  <li><a href="./0005-簡潔架構-三原則與爆炸半徑.html">第 5 課</a> ·
+    <a href="./0006-cqrs-讀與寫的不對稱.html">第 6 課</a> ·
+    <a href="./0007-event-storming-產物從哪來.html">第 7 課</a> ·
+    <a href="./0008-design-by-contract-這是誰的錯.html">第 8 課</a></li>
+  <li><a href="./0009-pattern-language-讓它會長大.html">第 9 課:Pattern Language</a>
+    —— 這一課走的整條線,就是第 9 課那個「錯誤 → 往上搬一階」迴圈跑出來的結果</li>
+  <li><a href="../reference/0003-三幕流程與五尺度盤點.html">參考卡 03:三幕流程與五尺度盤點</a>
+    —— 訪談每一輪那張「盤點」表的出處(需求 / 大 / 小 / 微 四格,中尺度屬 harness 過程層)</li>
+</ul>
+
+<div class="ask-teacher">
+  <b>挑一段貼給我。</b>我只看兩件事:你標出來的「擋掉什麼」是不是<b>真的擋得住</b>
+  ——也就是,有沒有一種寫法可以形式滿足它而實質繞過去;以及那一段有沒有
+  <b>「做了但沒接上」</b>的破口(寫進去了,但實際會讀到它的那條路徑不經過那裡)。
+  兩個都答不出來的話,那一段你只是讀完了,還沒讀懂。
+</div>
+
+</footer>
+
+<script src="../assets/quiz.js"></script>
+<script src="../assets/sorter.js"></script>
+</body>
+</html>

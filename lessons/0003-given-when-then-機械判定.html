@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>第 3 課 — Given-When-Then:把「做對了沒」交出去給機器判</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+</head>
+<body>
+
+<p class="lesson-meta">第 3 課 · DDD × Agent Harness</p>
+<h1>Given-When-Then</h1>
+<p class="subtitle">把「做對了沒」從你的判斷,變成機器的判斷。</p>
+
+<h2>這是整套教學的收口</h2>
+
+<p>第 1 課開頭那句話,到這課才真的兌現:</p>
+
+<div class="box key">
+  <span class="box-label">回到主軸</span>
+  <p>你沒辦法讓模型變 deterministic。<b>你能做的是讓「對不對」變 deterministic。</b></p>
+  <p>詞彙表(第 1 課)讓 agent 讀對規格,邊界(第 2 課)讓它知道該看哪些、能改哪些。
+  但它交件之後呢?到目前為止,<b>「做對了沒」還是你在判斷</b>——你看 diff、你跑一下、你覺得可以。
+  那是最後一種漂移,而且是最貴的一種:它耗的是你的注意力,而且它<b>不會累積</b>。</p>
+</div>
+
+<h2>三段各自在幹嘛</h2>
+
+<table>
+  <thead><tr><th>段</th><th>職責</th><th>鐵律</th></tr></thead>
+  <tbody>
+    <tr><td><b>Given</b></td><td>世界原本長什麼樣</td><td>是<b>狀態</b>,不是動作</td></tr>
+    <tr><td><b>When</b></td><td>發生了什麼事</td><td><b>只能一個動作</b></td></tr>
+    <tr><td><b>Then</b></td><td>世界變成什麼樣</td><td>是<b>可觀察的結果</b>,不是內部實作</td></tr>
+  </tbody>
+</table>
+
+<p>「When 只能一個動作」和「Then 不碰實作」這兩條看起來像潔癖,但對你的 harness 是關鍵——
+等一下會看到為什麼。</p>
+
+<h2>把你第 1 課寫的東西變成可執行的</h2>
+
+<p>你那則「訂單成立」的條目,長成驗收是這樣:</p>
+
+<pre><code><span class="gk">Feature:</span> 訂單成立
+
+<span class="gk">Scenario:</span> 授權成功且庫存足夠 → 訂單成立
+  <span class="gk">Given</span> 商品 A 的可售庫存是 3 件
+  <span class="gk">And</span>   購物車有 2 件商品 A
+  <span class="gk">When</span>  金流回傳授權成功
+  <span class="gk">Then</span>  訂單狀態是「已成立」
+  <span class="gk">And</span>   商品 A 的可售庫存變成 1 件
+
+<span class="gk">Scenario:</span> 授權成功但庫存不足 → 訂單不成立
+  <span class="gk">Given</span> 商品 A 的可售庫存是 1 件
+  <span class="gk">And</span>   購物車有 2 件商品 A
+  <span class="gk">When</span>  金流回傳授權成功
+  <span class="gk">Then</span>  訂單不成立
+  <span class="gk">And</span>   商品 A 的可售庫存仍然是 1 件
+  <span class="gk">And</span>   已授權的款項被取消          <span class="gk">← 這行從哪來的?</span></code></pre>
+
+<div class="box warn">
+  <span class="box-label">停在這裡看一下</span>
+  <p>最後那行「已授權的款項被取消」,<b>你的詞彙條目沒說,我改寫的版本也沒說。</b>
+  我當時寫「兩者其一失敗,訂單就不成立」,講完就走了——
+  那筆已經授權成功的款項怎麼辦?沒人講。</p>
+  <p><b>不是我特別聰明才想到,是「寫出第二條 scenario」這個動作逼出來的。</b>
+  抽象的定義可以含糊而不自知;一旦你被迫寫出具體的失敗案例,洞就自己浮出來。
+  這是 BDD 最被低估的價值:<b>它不只驗收規格,它會抓出規格的破洞。</b></p>
+</div>
+
+<h3>具體到什麼程度</h3>
+
+<p>注意上面每一個數字都是真的數字:3 件、2 件、1 件。不是「庫存足夠」「庫存不足」。
+這是 <span class="term">Specification by Example</span>(實例化需求)的核心主張:</p>
+
+<p><b>抽象的規則會被各自解讀,具體的例子不會。</b>
+「顯示正確的折扣後金額」——「正確」是誰說了算?
+「顯示 NT$1,710」——這個沒得吵。</p>
+
+<h2>ezSpec:同一件事寫在 Java 裡</h2>
+
+<p>陳建村(Teddy)的 <span class="term">ezSpec</span> 是這套東西的 Java 版本。
+它是 <b>Internal DSL</b>——把 Gherkin 的 Given-When-Then 內容<b>直接放進 lambda</b>,
+不用另外開 <code>.feature</code> 檔、不用寫 Step Definition、不用正規表示式。
+沒實作的步驟用 <code>pending()</code> 標。</p>
+
+<p>領域模型跟上面完全一樣,只是多了幾層組織:</p>
+
+<table>
+  <thead><tr><th>元素</th><th>用途</th></tr></thead>
+  <tbody>
+    <tr><td><b>Feature</b></td><td>一個使用者價值單位</td></tr>
+    <tr><td><b>Story</b></td><td>把需求切片(User Story)</td></tr>
+    <tr><td><b>Scenario</b></td><td>一個具體例子</td></tr>
+    <tr><td><b>Scenario Outline</b></td><td>步驟一樣、只有資料不同時,參數化成一張表</td></tr>
+    <tr><td><b>Background</b></td><td>共用的前置步驟</td></tr>
+    <tr><td><b>Steps</b></td><td>Given / When / Then / And / But</td></tr>
+    <tr><td><b>Concurrent Group</b></td><td>描述併發行為</td></tr>
+  </tbody>
+</table>
+
+<div class="box inference">
+  <span class="box-label">誠實標註</span>
+  <p>上面的<b>領域模型</b>是從 Teddy 的原文查證來的,但<b>實際的 Java API 寫法我沒查到</b>
+  ——他部落格裡的程式碼都是截圖,抓不到文字,我不編。
+  要寫真的 ezSpec code 時,直接看
+  <a href="https://teddy-chen-tw.blogspot.com/2023/03/ezspec1.html">他的系列文</a>
+  (共 10 篇,含 Scenario Outline、Background、自訂報表)。</p>
+  <p>好消息是:<b>這一課要練的技能跟 API 無關。</b>寫得出好的 Given-When-Then,
+  換哪個工具都成立;寫不出來,API 背再熟也沒用。</p>
+</div>
+
+<h2>抓錯練習</h2>
+
+<p>下面每一句驗收都有問題(或沒有)。問題出在哪?</p>
+
+<div class="sorter" data-buckets="When 有多個動作|綁死實作|不夠具體|沒問題">
+  <div class="sorter-item" data-answer="0"
+    data-why="三個動作。失敗的時候你不知道是哪一步壞的,而且這一條同時在測三件事。拆成三條 scenario,或把前兩個動作降級成 Given(它們是前置狀態,不是這條情境要驗的行為)。">When 使用者登入並將商品加入購物車並結帳</div>
+  <div class="sorter-item" data-answer="1"
+    data-why="它在描述「怎麼做」,不是「結果是什麼」。改用 event、改個方法名、換個類別,行為完全沒變但這條會紅。對你的 harness 尤其致命 —— 你要的是「兩個模型各自實作、同一套驗收都判得動」,Then 綁死實作等於逼兩個模型寫出一模一樣的 code,那正是你放棄追求的東西。">Then 系統呼叫 InventoryService.deduct()</div>
+  <div class="sorter-item" data-answer="2"
+    data-why="「正確」是誰說了算?這就是第 1 課的含糊詞換個地方出現。寫「Then 顯示 NT$1,710」—— 具體數字才有辦法機械判定,而且寫的當下你會被迫真的去算一次,那個動作本身就會抓出錯誤。">Then 顯示正確的折扣後金額</div>
+  <div class="sorter-item" data-answer="3"
+    data-why="具體(3 件)、是狀態不是動作、可觀察。標準的 Given。">Given 商品 A 的可售庫存是 3 件</div>
+  <div class="sorter-item" data-answer="3"
+    data-why="這是最常被誤判的一題。多個 Then 完全沒問題 —— 一個動作本來就可能改變好幾件事,Then 要把它們都講完才叫完整。鐵律是「When 只能一個動作」,不是「Then 只能一句」。把這兩件事搞混,會寫出一堆殘缺的驗收。">Then 訂單狀態是「已成立」,且可售庫存變成 1 件</div>
+  <div class="sorter-item" data-answer="1"
+    data-why="Given 一樣會綁死實作。它在講儲存細節(哪張表、哪個欄位、magic number 1),不是領域狀態。而且「status=1」是什麼意思?第 1 課的含糊詞換了個馬甲。寫「Given 有一筆已成立的訂單」。">Given 資料庫裡已 insert 一筆 status=1 的紀錄</div>
+</div>
+
+<h2>這對 harness 的兩個用途</h2>
+
+<div class="box inference">
+  <span class="box-label">以下第二點是推論</span>
+  <p>BDD 本身是既有實踐(Dan North 提出,Teddy 的 ezSpec 是其中一種工具)。
+  但「把 agent 的錯誤轉成 scenario 來累積 harness」這個用法,是本教學自己接上去的。</p>
+</div>
+
+<h3>一、agent 的 definition of done 變成機械的</h3>
+<p>交件之後不是你看 diff 判斷,是跑一次驗收。<b>綠的就是完成,紅的就是沒完成。</b>
+兩個模型寫出完全不同的實作都沒關係——這正是你要的,你從來沒想要它們寫出一樣的 code。</p>
+<p>這也是為什麼「Then 不碰實作」是鐵律:Then 一旦綁死實作,你就把「不同實作也算對」這件事關掉了。</p>
+
+<h3>二、錯誤會累積成資產</h3>
+<p>agent 犯了一個你沒預期到的錯 → <b>補一條會紅的 scenario</b> → 這個錯從此不可能再溜過去。
+不管之後換哪個模型、誰在寫。</p>
+<p>對照另一種做法:在提示詞裡加一句「不要再犯 X」。那句話只在你記得帶它的時候有效,
+換個模型未必還吃得住,而且加到第 30 句時它們會開始互相打架。
+<b>驗收情境是機械的,叮嚀不是。</b></p>
+<p>你 mission 裡「從 AI 的錯誤演化出 pattern」那一項,最便宜的落地方式就是這個。</p>
+
+<h2>換你了</h2>
+
+<div class="quiz" data-answer="0">
+  <p class="quiz-q">BDD 驗收對你的 harness,最大的價值是什麼?</p>
+  <div class="quiz-opts">
+    <button class="quiz-opt">讓兩個模型的不同實作能被同一套標準判定</button>
+    <button class="quiz-opt">讓兩個模型產生結構完全相同的實作程式碼</button>
+    <button class="quiz-opt">讓模型不確定的時候會主動回頭詢問開發者</button>
+  </div>
+  <div class="quiz-fb"
+    data-right="從第 1 課講到現在的同一件事,終於有了執行機制。也是為什麼 Then 絕對不能碰實作 —— 一碰,你就把「不同實作也算對」關掉了。"
+    data-wrong="你從來沒想要兩個模型寫出一樣的 code(那做不到),也沒辦法靠驗收讓模型變得會發問。驗收解決的是「交件之後誰來判對錯」—— 把那個判斷從你手上移到機器手上。"></div>
+</div>
+
+<div class="quiz" data-answer="0">
+  <p class="quiz-q">agent 犯了一個你沒預期到的錯,最有價值的處理方式是?</p>
+  <div class="quiz-opts">
+    <button class="quiz-opt">補一條驗收情境把這個錯誤變成會紅的測試</button>
+    <button class="quiz-opt">在提示詞加一句話叫模型不要再犯同樣的錯</button>
+    <button class="quiz-opt">換一個更強的模型重新產生一次這段程式碼</button>
+  </div>
+  <div class="quiz-fb"
+    data-right="這是 harness 唯一會複利的部分:每次踩到坑,harness 就變厚一點,而且厚度不隨模型改變而流失。"
+    data-wrong="這兩個都是一次性的,不會累積。叮嚀只在你記得帶它時有效、換模型未必吃得住、而且加到第 30 句會互相打架;換更強的模型則是把問題丟給下一個版本,同一個坑下次還在。"></div>
+</div>
+
+<h3>混合題(這題不告訴你該用哪一課)</h3>
+
+<div class="quiz" data-answer="1">
+  <p class="quiz-q">行銷說的「活躍使用者」是 30 天內有登入,數據團隊說的是 7 天內有下單。兩邊各自有報表、各自會調整自己的定義。該怎麼處理?</p>
+  <div class="quiz-opts">
+    <button class="quiz-opt">拆成兩個詞各自定義因為是同一條線上兩點</button>
+    <button class="quiz-opt">畫出邊界兩邊各自建模並找一個穩定的接點</button>
+    <button class="quiz-opt">寫驗收情境用具體數字把正確定義釘死下來</button>
+  </div>
+  <div class="quiz-fb"
+    data-right="關鍵字是「各自有報表、各自會調整」—— 兩條平行、獨立演化的線,不是同一條線上的兩個時刻。行銷改了留存定義,數據團隊的下單口徑不該被迫跟著改。接點是 user id(跨界後意思不變)。這是參考卡裡的③。"
+    data-wrong="跑一次參考卡的 Q1→Q2→Q3。畫時間線:「30 天內登入」和「7 天內下單」有先後關係嗎?沒有 —— 它們同時存在、各自演化,兩邊還各自會調整自己的定義。那不是拆詞能解的,也不是寫一條驗收能解的。"></div>
+</div>
+
+<h3>動手練習</h3>
+
+<p>拿你自己專案裡一個<b>已經做完</b>的功能(做完的比較好,因為你知道它真正的行為),
+寫兩條 scenario:<b>一條成功、一條失敗</b>。</p>
+
+<div class="drill">
+<textarea spellcheck="false">Feature:
+
+Scenario: (成功)
+  Given
+  When
+  Then
+
+Scenario: (失敗)
+  Given
+  When
+  Then
+</textarea>
+</div>
+
+<div class="box good">
+  <span class="box-label">自我檢查</span>
+  <ul>
+    <li><b>When 是不是只有一個動作?</b>出現「並」「然後」「接著」就是超過一個了。</li>
+    <li><b>Then 有沒有提到任何類別名、方法名、資料表、欄位?</b>有就是綁死實作了。</li>
+    <li><b>Given 和 Then 裡的數字是不是真的數字?</b>還有「足夠」「正確」「大量」就是還不夠具體。</li>
+    <li><b>寫失敗那條的時候,有沒有發現一個你原本沒想過的問題?</b>
+      如果完全沒有,通常代表你挑的失敗情境太安全了,換一個真的會出事的。</li>
+    <li>老毛病:<b>裡面有沒有又用到一個沒定義的詞?</b></li>
+  </ul>
+</div>
+
+<footer>
+
+<h2>下一步該讀什麼</h2>
+
+<p><b>主要來源:</b>
+<a href="https://teddy-chen-tw.blogspot.com/2023/03/ezspec1.html">使用 ezSpec 落實行為驅動開發與實例化需求(1):領域模型介紹</a>
+——陳建村的系列文第一篇,繁中。這一課的領域模型就是從這裡查證來的。
+系列共 10 篇,後面幾篇有 Scenario Outline、Background、以及用 Visitor pattern 自訂報表。
+想寫真的 ezSpec code,直接從這裡開始。</p>
+
+<p><b>次要:</b><a href="https://teddy-chen-tw.blogspot.com/2013/07/bdd2cucumber.html">BDD(2):大家來吃小黃瓜之 Cucumber 運作原理</a>
+——同一位作者 2013 年寫的,講 Cucumber 那套 feature 檔 + Step Definition 是怎麼運作的。
+知道 ezSpec 拿掉了什麼,才知道它為什麼值得。</p>
+
+<h2>本課相關</h2>
+<ul>
+  <li><a href="./0001-ubiquitous-language-第一道閘門.html">第 1 課:Ubiquitous Language</a>(詞彙)</li>
+  <li><a href="./0002-bounded-context-邊界.html">第 2 課:Bounded Context</a>(範圍)</li>
+  <li><a href="../reference/0001-該畫邊界還是該拆詞.html">參考卡 01:該畫邊界還是該拆詞</a></li>
+  <li>第 4 課(未產出):Aggregate —— 一致性的邊界,以及它為什麼是「一次 agent 任務」的天然大小</li>
+</ul>
+
+<div class="ask-teacher">
+  <b>三道閘門到這裡湊齊了。</b>語言、範圍、判定——第 1 到第 3 課各擋一種漂移。
+  練習貼給我,我會特別看<b>失敗那條</b>:好的失敗情境會逼出你原本沒想過的規格破洞,
+  沒逼出來的話通常是挑得太安全。
+</div>
+
+</footer>
+
+<script src="../assets/quiz.js"></script>
+<script src="../assets/sorter.js"></script>
+</body>
+</html>

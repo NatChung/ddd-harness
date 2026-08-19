@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>參考卡 01 — 同一個詞兩群人講不一樣:該畫邊界,還是該拆詞?</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+</head>
+<body>
+
+<p class="lesson-meta">參考卡 01 · 隨時回來查</p>
+<h1>該畫邊界,還是該拆詞?</h1>
+<p class="subtitle">「兩群人對同一個詞講不一樣」有三種原因,三種解法。用錯解法會讓問題更糟。</p>
+
+<h2>三十秒版</h2>
+
+<table>
+  <thead><tr><th>狀況</th><th>解法</th><th>接點</th></tr></thead>
+  <tbody>
+    <tr>
+      <td><b>① 一方其實是誤用</b><br>其中一側講錯了,不是需求不同</td>
+      <td>直接修正。<b>這不是邊界,是 bug</b></td>
+      <td>不需要</td>
+    </tr>
+    <tr>
+      <td><b>② 同一條時間線上的兩個點</b><br>兩側先後發生,不會同時存在</td>
+      <td><b>拆成兩個詞</b>,各自定義那一刻<br>(第 1 課的解法)</td>
+      <td>不需要 —— 本來就是一條線</td>
+    </tr>
+    <tr>
+      <td><b>③ 兩條平行、各自獨立演化的線</b><br>兩側同時存在、各自變化</td>
+      <td><b>畫 Bounded Context</b>,各自建模<br>(第 2 課的解法)</td>
+      <td>需要 —— 通常是識別碼</td>
+    </tr>
+  </tbody>
+</table>
+
+<h2>怎麼分辨</h2>
+
+<p>照順序問這三題,第一個答「是」的就是答案:</p>
+
+<h3>Q1 —— 有沒有一側其實只是講錯了?</h3>
+<p>如果把兩邊拉到同一間會議室,其中一方會說「喔對,我用錯了」——那就是 ①。
+真正的邊界不會被一次對話消滅,<b>兩邊都會堅持自己是對的,而且兩邊都真的對。</b></p>
+
+<h3>Q2 —— 兩側是同一個東西的不同時刻嗎?</h3>
+<p>測試法:<b>畫一條時間線,兩個意思能不能各自落在一個點上?</b>
+落得上去,而且有明確先後 —— 那是 ②,你需要的是兩個詞,不是兩個模型。</p>
+<p>再一個測試:問「A 的意思發生時,B 的意思是不是還沒發生?」
+答「是」就是同一條線上的兩點。</p>
+
+<h3>Q3 —— 兩側需要各自獨立演化嗎?</h3>
+<p>問:「其中一邊改了規則,另一邊<b>應不應該</b>被迫跟著改?」
+答「不應該」就是 ③,畫邊界。這通常伴隨不同的變更節奏、不同的負責人、不同的關注點。</p>
+
+<div class="box key">
+  <span class="box-label">接點測試(判斷邊界畫得對不對)</span>
+  <p>找出③之後,還要驗證接點:<b>你想拿來當接點的東西,跨過邊界之後意思會不會變?</b></p>
+  <ul>
+    <li><b>不會變</b> → 它是合格的接點。通常是識別碼(訂單編號、使用者 ID)——
+      它<b>指向</b>同一個東西,但<b>不承載</b>任何一側的語意。</li>
+    <li><b>會變</b> → 它不是接點,<b>它就是爭議本身</b>。把它當接點等於假裝爭議不存在。</li>
+  </ul>
+  <p>推論:<b>狀態、金額、日期幾乎都當不了接點</b>,因為它們承載語意。
+  能當接點的東西通常很無聊——這是好事。</p>
+</div>
+
+<h2>例子</h2>
+
+<table>
+  <thead><tr><th>案例</th><th>類型</th><th>為什麼</th></tr></thead>
+  <tbody>
+    <tr>
+      <td>電力公司的「meter」:<br>裝機部門 vs 計費部門</td>
+      <td>③ 畫邊界</td>
+      <td>兩邊同時存在、各自演化。計費規則改了,實體電表的型錄不該跟著改。
+        接點是電表序號。</td>
+    </tr>
+    <tr>
+      <td>電商的「訂單」:<br>結帳 vs 倉儲 vs 財務</td>
+      <td>③ 畫邊界</td>
+      <td>三個平行狀態機,各自獨立跑。接點是訂單編號。</td>
+    </tr>
+    <tr>
+      <td>「訂單成立」vs「訂單完成」</td>
+      <td>② 拆詞</td>
+      <td>同一筆訂單的兩個時刻,有明確先後。不需要兩個模型,需要兩個名字。</td>
+    </tr>
+    <tr>
+      <td>PM 的「完成」(含 QA) vs<br>RD 的「完成」(code done)</td>
+      <td>② 拆詞</td>
+      <td>同一個 feature 的兩個時刻:RD 完成 → QA → PM 完成。
+        <b>不是邊界</b>——兩邊在交付同一個東西,不需要各自獨立演化。
+        拆成 <code>Code Complete</code> 與 <code>Ready to Ship</code>。</td>
+    </tr>
+    <tr>
+      <td>行銷的「使用者」(來源渠道、LTV、分群) vs<br>系統的「使用者」(id、認證、權限)</td>
+      <td>③ 畫邊界</td>
+      <td>同一批人,兩個平行模型,各自獨立演化。行銷加一個分群欄位,
+        認證系統不該被動到。接點是 user id。</td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="box warn">
+  <span class="box-label">最常見的誤判</span>
+  <p><b>把 ② 當成 ③。</b>看到兩群人講不一樣就急著畫邊界、建兩個模型,
+  結果做出兩份會不同步的資料,還得寫同步邏輯——
+  而真正需要的只是<b>多取一個名字</b>。</p>
+  <p>症狀:你發現自己想找的「接點」是一個狀態、一份定義文件、或一個需要兩邊同意的東西。
+  真正的接點應該無聊到不需要討論。</p>
+</div>
+
+<div class="box inference">
+  <span class="box-label">標註</span>
+  <p>①②③ 這個分類法是本教材整理出來的判準,不是 DDD 文獻裡的既有框架。
+  ③ 對應 Fowler 談的 Bounded Context,②③ 的區分則是我們自己加的。
+  對外講的時候值得標清楚。</p>
+</div>
+
+<footer>
+<h2>相關</h2>
+<ul>
+  <li><a href="../lessons/0001-ubiquitous-language-第一道閘門.html">第 1 課:Ubiquitous Language</a>(② 的解法)</li>
+  <li><a href="../lessons/0002-bounded-context-邊界.html">第 2 課:Bounded Context</a>(③ 的解法)</li>
+  <li><a href="https://martinfowler.com/bliki/BoundedContext.html">Fowler — Bounded Context</a></li>
+</ul>
+<div class="ask-teacher">
+  這張卡是拿來<b>查</b>的,不是拿來讀的。下次你在規格或討論裡撞到「這個詞好像兩個意思」,
+  回來跑一次 Q1 → Q2 → Q3。
+</div>
+</footer>
+
+</body>
+</html>

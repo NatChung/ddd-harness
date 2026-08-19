@@ -1,0 +1,117 @@
+# shop 的驗收情境 —— 結構化來源(第二個生成器的輸入)
+#
+# ⚠️ 跟 architecture.yaml 一樣是**轉寫**,不是新的訪談產出。對照物是凍結的
+#    examples/shop/app/src/test/java/acceptance/OrderAcceptanceTest.java(5 條)。
+#    所以來源一律 `推導自 <SPEC.md 行號>`。
+#
+# 這份比架構規則難的地方是**測試資料**。散文寫「2 件、單價 1500、TWD」,
+# 讀的人自己在腦裡算 2×1500;結構化之後那個乘法變成**可以被檢查的東西** ——
+# 情境 4 的 totalCents 期望值 5100 會被 import 拿 Σ(數量 × 單價) 對一次。
+# 散文裡寫錯一個數字沒人擋得住,這裡寫錯就匯不進去。
+
+# wire shape(ADR 0004)—— 規格擁有,實作照做。
+#
+# 這一份是把**凍結的 SPEC.md 已經寫在散文裡的那組欄位名**搬進 store,不是新決定的。
+# 出處:SPEC.md L12-L19(request 範例)與 L27-L37(response 範例)。
+#
+# ⚠️ `res_customer_id_field` 是 null,而那是這份合約的**事實**不是缺漏:
+#    凍結的列表只有 `customerName`(join 出來的姓名),不揭露客人編號。
+#    所以這份合約用不了 `list_no_row_for_customer` —— import 會擋下來。
+wire_contract:
+  name: shop-frozen-v1
+  req_customer_field: customerId
+  req_items_field: items
+  req_product_field: productId
+  req_quantity_field: quantity
+  req_price_field: unitPriceCents
+  req_currency_field: currency
+  req_total_field: null          # 凍結的 request 沒有夾帶總金額的欄位
+  res_order_id_field: orderId
+  res_customer_id_field: null
+  # Σ(數量 × 單價) 那條不變式靠這一欄認人 —— 寫死欄位名的話,規格換個名字
+  # 那條檢查就靜靜地不再適用。
+  res_total_field: totalCents
+  list_fields: [orderId, customerName, statusLabel, totalCents, placedAt]
+
+acceptance_scenarios:
+  - id: S1
+    given_when: 一位存在的顧客送出一筆含單一明細的訂單
+    then_expect: 回 201 並帶回 orderId
+    provenance: 推導自
+    provenance_ref: examples/shop/spec/SPEC.md L44-45
+    steps:
+      - alias: order
+        customer_id: C-001
+        items:
+          - {product_id: P-100, quantity: 2, unit_price_cents: 1500, currency: TWD}
+    assertions:
+      - {kind: status_is, target: order, expected_number: 201}
+      - {kind: order_id_not_blank, target: order}
+
+  - id: S2
+    given_when: 一筆已成立的訂單被查詢訂單列表
+    then_expect: 該筆出現在列表中,statusLabel 為「已成立」
+    provenance: 推導自
+    provenance_ref: examples/shop/spec/SPEC.md L46-47
+    steps:
+      - alias: order
+        customer_id: C-001
+        items:
+          - {product_id: P-100, quantity: 1, unit_price_cents: 1000, currency: TWD}
+    assertions:
+      - {kind: list_row_exists, target: order}
+      - {kind: list_field_equals_text, target: order, field: statusLabel, expected_text: 已成立}
+
+  # 這條是唯一送兩筆訂單的 —— alias 就是為它存在的
+  - id: S3
+    given_when: 訂單只持有 CustomerId,查詢訂單列表
+    then_expect: 列表仍顯示顧客姓名(來自 customers 表)
+    provenance: 推導自
+    provenance_ref: examples/shop/spec/SPEC.md L48-49
+    steps:
+      - alias: alice
+        customer_id: C-001
+        items:
+          - {product_id: P-100, quantity: 1, unit_price_cents: 1000, currency: TWD}
+      - alias: bob
+        customer_id: C-002
+        items:
+          - {product_id: P-200, quantity: 1, unit_price_cents: 2000, currency: TWD}
+    assertions:
+      - {kind: list_row_exists, target: alice}
+      - {kind: list_field_equals_text, target: alice, field: customerName, expected_text: Alice}
+      # bob 這條守衛是 2026-08-18 補的:原本只守 alice —— 手寫的凍結驗收也一樣只守
+      # alice,我轉寫時把那個弱點一起抄過來了。是「第二幕實跑」逼出的 import 檢查
+      # 反過來抓到我自己的。
+      - {kind: list_row_exists, target: bob}
+      - {kind: list_field_equals_text, target: bob, field: customerName, expected_text: Bob}
+
+  # 2×1500 + 3×700 = 5100 —— 這個乘加會被 import 重算一次
+  - id: S4
+    given_when: 一筆含多個明細的訂單被查詢訂單列表
+    then_expect: totalCents 等於各明細「數量 × 單價」的加總
+    provenance: 推導自
+    provenance_ref: examples/shop/spec/SPEC.md L50-51
+    steps:
+      - alias: order
+        customer_id: C-001
+        items:
+          - {product_id: P-100, quantity: 2, unit_price_cents: 1500, currency: TWD}
+          - {product_id: P-200, quantity: 3, unit_price_cents: 700, currency: TWD}
+    assertions:
+      - {kind: list_row_exists, target: order}
+      - {kind: list_field_equals_number, target: order, field: totalCents, expected_number: 5100}
+
+  - id: S5
+    given_when: 一筆已成立的訂單被查詢訂單列表
+    then_expect: placedAt 是一個 ISO 日期(YYYY-MM-DD)
+    provenance: 推導自
+    provenance_ref: examples/shop/spec/SPEC.md L52-53
+    steps:
+      - alias: order
+        customer_id: C-002
+        items:
+          - {product_id: P-300, quantity: 1, unit_price_cents: 500, currency: TWD}
+    assertions:
+      - {kind: list_row_exists, target: order}
+      - {kind: list_field_is_iso_date, target: order, field: placedAt}
