@@ -19,6 +19,10 @@ LLM agent 有一模一樣的失效模式,只是它填補含糊的方式是**照�
 
 `lessons/` 底下是獨立的 HTML,不需要 build;clone 下來用瀏覽器開 `index.html` 也一樣。
 
+課內有 **19 題選擇題**與**排序題**,開瀏覽器就能作答、點下去即時給對錯與理由,
+不需要後端、不需要 build。另有 9 題開放式的動手練習(各附自我檢查三問)與一份
+**不給選項**的交錯練習。
+
 | 課 | 主題 |
 |---|---|
 | 0000 | 五級演化 —— 從照抄流程到機械驗收(開場課) |
@@ -137,5 +141,13 @@ cd tools/harness && python3 -m pytest      # 229 passed
 DDD 的部分拆出來獨立成本 repo;完整的逐 commit 歷史留在原處。*
 
 *⚠️ 因此 `CONTEXT.md`、`NOTES.md` 與各張票裡引用的 commit hash(`4567d31`、`215ae8c`、
-`18bf044` 等)**在這個 repo 解不開** —— 本 repo 只有一個 commit。那些 hash 指向的是原
-repo,而原 repo 是私有的。引用它們的地方講的事實本身在檔案裡都看得到,hash 只是出處註記。*
+`18bf044` 等)**在這個 repo 解不開** —— 本 repo 的歷史是從匯出那一刻重新開始的。
+那些 hash 指向的是原 repo,而原 repo 是私有的。引用它們的地方講的事實本身在檔案裡都看得到,
+hash 只是出處註記。*
+
+*⚠️ **一個例外,而且它是可執行的**:`tools/harness/acceptance_gwt.py` 對 `4567d31`
+(凍結骨架)與 branch `layered/OL1-integration`(OL1 的實作)有**硬相依**,所以那支在本
+repo 直接 `CalledProcessError 128` 跑不起來。骨架那半換成複製 `examples/shop/app/` 就救得回來
+(隔壁 `acceptance_archunit.py` 就是這樣做的),但 **OL1 的實作整份沒有跟著搬**,
+所以「可滿足性」與「逐條可紅」那兩段在本 repo 沒有替代品。
+其餘引用都只是出處註記 —— 這一條是**驗過的**,不是推斷的。*
