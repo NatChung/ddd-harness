@@ -93,6 +93,17 @@
 
 ## Knowledge — Agent Harness / Spec-Driven Development
 
+- [`research/0001-機械關卡的複利.html`](research/0001-機械關卡的複利.html) —— **本 repo 自己的調查筆記**(2026-08-20 定稿)
+  「AI 全自動 loop 成不成立、代價在哪」的 11 個來源總表,每條標了樣本規模與證據等級
+  (一手 > 實驗 > 大樣本調查 > 廠商遙測),含 OpenAI harness engineering、Anthropic
+  recursive self-improvement、Google 的契約驅動測試對照實驗(arXiv:2608.17177,
+  n=90 真實 bug)、DORA 2025、METR RCT。
+  ⚠️ **引用前必看它的「方法說明」一段**:有 7 條主張在對抗式查證中被推翻並剔除,
+  其中「72% 開發者說 vibe coding 不是專業工作」與「METR 後續實驗仍測到沒有加速」
+  這兩條流傳很廣,**不要引用**。
+  Use for:要拿外部數字支持「把判準搬上機械關卡」時;以及界定這些證據不涵蓋什麼
+  (全是 greenfield、兩個一手案例都是模型供應商自報)。
+
 - [Think Before You Prompt: what SDD is and isn't, plus a taxonomy of agent harnesses](https://codagent.beehiiv.com/p/think-before-you-prompt)
   把 harness 定義成「the rest of the car」——模型是引擎,harness 是方向盤、煞車、車道線。
   區分 coding agent(產品層)與 engineering layer(開發者自建層,分成 information architecture /

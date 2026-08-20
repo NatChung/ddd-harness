@@ -1,0 +1,762 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>*{margin:0}</style>
+<title>機械關卡的複利</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Noto+Sans+TC:wght@500;700&family=Noto+Serif+TC:wght@400;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap">
+
+<style>
+  :root {
+    --ground:      #EEF0EC;
+    --surface:     #F8F9F7;
+    --surface-2:   #E4E8E3;
+    --ink:         #14181A;
+    --ink-2:       #4A524E;
+    --ink-3:       #7A837E;
+    --rule:        #D2D7D1;
+    --rule-strong: #B6BEB8;
+    --accent:      #1B6B5A;
+    --accent-ink:  #12463B;
+    --accent-soft: #DBE7E2;
+    --warn:        #A34A15;
+    --warn-ink:    #7E390F;
+    --warn-soft:   #F1E2D6;
+
+    --display: "Archivo", "Noto Sans TC", "PingFang TC", system-ui, sans-serif;
+    --body: "Source Serif 4", "Noto Serif TC", "Songti TC", Georgia, serif;
+    --mono: "IBM Plex Mono", "Noto Sans TC", ui-monospace, SFMono-Regular, monospace;
+
+    --measure: 34rem;
+    --shell: 54rem;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground:      #0F1312;
+      --surface:     #171C1A;
+      --surface-2:   #1F2624;
+      --ink:         #E8EDE9;
+      --ink-2:       #A6B0AA;
+      --ink-3:       #79837E;
+      --rule:        #2A322F;
+      --rule-strong: #3B4541;
+      --accent:      #63C2A6;
+      --accent-ink:  #8FD8C1;
+      --accent-soft: #15302A;
+      --warn:        #E28C4E;
+      --warn-ink:    #F0A870;
+      --warn-soft:   #33231A;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --ground:      #0F1312;
+    --surface:     #171C1A;
+    --surface-2:   #1F2624;
+    --ink:         #E8EDE9;
+    --ink-2:       #A6B0AA;
+    --ink-3:       #79837E;
+    --rule:        #2A322F;
+    --rule-strong: #3B4541;
+    --accent:      #63C2A6;
+    --accent-ink:  #8FD8C1;
+    --accent-soft: #15302A;
+    --warn:        #E28C4E;
+    --warn-ink:    #F0A870;
+    --warn-soft:   #33231A;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: var(--body);
+    font-size: 1.0625rem;
+    line-height: 1.72;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .shell {
+    max-width: var(--shell);
+    margin: 0 auto;
+    padding: clamp(2.5rem, 6vw, 5rem) clamp(1.1rem, 4vw, 2rem) 6rem;
+    display: flex;
+    flex-direction: column;
+    gap: 3.25rem;
+  }
+
+  p, li { max-width: var(--measure); }
+  p { margin: 0; }
+
+  a {
+    color: var(--accent-ink);
+    text-decoration-color: var(--rule-strong);
+    text-underline-offset: 0.18em;
+  }
+  a:hover { text-decoration-color: var(--accent); }
+  a:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
+
+  /* ---------- masthead ---------- */
+
+  .masthead {
+    display: flex;
+    flex-direction: column;
+    gap: 1.35rem;
+    border-bottom: 1px solid var(--rule-strong);
+    padding-bottom: 2.25rem;
+  }
+
+  .kicker {
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    font-weight: 500;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem 1.25rem;
+  }
+
+  h1 {
+    font-family: var(--display);
+    font-weight: 700;
+    font-size: clamp(2.15rem, 6.5vw, 3.4rem);
+    line-height: 1.08;
+    letter-spacing: -0.015em;
+    margin: 0;
+    text-wrap: balance;
+  }
+
+  .standfirst {
+    font-size: 1.2rem;
+    line-height: 1.6;
+    color: var(--ink-2);
+    max-width: 32rem;
+  }
+
+  .thesis {
+    border-left: 3px solid var(--accent);
+    background: var(--accent-soft);
+    padding: 1.1rem 1.35rem;
+    border-radius: 0 4px 4px 0;
+    font-size: 1.1rem;
+    line-height: 1.62;
+    max-width: 38rem;
+  }
+  .thesis b { font-weight: 600; color: var(--accent-ink); }
+
+  /* ---------- sections ---------- */
+
+  section { display: flex; flex-direction: column; gap: 1.5rem; }
+
+  .sec-head { display: flex; flex-direction: column; gap: 0.5rem; }
+
+  .sec-label {
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--accent);
+  }
+  .sec-label.cost { color: var(--warn); }
+  .sec-label.plain { color: var(--ink-3); }
+
+  h2 {
+    font-family: var(--display);
+    font-weight: 700;
+    font-size: clamp(1.5rem, 3.6vw, 1.95rem);
+    line-height: 1.2;
+    letter-spacing: -0.01em;
+    margin: 0;
+    text-wrap: balance;
+  }
+
+  h3 {
+    font-family: var(--display);
+    font-weight: 600;
+    font-size: 1.0625rem;
+    line-height: 1.4;
+    letter-spacing: 0;
+    margin: 0;
+  }
+
+  .stack { display: flex; flex-direction: column; gap: 1.15rem; }
+
+  /* ---------- evidence card ---------- */
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: 5px;
+    padding: 1.35rem 1.45rem 1.15rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+  }
+
+  .figures {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.5rem 2.25rem;
+    padding: 0.15rem 0 0.35rem;
+  }
+
+  .fig { display: flex; flex-direction: column; gap: 0.15rem; }
+
+  .fig-n {
+    font-family: var(--display);
+    font-weight: 700;
+    font-size: 1.85rem;
+    line-height: 1;
+    letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums;
+    color: var(--accent-ink);
+  }
+  .fig.cost .fig-n { color: var(--warn-ink); }
+  .fig.flat .fig-n { color: var(--ink); }
+
+  .fig-l {
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.05em;
+    color: var(--ink-3);
+    max-width: 13rem;
+    line-height: 1.45;
+  }
+
+  /* ---------- source line ---------- */
+
+  .src {
+    font-family: var(--mono);
+    font-size: 0.735rem;
+    line-height: 1.6;
+    color: var(--ink-3);
+    max-width: none;
+    border-top: 1px dashed var(--rule-strong);
+    padding-top: 0.7rem;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.4rem 0.6rem;
+  }
+  .src a { color: var(--ink-2); }
+
+  .tag {
+    font-family: var(--mono);
+    font-size: 0.66rem;
+    font-weight: 600;
+    letter-spacing: 0.07em;
+    padding: 0.14rem 0.44rem;
+    border-radius: 3px;
+    white-space: nowrap;
+    border: 1px solid transparent;
+  }
+  .t-first { background: var(--accent-soft); color: var(--accent-ink); border-color: var(--accent); }
+  .t-paper { background: var(--surface-2); color: var(--ink-2); border-color: var(--rule-strong); }
+  .t-survey { background: var(--surface-2); color: var(--ink-2); border-color: var(--rule); }
+  .t-vendor { background: var(--warn-soft); color: var(--warn-ink); border-color: var(--warn); }
+
+  /* ---------- method list ---------- */
+
+  ol.method {
+    list-style: none;
+    counter-reset: m;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1.35rem;
+  }
+  ol.method > li {
+    counter-increment: m;
+    display: grid;
+    grid-template-columns: 2.4rem 1fr;
+    gap: 0 0.9rem;
+    max-width: none;
+  }
+  ol.method > li::before {
+    content: counter(m, decimal-leading-zero);
+    font-family: var(--mono);
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--accent);
+    padding-top: 0.28rem;
+    font-variant-numeric: tabular-nums;
+  }
+  .m-body { display: flex; flex-direction: column; gap: 0.45rem; }
+  .m-why {
+    font-family: var(--mono);
+    font-size: 0.735rem;
+    line-height: 1.62;
+    color: var(--ink-3);
+    max-width: none;
+  }
+  .m-why a { color: var(--ink-2); }
+
+  /* ---------- limits ---------- */
+
+  .limits {
+    background: var(--warn-soft);
+    border: 1px solid var(--warn);
+    border-radius: 5px;
+    padding: 1.35rem 1.45rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+  }
+  .limits ul { margin: 0; padding-left: 1.15rem; display: flex; flex-direction: column; gap: 0.55rem; }
+  .limits li { max-width: 36rem; }
+  .limits strong { color: var(--warn-ink); font-weight: 600; }
+
+  /* ---------- table ---------- */
+
+  .scroll { overflow-x: auto; border: 1px solid var(--rule); border-radius: 5px; background: var(--surface); }
+
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    min-width: 40rem;
+    font-family: var(--mono);
+    font-size: 0.75rem;
+    line-height: 1.55;
+  }
+  caption {
+    text-align: left;
+    padding: 0.9rem 1rem 0.7rem;
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    border-bottom: 1px solid var(--rule);
+  }
+  th, td {
+    text-align: left;
+    padding: 0.6rem 1rem;
+    border-bottom: 1px solid var(--rule);
+    vertical-align: top;
+  }
+  th {
+    font-weight: 600;
+    color: var(--ink-2);
+    white-space: nowrap;
+    background: var(--surface-2);
+  }
+  tbody tr:last-child td { border-bottom: none; }
+  td:first-child { color: var(--ink); font-weight: 500; }
+  .n { font-variant-numeric: tabular-nums; white-space: nowrap; color: var(--ink-2); }
+
+  .footnote {
+    font-family: var(--mono);
+    font-size: 0.735rem;
+    line-height: 1.7;
+    color: var(--ink-3);
+    max-width: 40rem;
+    border-top: 1px solid var(--rule);
+    padding-top: 1.15rem;
+  }
+  .footnote a { color: var(--ink-2); }
+
+  strong { font-weight: 600; }
+  em { font-style: italic; color: var(--ink-2); }
+
+  code {
+    font-family: var(--mono);
+    font-size: 0.86em;
+    background: var(--surface-2);
+    padding: 0.08em 0.32em;
+    border-radius: 3px;
+  }
+
+  @media (max-width: 34rem) {
+    ol.method > li { grid-template-columns: 1.8rem 1fr; gap: 0 0.6rem; }
+    .figures { gap: 1.1rem 1.6rem; }
+  }
+</style>
+
+</head>
+<body>
+<div class="shell">
+
+  <header class="masthead">
+    <div class="kicker">
+      <span>研究筆記</span>
+      <span>2026-08-20</span>
+      <span>AI 全自動開發 / loop engineering</span>
+    </div>
+    <h1>機械關卡的複利</h1>
+    <p class="standfirst">
+      AI 全自動寫 code 的 loop 到底成不成立、代價在哪、方法怎麼搬。
+      每一條都標了來源、樣本規模與證據等級。
+    </p>
+    <p class="thesis">
+      Loop engineering 的本體不是「讓 AI 一直跑」，是
+      <b>把人的判斷不斷往機械關卡上搬</b>。
+      搬得動就複利，搬不動就是每週五清一次 slop。
+    </p>
+  </header>
+
+  <!-- ============ 1 ============ -->
+  <section>
+    <div class="sec-head">
+      <span class="sec-label">已證實 · 一手案例</span>
+      <h2>全自動已經有人真的做到了</h2>
+    </div>
+
+    <div class="stack">
+      <p>
+        這題已經不是推測。OpenAI 內部一個團隊用五個月、從空 repo 起，
+        交出一個有內部日活使用者與外部 alpha 測試者的產品，
+        <strong>全程沒有任何一行 code 由人手寫</strong>——
+        應用邏輯、測試、CI 設定、文件、可觀測性、內部工具，全部由 Codex 產出。
+      </p>
+
+      <div class="card">
+        <div class="figures">
+          <div class="fig"><span class="fig-n">0</span><span class="fig-l">人手寫的程式行數</span></div>
+          <div class="fig"><span class="fig-n">~1M</span><span class="fig-l">五個月後的總行數</span></div>
+          <div class="fig"><span class="fig-n">1,500</span><span class="fig-l">開出並 merge 的 PR</span></div>
+          <div class="fig"><span class="fig-n">3→7</span><span class="fig-l">團隊人數（平均 3.5 PR／人／日，人變多之後吞吐還升）</span></div>
+        </div>
+        <p>
+          目前 Codex 能從一個 prompt 走完：驗證現況 → 復現 bug → 錄下失敗影片 → 修 →
+          驅動 App 驗證 → 錄下修好的影片 → 開 PR → 回應 agent 與人的 review →
+          偵測並修復 build 失敗 → 需要判斷時才升級給人 → merge。
+        </p>
+        <p class="src">
+          <span class="tag t-first">一手</span>
+          OpenAI，<a href="https://openai.com/index/harness-engineering/">Harness engineering: leveraging Codex in an agent-first world</a>。
+          自報、未經外部稽核；greenfield（空 repo 起）；原文明言
+          <em>“should not be assumed to generalize without similar investment”</em>。
+        </p>
+      </div>
+
+      <div class="card">
+        <h3>另一個一手案例：Anthropic</h3>
+        <div class="figures">
+          <div class="fig"><span class="fig-n">&gt;80%</span><span class="fig-l">2026-05 merge 進 codebase 的程式碼由 Claude 撰寫</span></div>
+          <div class="fig"><span class="fig-n">8×</span><span class="fig-l">2026 Q2 每位工程師每日 merge 量 vs 2024</span></div>
+        </div>
+        <p>
+          同一篇自己打折：LOC 是爛指標、內部 3 月員工調查只有約 4 倍、attribution pipeline 有漏。
+          它唯一講到的工作內容變化是——<strong>人的 code review 變成新瓶頸</strong>。
+          注意這句：它指向驗證，不是指向「工程師改行做 harness」。
+        </p>
+        <p class="src">
+          <span class="tag t-first">一手</span>
+          Anthropic，<a href="https://www.anthropic.com/institute/recursive-self-improvement">Recursive self-improvement</a>。
+          賣工具的人在量自己用工具的成效；該文同時是政策倡議文。
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 2 ============ -->
+  <section>
+    <div class="sec-head">
+      <span class="sec-label cost">已量到的代價</span>
+      <h2>人力沒有變少，是換了位置</h2>
+    </div>
+
+    <div class="stack">
+      <div class="card">
+        <h3>OpenAI 曾經每週燒掉 20% 在清 AI slop</h3>
+        <p>
+          Codex 會複製 repo 裡既有的模式——包括不好的那些，於是必然漂移。
+          初期是人工處理：<strong>整個禮拜五都在清</strong>。清到發現不 scale，
+          才改成把「golden principles」編進 repo，再讓背景 agent 定期掃描偏差、
+          更新品質分級、自動開修正 PR。他們的比喻是垃圾回收：技術債像高利貸，
+          持續小額償還永遠好過讓它複利。
+        </p>
+        <p class="src">
+          <span class="tag t-first">一手</span>
+          同上，OpenAI harness engineering，「Entropy and garbage collection」一節。
+        </p>
+      </div>
+
+      <div class="card">
+        <h3>整個產業量到的是同一個方向：驗證負擔</h3>
+        <div class="figures">
+          <div class="fig flat"><span class="fig-n">23–25%</span><span class="fig-l">花在 toil 的工時比例——重度與輕度 AI 使用者<strong>完全一樣</strong></span></div>
+          <div class="fig cost"><span class="fig-n">25% / 15%</span><span class="fig-l">其中花在「修正 AI 寫的 code」：重度 vs 輕度</span></div>
+          <div class="fig cost"><span class="fig-n">38% / 27%</span><span class="fig-l">說 review AI code 比 review 同事更費力 vs 更輕鬆</span></div>
+          <div class="fig cost"><span class="fig-n">61%</span><span class="fig-l">同意「AI 常產出看起來對、但不可靠的 code」</span></div>
+        </div>
+        <p>
+          時間沒有省下來，是換了味道。DORA 從最大的樣本看到同一件事：
+          創作端省下的時間被重新分配到稽核與驗證。
+        </p>
+        <p class="src">
+          <span class="tag t-vendor">廠商調查</span>
+          Sonar，<a href="https://www.sonarsource.com/state-of-code-developer-survey-report.pdf">State of Code</a>，
+          n=1,149，2025-10 收樣。⚠️ Sonar 賣的就是驗證工具，「AI code 需要更多驗證」對它商業上有利；
+          且樣本已先篩選為「過去一年用過 AI」的開發者。
+        </p>
+      </div>
+
+      <div class="card">
+        <h3>交付結果是兩面的，不是一面倒</h3>
+        <p>
+          DORA 2025 推翻了自己 2024 的結論：AI 採用與<strong>交付吞吐、產品表現</strong>
+          現在是正相關。但同一份報告：<strong>與交付穩定度仍然是負相關</strong>。
+          另有 30% 受訪者對 AI 產出的 code「幾乎不信任或完全不信任」。
+        </p>
+        <p class="src">
+          <span class="tag t-survey">大樣本調查</span>
+          Google Cloud / DORA，<a href="https://cloud.google.com/blog/products/ai-machine-learning/announcing-the-2025-dora-report">2025 DORA Report</a>，
+          近 5,000 位從業者 + 100 小時質性訪談。相關性、非因果；非機率抽樣。
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 3 ============ -->
+  <section>
+    <div class="sec-head">
+      <span class="sec-label cost">上限</span>
+      <h2>loop 的品質上限 = 判準能機械化的比例</h2>
+    </div>
+
+    <div class="stack">
+      <p>
+        這是整份研究裡唯一有實驗數字的因果線索，也是最該記住的一條。
+        Google 拿 90 個內部真實生產 bug 做對照：讓 agent 先寫出半形式的契約
+        （前置條件、後置條件、未定義行為）再寫測試，對上直接寫測試。
+      </p>
+
+      <div class="card">
+        <div class="figures">
+          <div class="fig"><span class="fig-n">54.9%</span><span class="fig-l">規格<strong>有</strong>涵蓋到被違反的那條契約時，抓到 bug 的比例</span></div>
+          <div class="fig cost"><span class="fig-n">19.4%</span><span class="fig-l">契約<strong>缺席</strong>時，抓到 bug 的比例</span></div>
+          <div class="fig"><span class="fig-n">+9.8pp</span><span class="fig-l">整體偵測率 63.2% vs 53.4%（p = 0.0352）</span></div>
+          <div class="fig cost"><span class="fig-n">+38%</span><span class="fig-l">token 成本</span></div>
+        </div>
+        <p>
+          附帶一個更刺的結果：契約驅動產出的測試，被判定優於 baseline 的比例是 77.8%，
+          <strong>優於人類開發者自己寫的測試的比例是 56.7%</strong>。
+          line coverage 則沒有顯著差異（−0.4%，p = 0.37）——所以買到的不是覆蓋率，是判準。
+        </p>
+        <p class="src">
+          <span class="tag t-paper">預印本</span>
+          Tufano, McClure et al.（Google），
+          <a href="https://arxiv.org/html/2608.17177v1">Grounding AI Agents in Contracts: An Empirical Evaluation of Spec-Driven Test Generation</a>，
+          arXiv:2608.17177，2026-08。n=90 真實生產 bug（C++/Java/Python/Go）；Gemini 3 Flash；
+          未經同儕審查；驗的是「規格→測試生成」，不是整條 pipeline。
+        </p>
+      </div>
+
+      <div class="card">
+        <h3>但 LLM 做結構化設計有明確的斷點</h3>
+        <p>
+          把 DDD 拆成五步讓 LLM 跑：①統一語言 ②event storming ③bounded context
+          ④aggregate 設計 ⑤對應到技術架構。結果——
+          <strong>①到③穩定產出可用的產物；④和⑤誤差累積到產物不可用</strong>。
+          作者的結論是 LLM 能增強、不能取代架構專業。
+        </p>
+        <p class="m-why">
+          也就是說：語言與邊界這一層搬得上去，聚合根與架構對應這一層目前搬不上去。
+          知道斷點在哪，比相信整套都能自動化有用得多。
+        </p>
+        <p class="src">
+          <span class="tag t-paper">預印本</span>
+          Eisenreich, Jusic, Wagner，
+          <a href="https://arxiv.org/abs/2603.26244">Automating Domain-Driven Design: Experience with a Prompting Framework</a>，
+          arXiv:2603.26244，2026-03。⚠️ <strong>單一企業案例，n=1</strong>——方向可信，強度不可推廣。
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 4 ============ -->
+  <section>
+    <div class="sec-head">
+      <span class="sec-label">方法</span>
+      <h2>從證據反推的八條做法</h2>
+    </div>
+    <p>每條都附「這條是從哪個數字推出來的」，不是從直覺。</p>
+
+    <ol class="method">
+      <li><div class="m-body">
+        <h3>先量「判準機械化率」，再談自動化程度</h3>
+        <p>loop 跑不跑得動，取決於你能把多少「什麼算對」寫成機器判得出來的形式。寫不出來的部分，loop 就在那裡空轉或自我肯定。</p>
+        <p class="m-why">← 契約有涵蓋 54.9% vs 缺席 19.4%（Google, arXiv:2608.17177）</p>
+      </div></li>
+
+      <li><div class="m-body">
+        <h3>契約要有自己的載體，不能靠「剛好有個例子蓋到」</h3>
+        <p>invariant 被寫成某一條情境的斷言時，「任何時候都成立」就被降級成「這一筆成立」。契約要能被單獨查詢、單獨分診、單獨統計。</p>
+        <p class="m-why">← 同上；契約缺席那一格就是「規格裡沒有它的位置」的代價</p>
+      </div></li>
+
+      <li><div class="m-body">
+        <h3>知識庫當唯一真相，入口是目錄不是百科</h3>
+        <p>OpenAI 的 <code>AGENTS.md</code> 只有約 100 行、純粹當地圖，深度內容放結構化的 <code>docs/</code>。他們列了大檔案的四個死法：擠掉 context、什麼都重要等於都不重要、瞬間腐爛、無法機械驗證。</p>
+        <p class="m-why">← OpenAI harness engineering，「give Codex a map, not a 1,000-page instruction manual」</p>
+      </div></li>
+
+      <li><div class="m-body">
+        <h3>文件新鮮度也要有 CI 擋</h3>
+        <p>他們用專門的 linter 與 CI job 驗知識庫是否最新、交叉連結是否完整；另有一個定期跑的「doc-gardening」agent 掃描與實際行為不符的文件並自動開修正 PR。</p>
+        <p class="m-why">← 同上。agent 看不到的東西等於不存在——Slack 上那場對齊架構的討論，對 agent 而言就是沒發生過</p>
+      </div></li>
+
+      <li><div class="m-body">
+        <h3>強制邊界，放手實作</h3>
+        <p>固定分層 + 嚴格驗證的相依方向 + 有限的合法邊，用 custom linter 和 structural test 機械強制；但不規定實作怎麼寫。lint 的錯誤訊息刻意寫成「修復指示」，直接注進 agent 的 context。</p>
+        <p class="m-why">← 「enforce invariants, not micromanage implementations」；這種架構通常是幾百人團隊才做，有 agent 之後變成前置條件</p>
+      </div></li>
+
+      <li><div class="m-body">
+        <h3>同一種品味只手動修一次，第二次就編成規則</h3>
+        <p>review 意見、重構 PR、使用者回報的 bug，全部回收成文件更新或直接編進工具。人的品味捕捉一次，之後每一行 code 都持續強制。</p>
+        <p class="m-why">← 週五 20% 清 slop 清到不 scale 才學會的（OpenAI）</p>
+      </div></li>
+
+      <li><div class="m-body">
+        <h3>知道 LLM 的斷點在第三步</h3>
+        <p>統一語言、event storming、bounded context 可以讓模型主導；aggregate 設計與架構對應要人壓在那裡，否則前面的小誤差會累積成不可用。</p>
+        <p class="m-why">← Eisenreich et al., arXiv:2603.26244（n=1，方向參考）</p>
+      </div></li>
+
+      <li><div class="m-body">
+        <h3>吞吐機器和量測儀器的 gate 鬆緊要相反，先想清楚你在做哪一個</h3>
+        <p>OpenAI 刻意<strong>放寬</strong> merge gate——PR 短命、測試 flake 就重跑不擋，因為「修正很便宜、等待很貴」。他們自己註明：這在低吞吐環境是不負責任的。反過來，若你的 pipeline 目的是量測漂移，就該逐位元組不符即紅。同一個決定在兩種目的下答案相反。</p>
+        <p class="m-why">← OpenAI「Throughput changes the merge philosophy」一節；這是本研究裡唯一的設計張力，沒有共識答案</p>
+      </div></li>
+    </ol>
+  </section>
+
+  <!-- ============ 5 ============ -->
+  <section>
+    <div class="sec-head">
+      <span class="sec-label cost">邊界</span>
+      <h2>這些證據不涵蓋什麼</h2>
+    </div>
+
+    <div class="limits">
+      <ul>
+        <li><strong>全部是 greenfield。</strong>OpenAI 那個案例從空 repo 起。整份研究<strong>找不到任何 brownfield（既有大型 legacy）的對照案例</strong>。這是最大的一個空白。</li>
+        <li><strong>兩個一手案例都是模型供應商自報</strong>，沒有外部稽核，而且都賣你正在評估的那個工具。</li>
+        <li><strong>兩篇論文都是 arXiv 預印本</strong>，未經同儕審查；DDD 那篇 n=1。</li>
+        <li><strong>普及率仍是少數。</strong>常態使用 agent 的開發者：大樣本調查 23–31%；即使是自選、AI 重度、資歷 11–15 年的讀者群也只有 55%。實測遙測顯示 merge 進去的 code 只有 22%（2025 Q4）／27.4%（2026 Q1）是 AI 撰寫的。</li>
+        <li><strong>METR 的「AI 讓人慢 19%」不能拿來反駁這些。</strong>那是 2025 年 2–6 月的工具（Cursor + Claude 3.5/3.7），測的是 IDE 補全與 chat，<strong>不是 agent harness</strong>；n=16。METR 自己在 2026-02 說現在應該有加速了，只是他們的新數據「證據非常弱」。當成過時的窄快照，不是現行定律。</li>
+        <li><strong>批評 spec-driven development 的文章都是觀點文、零數據。</strong>正反兩邊在這件事上都沒有硬數據——這個空白本身就是資訊。</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ============ 6 ============ -->
+  <section>
+    <div class="sec-head">
+      <span class="sec-label plain">附錄</span>
+      <h2>來源總表</h2>
+    </div>
+
+    <div class="scroll">
+      <table>
+        <caption>依證據等級排序 · 一手 &gt; 實驗 &gt; 大樣本調查 &gt; 廠商遙測</caption>
+        <thead>
+          <tr>
+            <th scope="col">來源</th>
+            <th scope="col">類型</th>
+            <th scope="col">樣本</th>
+            <th scope="col">用在哪一條</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><a href="https://openai.com/index/harness-engineering/">OpenAI — Harness engineering</a></td>
+            <td>一手、自報</td>
+            <td class="n">1 個團隊 / 5 個月</td>
+            <td>全自動可行性、20% slop 成本、方法 03–06、08</td>
+          </tr>
+          <tr>
+            <td><a href="https://www.anthropic.com/institute/recursive-self-improvement">Anthropic — Recursive self-improvement</a></td>
+            <td>一手、自報</td>
+            <td class="n">1 家公司</td>
+            <td>&gt;80% code 由 Claude 寫、review 成新瓶頸</td>
+          </tr>
+          <tr>
+            <td><a href="https://arxiv.org/html/2608.17177v1">Grounding AI Agents in Contracts（Google）</a></td>
+            <td>預印本、對照實驗</td>
+            <td class="n">90 個真實 bug</td>
+            <td>54.9% vs 19.4%、方法 01–02</td>
+          </tr>
+          <tr>
+            <td><a href="https://arxiv.org/abs/2603.26244">Automating Domain-Driven Design</a></td>
+            <td>預印本、案例研究</td>
+            <td class="n">n = 1</td>
+            <td>LLM 在 DDD 第 4–5 步失效、方法 07</td>
+          </tr>
+          <tr>
+            <td><a href="https://cloud.google.com/blog/products/ai-machine-learning/announcing-the-2025-dora-report">DORA 2025</a></td>
+            <td>大樣本調查</td>
+            <td class="n">~5,000</td>
+            <td>吞吐轉正、穩定度仍負相關、30% 不信任</td>
+          </tr>
+          <tr>
+            <td><a href="https://stackoverflow.blog/2025/12/29/developers-remain-willing-but-reluctant-to-use-ai-the-2025-developer-survey-results-are-here/">Stack Overflow 2025</a></td>
+            <td>大樣本調查</td>
+            <td class="n">49,000+</td>
+            <td>80% 用 AI；agent 每日 14.1%／每週 9.0%</td>
+          </tr>
+          <tr>
+            <td><a href="https://www.sonarsource.com/state-of-code-developer-survey-report.pdf">Sonar — State of Code</a></td>
+            <td>廠商調查</td>
+            <td class="n">1,149</td>
+            <td>toil 不變但換味道、review 更費力、42% 自報 AI 佔比</td>
+          </tr>
+          <tr>
+            <td><a href="https://newsletter.pragmaticengineer.com/p/ai-tooling-2026">Pragmatic Engineer — AI Tooling 2026</a></td>
+            <td>自選樣本調查</td>
+            <td class="n">906</td>
+            <td>55% 常態使用 agent（普及率上界）</td>
+          </tr>
+          <tr>
+            <td><a href="https://metr.org/blog/2025-07-10-early-2025-ai-experienced-os-dev-study/">METR RCT</a> · <a href="https://metr.org/blog/2026-02-24-uplift-update/">2026-02 更新</a></td>
+            <td>隨機對照試驗</td>
+            <td class="n">16 人 / 246 題</td>
+            <td>+19% 耗時（CI +2%～+39%）；範圍限制見「邊界」</td>
+          </tr>
+          <tr>
+            <td><a href="https://www.gitclear.com/ai_assistant_code_quality_2025_research">GitClear</a></td>
+            <td>廠商遙測</td>
+            <td class="n">2.11 億行</td>
+            <td>重構行數 25%→3.8%、複製貼上 8.3%→15.7%（信心僅中等）</td>
+          </tr>
+          <tr>
+            <td><a href="https://github.com/github/spec-kit">GitHub Spec Kit</a></td>
+            <td>工具 / 生態訊號</td>
+            <td class="n">130k stars</td>
+            <td>spec-driven 已成主流工具類別，但 README 無任何量化成效</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p class="footnote">
+      方法說明：先跑一輪 fan-out 網路研究（22 個來源、抽出 110 條主張、25 條進對抗式查證），
+      其中 7 條在查證中被推翻並剔除——包括「72% 開發者說 vibe coding 不是專業工作」
+      與「METR 後續實驗仍測到沒有加速」這兩條流傳很廣的說法，<strong>不要引用它們</strong>。
+      之後再針對 OpenAI harness engineering 與兩篇論文做第二輪一手查證。
+      2026-08-20 定稿；agent 採用率是這批數字裡變動最快的變數，
+      晚於 2026 上半年的數字請重查。
+    </p>
+  </section>
+
+</div>
+
+</body>
+</html>
