@@ -1,0 +1,18 @@
+{"event": "asked", "round": 1, "who": "interviewer", "session_id": "5d131295-1585-4635-a807-3a500c7c961e", "chars": 974, "file": "rounds/r1-questions.md"}
+{"event": "answered", "round": 1, "who": "stakeholder", "session_id": "00509f65-c835-4555-afdc-51e96e87c7b6", "chars": 394, "file": "rounds/r1-answers.md"}
+{"event": "relayed", "round": 1, "from": "stakeholder", "to": "interviewer", "chars": 394}
+{"event": "asked", "round": 2, "who": "interviewer", "session_id": "5d131295-1585-4635-a807-3a500c7c961e", "chars": 1672, "file": "rounds/r2-questions.md"}
+{"event": "answered", "round": 2, "who": "stakeholder", "session_id": "00509f65-c835-4555-afdc-51e96e87c7b6", "chars": 588, "file": "rounds/r2-answers.md"}
+{"event": "relayed", "round": 2, "from": "stakeholder", "to": "interviewer", "chars": 588}
+{"event": "asked", "round": 3, "who": "interviewer", "session_id": "5d131295-1585-4635-a807-3a500c7c961e", "chars": 2296, "file": "rounds/r3-questions.md"}
+{"event": "answered", "round": 3, "who": "stakeholder", "session_id": "00509f65-c835-4555-afdc-51e96e87c7b6", "chars": 696, "file": "rounds/r3-answers.md"}
+{"event": "relayed", "round": 3, "from": "stakeholder", "to": "interviewer", "chars": 696}
+{"event": "asked", "round": 4, "who": "interviewer", "session_id": "5d131295-1585-4635-a807-3a500c7c961e", "chars": 3184, "file": "rounds/r4-questions.md"}
+{"event": "answered", "round": 4, "who": "stakeholder", "session_id": "00509f65-c835-4555-afdc-51e96e87c7b6", "chars": 495, "file": "rounds/r4-answers.md"}
+{"event": "relayed", "round": 4, "from": "stakeholder", "to": "interviewer", "chars": 495}
+{"event": "asked", "round": 5, "who": "interviewer", "session_id": "5d131295-1585-4635-a807-3a500c7c961e", "chars": 2868, "file": "rounds/r5-questions.md"}
+{"event": "answered", "round": 5, "who": "stakeholder", "session_id": "00509f65-c835-4555-afdc-51e96e87c7b6", "chars": 540, "file": "rounds/r5-answers.md"}
+{"event": "relayed", "round": 5, "from": "stakeholder", "to": "interviewer", "chars": 540}
+{"event": "asked", "round": 6, "who": "interviewer", "session_id": "5d131295-1585-4635-a807-3a500c7c961e", "chars": 2977, "file": "rounds/r6-questions.md"}
+{"event": "answered", "round": 6, "who": "stakeholder", "session_id": "00509f65-c835-4555-afdc-51e96e87c7b6", "chars": 521, "file": "rounds/r6-answers.md"}
+{"event": "relayed", "round": 6, "from": "stakeholder", "to": "interviewer", "chars": 521}

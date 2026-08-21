@@ -1,0 +1,11 @@
+{
+  "rounds": 6,
+  "interviewer_model": "opus",
+  "stakeholder_model": "sonnet",
+  "template_dir": "/Users/natchung/projects/ddd-harness/examples/timesheet/harness/act1",
+  "input_blobs": {
+    "interview-prompt.md": "fa32e71e32ad26d1c0878828bdef7f750017c2c2",
+    "interviewer/prompt.txt": "24d6e408aca64580c5148bd77ffd7195f85c3cdf",
+    "stakeholder/prompt.txt": "836eab4cd0c765c279cf7c7a1eac50540de0fc63"
+  }
+}
