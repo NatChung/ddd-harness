@@ -1,0 +1,216 @@
+# 領域契約 —— 來源:spec/SPEC.md §4(L493-534)
+#
+# ⚠️ 散文的 C18 / C19 / C20 沒有落檔,理由:那三列的「型態」欄是「—」、
+#    「守在哪個聚合根內」欄是「不適用」—— 它們宣告的是**不設任何契約**
+#    (R2 同一天算兩次 / R3 售前跑進計費 / R5 描述不當,三條都由 [Q16b] [Q17] [Q20]
+#    明示交給人看)。kind 的值域只有 precondition / postcondition / invariant 三個,
+#    而且不得為了裝下它們而擴充;把「不設契約」寫成一條契約,會讓下游以為有東西在守。
+#    這三條的禁令由 architecture.yaml 的 A-09(不得實作任何自動判定)承接。
+#
+# ⚠️ enforcement 一律 none —— 今天沒有任何生成器讀這張表(schema.sql L425-428),
+#    這不是「還沒填」。每一條的 ladder_note 寫了缺的是哪一種檢查。
+#
+# ⚠️ named_tests 只裝**散文指名的**情境編號。本檔的驗收情境只有 S1 / S4 / S7 / S8,
+#    所以很多條是空的 —— 而它們全部是「指名了、但那個情境沒落檔」那一種,
+#    不是「散文沒指名」。逐條在 no_named_test_reason 裡講明是哪幾條、為什麼進不去。
+
+domain_contracts:
+
+  - id: "C1"
+    kind: "invariant"
+    statement: "時數必須是 0.5 的正倍數(0.5 / 1 / 1.5 …),不收 15 分鐘零頭,且必須 > 0"
+    provenance: "Qn"
+    provenance_ref: "SPEC.md L499([Q13];其中「> 0」為本案自決 A2,見 L594)"
+    guarded_in: "時數 Hours(Value Object 自身;散文那一欄只裝得下聚合根,故標「工時單」,但判定只需看這一個值)"
+    crosses_aggregate: 0
+    enforcement: "none"
+    ladder_note: "這是 Value Object 建構子的值域不變式。今天的三種架構檢查(禁依賴 / 禁 annotation / 禁回傳型別)都不看建構子裡的值域判定,而契約表本身沒有生成器。搬得上去的話缺的是「Value Object 值域」這一類生成器(建構子契約或 property-based 檢查);在那之前守它的只有 S7 / S8 兩個例子,而契約說的是任何一個 Hours。"
+    named_tests: ["S7", "S8"]
+
+  - id: "C2"
+    kind: "invariant"
+    statement: "金額一律新台幣整數,無小數、無外幣"
+    provenance: "Qn"
+    provenance_ref: "SPEC.md L500([Q18] [Q22] [Q26])"
+    guarded_in: "金額 Money(Value Object 自身)"
+    crosses_aggregate: 0
+    enforcement: "none"
+    ladder_note: "同 C1,是 Value Object 自己的值域不變式,缺的是同一種生成器。另外有一半今天完全沒有例子在守:散文指名的 S5(550 × 0.85 = 467.5 → 467)未落檔,因為 0.5 小時裝不進 fixture 的整數 quantity —— 也就是「打折之後仍是整數」這一段目前只活在散文裡。相關的數學前提(五個費率皆為偶數,見 L579 B6)也還沒有任何機械檢查。"
+    named_tests: ["S1"]
+
+  - id: "C3"
+    kind: "invariant"
+    statement: "lineAmount = billable ? hours × hourlyRateAmount : 0;明細金額不含折扣"
+    provenance: "Qn"
+    provenance_ref: "SPEC.md L501([Q5] [Q17] [Q25b])"
+    guarded_in: "工時單 Timesheet(Aggregate Root;明細是它的一部分,判定只需看這一筆)"
+    crosses_aggregate: 0
+    enforcement: "none"
+    ladder_note: "算式類的不變式,三種架構 kind 都不看方法內容;契約表沒有生成器。搬得上去的話缺的是「聚合根算式」這一類生成器。今天守它的是 S1 / S4 兩個例子;散文另外指名的 S2(billable=false → 0)與 S6(逐筆不打折)未落檔:fixture 的一筆明細沒有 billable 欄位,而 S6 用到半小時的時數。"
+    named_tests: ["S1", "S4"]
+
+  - id: "C4"
+    kind: "invariant"
+    statement: "subtotalAmount = Σ lineAmount(僅計非 DRAFT 明細)"
+    provenance: "推導自"
+    provenance_ref: "SPEC.md L502(推導自 [Q25b][Q24];DRAFT 不計入為 A5,見 L597)"
+    guarded_in: "工時單 Timesheet(Aggregate Root)"
+    crosses_aggregate: 0
+    enforcement: "none"
+    ladder_note: "加總類的不變式,缺的生成器同 C3。附帶一提:本檔的 wire_contract 把 res_total_field 綁在 subtotalAmount 上,所以驗收生成器的「總額 = Σ(數量 × 單價)」那條守衛認得到它 —— 但那只涵蓋「非 DRAFT」以外的部分,DRAFT 那半個條件沒有任何檢查。"
+    named_tests: []
+    no_named_test_reason: "散文指名了 S3、S6、S20 三條(不是沒指名),三條都沒落檔:S3 用 1.5 小時、S6 用 0.5 小時,而 fixture 的 quantity 是整數欄,半小時裝不進去;S20 要的是「草稿留著但不計入金額」,而 fixture 的請求沒有 isDraft 欄位,也沒有第二個動作把草稿轉正。"
+
+  - id: "C5"
+    kind: "invariant"
+    statement: "totalAmount = floor(subtotalAmount × discountRate),整張單只捨去一次;必須以整數運算求值(85 折即 subtotalAmount × 85 / 100),禁止用二進位浮點數"
+    provenance: "Qn"
+    provenance_ref: "SPEC.md L503([Q25b] [Q26];整數運算為本案自決 A10,見 L602)"
+    guarded_in: "工時單 Timesheet(Aggregate Root)"
+    crosses_aggregate: 0
+    enforcement: "none"
+    ladder_note: "契約表沒有生成器;而這一條的「禁浮點求值」那一半在架構那邊也搬不上去(見 architecture.yaml A-04:三種 kind 都看不到欄位型別與運算)。更該記著的缺口是:散文指名的 S5 / S6 / S16 都沒落檔(半小時時數、狀態流轉),所以今天唯一在守它的 S4 是 10000 × 0.85 = 8500 這種**整除**的情形 —— 真正會分出 3145 與 3144 的那個例子(S6)一條都沒有。"
+    named_tests: ["S4"]
+
+  - id: "C6"
+    kind: "invariant"
+    statement: "折扣掛在客戶身上、簽約時談定,不逐月重談;discountRate 對不打折的客戶固定 1.00"
+    provenance: "Qn"
+    provenance_ref: "SPEC.md L504([Q25a])"
+    guarded_in: "工時單 Timesheet(Aggregate Root;持有客戶當下的 discountRate 快照)"
+    crosses_aggregate: 0
+    enforcement: "none"
+    ladder_note: "缺的生成器同 C3。而且本檔連例子都驗不完整:discountRate 是乘數(0.85 / 1.00),裝不進斷言的整數期望值,所以 S4 只能用 totalAmount = 8500 間接反映它。散文指名的另一條 S3 未落檔(1.5 小時)。「不逐月重談」則沒有任何動作可以驗 —— 那要的是「改了客戶折扣之後舊單不動」,而那是 B11 沒問到的範圍(L584)。"
+    named_tests: ["S4"]
+
+  - id: "C7"
+    kind: "invariant"
+    statement: "狀態為 SENT 的工時單,其 subtotalAmount / discountAmount / totalAmount 與所有明細的 hourlyRateAmount、lineAmount 永不改變(R4)"
+    provenance: "Qn"
+    provenance_ref: "SPEC.md L505([Q11] R4、[Q9];R4 是五條規矩裡唯一擋得住的那條,見 L30)"
+    guarded_in: "工時單 Timesheet(Aggregate Root)"
+    crosses_aggregate: 0
+    enforcement: "none"
+    ladder_note: "「永不改變」是跨時間的不變式,三種 kind 是靜態結構檢查,契約表沒有生成器,兩邊都接不住。搬得上去的話缺的是「狀態機 + 不可變性」這一類生成器(某狀態下哪些欄位不得被寫)。附帶:architecture.yaml 的 A-10(這件事必須守在聚合根內、不得只靠 UI/API 擋)也是 none,所以連「守在哪一層」都沒有機械檢查。"
+    named_tests: []
+    no_named_test_reason: "散文指名了 S10(不是沒指名),S10 沒落檔:它要的兩個動作 —— 把一張單推到 SENT、以及事後調整某顧問的費率 —— fixture 都沒有;一個情境只送得出建立請求,沒有狀態流轉,也沒有「改費率」這種動作。"
+
+  - id: "C8"
+    kind: "precondition"
+    statement: "對狀態為 SENT 的工時單,任何新增 / 修改 / 刪除明細的呼叫一律拒絕(TIMESHEET_ALREADY_SENT)"
+    provenance: "Qn"
+    provenance_ref: "SPEC.md L506([Q8]:真正定案是寄出去給客戶那一刻)"
+    guarded_in: "工時單 Timesheet(Aggregate Root)"
+    crosses_aggregate: 0
+    enforcement: "none"
+    ladder_note: "前置條件類,缺的生成器同 C7(狀態機那一類)。注意這一條的「刪除」那一段今天不該有實作:刪除規則沒問到(L585 B12),§2 也沒有刪除端點。"
+    named_tests: []
+    no_named_test_reason: "散文指名了 S11、S12(不是沒指名),兩條都沒落檔:它們是「先有一張已寄出的單,再對它送一個該被拒的請求」這種混合情境,而 expects_rejection 掛在情境上 —— 一個情境不能同時有成立的前置步驟與被拒的請求(schema.sql L271-273 已標明這類今天表達不了)。"
+
+  - id: "C9"
+    kind: "precondition"
+    statement: "requiresClientConfirmation = true 的客戶,狀態不是 CLIENT_CONFIRMED 時不得 SEND(CLIENT_CONFIRMATION_REQUIRED)"
+    provenance: "Qn"
+    provenance_ref: "SPEC.md L507([Q7] [Q14]:就是那兩家,每個月都要先過這一關)"
+    guarded_in: "工時單 Timesheet(Aggregate Root)"
+    crosses_aggregate: 0
+    enforcement: "none"
+    ladder_note: "同 C8,缺的是狀態機那一類生成器。另外提醒:誰有權按下 SEND 是阻斷級 B4(L577),所以這一條只管「單的狀態夠不夠格」,不得順手長出權限判定。"
+    named_tests: []
+    no_named_test_reason: "散文指名了 S13、S14、S16(不是沒指名),三條都沒落檔:三條的 When 都是 E4 的狀態流轉(SEND / SEND_TO_CLIENT / CLIENT_CONFIRM),而 fixture 只送得出建立明細的請求,沒有這個動詞。"
+
+  - id: "C10"
+    kind: "precondition"
+    statement: "明細的 hourlyRateAmount 取自該顧問在 workDate 那一天的費率,寫入時即成快照,不隨日後調整而變"
+    provenance: "Qn"
+    provenance_ref: "SPEC.md L508([Q9]:用舊費率;取值日為 workDate 是推導自 [Q9] 的 A7,見 L599)"
+    guarded_in: "工時單 Timesheet(Aggregate Root)"
+    crosses_aggregate: 1
+    disposition: "要判定「某顧問在某一天的費率是多少」,必須看到工時單以外的東西:職級費率對照表與該顧問的職級異動歷史。處置是把它當成**寫入時的一次性解析**,不是持續成立的不變式 —— 解析完就成為工時單內的快照 hourlyRateAmount,此後改由 C7 守住。因此不新增聚合根,而是把職級費率對照表定為外部規則集,以唯讀查詢介面注入領域層,領域層不得持有它的可變參照。殘留風險有兩個:一,費率生效日怎麼設、對照表誰維護沒問到(阻斷級 B5,L578),所以「解析出來的那個值對不對」在本規格內判定不了,只保證取值日是 workDate 而不是 recordedAt(A7 尚未經需求方確認);二,唯讀注入靠自律,今天沒有任何機械檢查擋得住有人把對照表寫成可變參照(見 architecture.yaml A-07,也是 none)。"
+    enforcement: "none"
+    ladder_note: "契約表沒有生成器;這一條真正該有的是兩種檢查 —— 「領域層不得持有外部規則集的可變參照」(結構,缺的是禁止欄位型別那一類 kind,同 A-07 的缺口)與「取值日是 workDate」(行為,缺的是能表達日期的驗收 fixture)。兩種都還沒有。"
+    named_tests: []
+    no_named_test_reason: "散文指名了 S9、S10(不是沒指名),兩條都沒落檔:fixture 的一筆明細裡沒有 consultantId 也沒有 workDate,費率只能由請求夾帶(理由寫在 acceptance.yaml 抬頭),所以「依 workDate 解析費率」這個動作根本進不了 fixture;S10 另外還要 SENT 前置與調費率的動作。"
+
+  - id: "C11"
+    kind: "precondition"
+    statement: "顧問角色只看得到自己的明細與自己的費率金額,單層金額三欄回 null;經理看得到自己那組;老闆全看"
+    provenance: "Qn"
+    provenance_ref: "SPEC.md L509([Q28]:不希望顧問彼此看得到對方賺多少)"
+    guarded_in: "工時單 Timesheet(Aggregate Root)"
+    crosses_aggregate: 1
+    disposition: "「這位經理管不管得到這位顧問」需要組織架構資料,工時單看不到。處置是把判定移出領域層,放在應用層的授權關卡,以唯讀查詢取得組織歸屬;工時單本身不持有組織結構,也不新增聚合根。殘留風險:「顧問怎麼歸組」「經理跨組看不看得到」沒問到(B8,L581),因此三個角色裡只有兩端是定義得出來的 —— 顧問(只看自己)與老闆(全看);經理那一段的判準在本規格內寫不出來,實作不得自己發明一套歸組規則。另外,過濾發生在應用層,意味著任何繞過那道關卡的讀取路徑(報表、匯出、除錯端點)都會漏光,而今天沒有東西擋得住新增這種路徑。"
+    enforcement: "none"
+    ladder_note: "契約表沒有生成器,而且這一條的形狀連架構那三種 kind 都套不上:要判定的是「每一條讀取路徑都經過授權關卡」,那是呼叫關係的檢查,不是 package 依賴、annotation 或回傳型別。搬得上去的話缺的是「某個 package 的類別只能經由某個關卡被呼叫」這一類 kind。"
+    named_tests: []
+    no_named_test_reason: "散文指名了 S22、S23(不是沒指名),兩條都沒落檔:fixture 沒有「呼叫者是誰、什麼角色」這個維度,一筆請求只有 clientId 與明細;而 S22 / S23 整條情境就是在比不同角色讀到的東西不一樣。"
+
+  - id: "C12"
+    kind: "postcondition"
+    statement: "【成功】新增明細成功後:該筆存在且 recordedAt 已寫入;單的 subtotalAmount / totalAmount 已同步重算"
+    provenance: "Qn"
+    provenance_ref: "SPEC.md L510([Q19] 與推導自 [Q25b])"
+    guarded_in: "工時單 Timesheet(Aggregate Root)"
+    crosses_aggregate: 0
+    enforcement: "none"
+    ladder_note: "後置條件類,契約表沒有生成器。今天守它的是 S1 一個例子,而且只守得到後半段(小計、總額同步重算):recordedAt 不在列表一列裡(L211 明細一律走 E2),斷言碰不到它。散文指名的另一條 S17(補記五筆、記下 recordedAt)未落檔 —— fixture 沒有日期欄,補記與否表達不出來。要真的守住前半段,缺的是能斷言明細層欄位的驗收形狀。"
+    named_tests: ["S1"]
+
+  - id: "C13"
+    kind: "postcondition"
+    statement: "【失敗:業務規則不通過】C1 / C8 / C9 任一不成立時:單的明細筆數、各筆內容、三個金額欄、status、sentAt 全部與呼叫前逐欄相同,不留任何殘骸"
+    provenance: "推導自"
+    provenance_ref: "SPEC.md L511(推導自 [Q8][Q13])"
+    guarded_in: "工時單 Timesheet(Aggregate Root)"
+    crosses_aggregate: 0
+    enforcement: "none"
+    ladder_note: "契約表沒有生成器。今天守它的 S7 / S8 只涵蓋 C1 那一路(時數不合法),而且驗的是「這家客戶連一列都沒出現」而不是「呼叫前後逐欄相同」—— 因為那兩條情境裡那張單本來就還不存在。C8 / C9 那兩路一條例子都沒有(見 C8、C9 的 no_named_test_reason)。搬得上去的話缺的是「同一個情境裡先成立、再送一個該被拒的請求,然後逐欄比對」這種混合形狀,而 schema.sql L271-273 已標明今天表達不了。"
+    named_tests: ["S7", "S8"]
+
+  - id: "C14"
+    kind: "postcondition"
+    statement: "【失敗:系統中途失敗】持久化中斷時:該次新增 / 修改整筆不生效;不存在「明細寫入但小計未更新」或「小計更新但明細未寫入」的狀態"
+    provenance: "本案自決"
+    provenance_ref: "SPEC.md L512 與 L595(A3:訪談在問到這題之前就結束,依判準歸類為技術判斷,採建議並待確認)"
+    guarded_in: "工時單 Timesheet(Aggregate Root;以工時單為交易邊界)"
+    crosses_aggregate: 0
+    enforcement: "none"
+    ladder_note: "這一條要的是把程序在某個時點打斷,而驗收 fixture 只有 HTTP 請求這一種動作,架構那三種 kind 又都是靜態結構檢查。搬得上去的話缺的是「交易邊界」這一類檢查(例如:一次用例只能開一個交易、只能寫一個聚合根),而那與 architecture.yaml A-03 是同一個缺口。"
+    named_tests: []
+    no_named_test_reason: "散文指名了 S24(不是沒指名),S24 沒落檔:「持久化過程中程序中斷」不是一個送得出去的請求,fixture 表達不出這個動作。"
+
+  - id: "C15"
+    kind: "postcondition"
+    statement: "【失敗:客戶不認】CLIENT_REJECT 後狀態回到 OPEN,sentAt 維持 null,明細一筆不刪;爭議由行政與顧問線下對完再改"
+    provenance: "Qn"
+    provenance_ref: "SPEC.md L513([Q21]:退回去改,改完再跑一次確認,客戶點頭才正式請款)"
+    guarded_in: "工時單 Timesheet(Aggregate Root)"
+    crosses_aggregate: 0
+    enforcement: "none"
+    ladder_note: "同 C8 / C9,缺的是狀態機那一類生成器。「明細一筆不刪」這一半今天連例子都不會有:§2 沒有刪除端點,刪除規則是 B12 沒問到的範圍(L585)。"
+    named_tests: []
+    no_named_test_reason: "散文指名了 S15、S16(不是沒指名),兩條都沒落檔:兩條的 When 都是 E4 的狀態流轉(CLIENT_REJECT / SEND_TO_CLIENT → CLIENT_CONFIRM → SEND),fixture 沒有這個動詞;S16 另外還要 E6 改明細。"
+
+  - id: "C16"
+    kind: "postcondition"
+    statement: "任何對明細的修改成功後,lastModifiedBy / lastModifiedAt 必被更新為本次操作者與時間"
+    provenance: "Qn"
+    provenance_ref: "SPEC.md L514([Q27]:能改,但要留得出來是誰動的,不然出事沒人負責)"
+    guarded_in: "工時單 Timesheet(Aggregate Root)"
+    crosses_aggregate: 0
+    enforcement: "none"
+    ladder_note: "契約表沒有生成器。這一條要的是「修改」這個動作(E6 PUT)加上明細層欄位的斷言,fixture 兩樣都沒有。搬得上去的話缺的是能表達第二個動作、並斷言明細層欄位的驗收形狀。⚠️ 這一條是 §0 那兩道人工關卡的稽核依據(R2 / R3 / R5 只靠人看),它沒有機械檢查這件事本身就是風險。"
+    named_tests: []
+    no_named_test_reason: "散文指名了 S21(不是沒指名),S21 沒落檔:它的 When 是行政經由 E6 修改別人的明細,而 fixture 只送得出建立明細的請求,也沒有 actorId 欄位。"
+
+  - id: "C17"
+    kind: "invariant"
+    statement: "DRAFT 明細不計入 subtotalAmount,且在該顧問下次讀取時仍存在"
+    provenance: "Qn"
+    provenance_ref: "SPEC.md L515([Q24]:要幫他留著,不要逼人家一次填完;不計入金額為推導自 [Q24] 的 A5,見 L597)"
+    guarded_in: "工時單 Timesheet(Aggregate Root)"
+    crosses_aggregate: 0
+    enforcement: "none"
+    ladder_note: "缺的生成器同 C4(加總類)。另外要記著:DRAFT 掛在明細層而不是單層是推導不是原話(L109-113、A5),需求方沒明說草稿的顆粒度 —— 所以這一條在需求上也還沒定案,搬階之前應該先回去確認。"
+    named_tests: []
+    no_named_test_reason: "散文指名了 S20(不是沒指名),S20 沒落檔:fixture 的請求裡沒有 isDraft 欄位,草稿這個狀態送不出去。"

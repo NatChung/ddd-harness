@@ -1,0 +1,219 @@
+# 驗收情境與 wire shape —— 來源:spec/SPEC.md §2(端點)、§3(情境)
+#
+# ⚠️ 這份 wire_contract 是「餵給驗收生成器的那一份請求形狀」,而它比 §2 E1 窄。
+#    落差逐條寫在這裡,不寫在情境的註解裡,因為它影響每一條情境:
+#
+#    (1) fixture 的一筆請求只裝得下:clientId + entries[]{projectId, hours,
+#        hourlyRateAmount, currency}。§2 E1 請求裡的 consultantId / workDate /
+#        description / billable / isDraft 沒有欄位可放。
+#    (2) 因此**費率由請求夾帶,不是由系統依 workDate 解析** —— 這一點與 §2 E1
+#        (SPEC.md L136-145)、C10、A7 相反。fixture 裡沒有顧問也沒有日期,系統
+#        根本無從解析費率;要讓「金額 = 時數 × 費率」算得出來,單價只能由請求給。
+#        每一條成立情境的 proxy_for 都據實寫了這件事。
+#    (3) `unit_price_cents` 這個欄名來自 harness,本案裝的是**新台幣元的整數**
+#        (SPEC.md L128),不是分。所有金額斷言同一單位,乘積與加總自洽。
+#    (4) 列表一列(list_fields)照 §2 E3 逐欄抄(SPEC.md L196-209)。
+#        `res_total_field` 取 `subtotalAmount` 而不是 `totalAmount`:
+#        Σ(數量 × 單價) 是**打折前**的和(C3/C4),而 totalAmount 已經打過折(C5),
+#        綁錯的話 S4 那條折扣情境會把不變式判成不成立。
+#    (5) `discountRate` 是乘數(1.00 / 0.85),0.85 裝不進整數的 expected_number,
+#        故一律不斷言它,改由 totalAmount 間接驗。
+#    (6) §2 沒有「請求夾帶總金額」這種欄位,故 req_total_field 不給,
+#        也沒有任何 claimed_total_cents。
+#
+# ⚠️ 落檔的情境只有 4 條(S1 / S4 / S7 / S8),不是散文的 S1–S24。沒落檔的那些,
+#    缺的是 fixture 沒有的**動詞**(狀態流轉、PUT 改明細、角色過濾、跨客戶查詢、
+#    程序中斷)或裝不進整數 quantity 的**半小時時數**。逐條理由寫在
+#    contracts.yaml 的 no_named_test_reason 與 ladder_note,不在這裡湊。
+
+wire_contract:
+  name: "計費工時單(timesheet)—— §2 端點的對外欄位合約"
+
+  # 請求側(SPEC.md L132-145 E1;items/currency/hourlyRateAmount 三項為本案自決)
+  req_customer_field: "clientId"
+  req_items_field: "entries"
+  req_product_field: "projectId"
+  req_quantity_field: "hours"
+  req_price_field: "hourlyRateAmount"
+  req_currency_field: "currency"
+  # req_total_field:(不給)§2 的請求不夾帶總金額
+
+  # 回應側
+  res_order_id_field: "timesheetId"      # E1 回應與 E3 一列共用(L152、L198)
+  res_total_field: "subtotalAmount"      # Σ(數量 × 單價),打折前(C3/C4)
+  res_customer_id_field: "clientId"      # 被拒的請求靠這一欄確認沒有殘骸
+
+  # 列表一列的欄位 —— 照 §2 E3 逐欄(SPEC.md L196-209)
+  list_fields:
+    - "timesheetId"
+    - "clientId"
+    - "clientName"
+    - "billingMonth"
+    - "status"
+    - "entryCount"
+    - "totalHours"
+    - "subtotalAmount"
+    - "discountRate"
+    - "totalAmount"
+    - "currency"
+    - "sentAt"
+
+acceptance_scenarios:
+
+  # ── S1:記一筆可計費明細,金額 = 時數 × 費率(SPEC.md L277-282)────────────
+  - id: "S1"
+    given_when: "客戶 C-FOOD(不打折)2026-08 的工時單存在、狀態 OPEN、目前 0 筆明細;U-CHEN 在 P-1 上新增一筆 workDate=2026-08-03、hours=3、billable=true 的明細"
+    then_expect: "該筆 hourlyRateAmount = 3000、lineAmount = 9000、currency = TWD;單的 subtotalAmount = 9000、discountRate = 1.00、discountAmount = 0、totalAmount = 9000"
+    provenance: "Qn"
+    provenance_ref: "SPEC.md L277-282([Q5] [Q22] [Q18]);固定資料見 L271-273"
+    proxy_for: "散文的 Then 斷言的是**那一筆明細**的 hourlyRateAmount 與 lineAmount,而列表一列不含明細(L211),故改以單層的 subtotalAmount=9000 / totalAmount=9000 / entryCount=1 / totalHours=3 代替 —— 只有一筆明細,兩者數值等價。散文的 When 是 POST 一筆帶 consultantId / workDate / description / billable / isDraft 的明細;fixture 裝不下這些欄位,費率 3000 因此由請求夾帶,而不是系統依 workDate 解析(C10 / A7)—— 這一條驗的是乘法與加總,不是費率解析。billingMonth 不斷言:fixture 沒有 workDate,月份無從決定。discountRate=1.00 不斷言:乘數裝不進整數的期望值,改由 totalAmount 間接驗。"
+    steps:
+      - alias: "s1Food"
+        customer_id: "C-FOOD"
+        items:
+          - product_id: "P-1"
+            quantity: 3
+            unit_price_cents: 3000
+            currency: "TWD"
+    assertions:
+      - kind: "status_is"
+        target: "s1Food"
+        expected_number: 201
+      - kind: "order_id_not_blank"
+        target: "s1Food"
+      - kind: "list_row_exists"
+        target: "s1Food"
+      - kind: "list_field_equals_text"
+        target: "s1Food"
+        field: "clientId"
+        expected_text: "C-FOOD"
+      - kind: "list_field_equals_text"
+        target: "s1Food"
+        field: "status"
+        expected_text: "OPEN"
+      - kind: "list_field_equals_text"
+        target: "s1Food"
+        field: "currency"
+        expected_text: "TWD"
+      - kind: "list_field_equals_number"
+        target: "s1Food"
+        field: "entryCount"
+        expected_number: 1
+      - kind: "list_field_equals_number"
+        target: "s1Food"
+        field: "totalHours"
+        expected_number: 3
+      - kind: "list_field_equals_number"
+        target: "s1Food"
+        field: "subtotalAmount"
+        expected_number: 9000
+      - kind: "list_field_equals_number"
+        target: "s1Food"
+        field: "totalAmount"
+        expected_number: 9000
+
+  # ── S4:折扣客戶,整張單加總完才打一次折(SPEC.md L299-305)──────────────
+  - id: "S4"
+    given_when: "客戶 C-FORGE(85 折)2026-08 工時單、狀態 OPEN;唯一一筆 U-WANG workDate=2026-08-06、hours=2、billable=true,費率 5000 → lineAmount = 10000;讀取這張單"
+    then_expect: "subtotalAmount = 10000、discountRate = 0.85、totalAmount = 8500、discountAmount = 1500;明細那筆的 lineAmount 仍是 10000,折扣不落在明細上"
+    provenance: "Qn"
+    provenance_ref: "SPEC.md L299-305([Q25b]);C-FORGE 85 折見 L271"
+    proxy_for: "散文的 When 是讀取那一張單(E2,L168),fixture 只有列表(E3)可讀,故改斷言列表那一列 —— 該列的 subtotalAmount / totalAmount 與 E2 同義(L205-207)。discountRate = 0.85 與 discountAmount = 1500 裝不進整數的期望值,故以 totalAmount = 8500 間接驗「整張單打一次折」;明細層的 lineAmount 仍為 10000 無法在列表層斷言,只能由 subtotalAmount = 10000(未被打折的和)間接反映。費率 5000 由請求夾帶而非系統解析,理由同 S1。"
+    steps:
+      - alias: "s4Forge"
+        customer_id: "C-FORGE"
+        items:
+          - product_id: "P-1"
+            quantity: 2
+            unit_price_cents: 5000
+            currency: "TWD"
+    assertions:
+      - kind: "status_is"
+        target: "s4Forge"
+        expected_number: 201
+      - kind: "order_id_not_blank"
+        target: "s4Forge"
+      - kind: "list_row_exists"
+        target: "s4Forge"
+      - kind: "list_field_equals_text"
+        target: "s4Forge"
+        field: "clientId"
+        expected_text: "C-FORGE"
+      - kind: "list_field_equals_text"
+        target: "s4Forge"
+        field: "currency"
+        expected_text: "TWD"
+      - kind: "list_field_equals_number"
+        target: "s4Forge"
+        field: "entryCount"
+        expected_number: 1
+      - kind: "list_field_equals_number"
+        target: "s4Forge"
+        field: "totalHours"
+        expected_number: 2
+      - kind: "list_field_equals_number"
+        target: "s4Forge"
+        field: "subtotalAmount"
+        expected_number: 10000
+      - kind: "list_field_equals_number"
+        target: "s4Forge"
+        field: "totalAmount"
+        expected_number: 8500
+
+  # ── S7:時數不是 0.5 的倍數 → 拒絕(SPEC.md L330-335)──────────────────
+  - id: "S7"
+    given_when: "工時單狀態 OPEN;新增一筆 hours = 1.3 的明細"
+    then_expect: "拒絕,回 400,錯誤碼 HOURS_NOT_HALF_HOUR_MULTIPLE;單的 subtotalAmount 與明細筆數完全不變"
+    provenance: "Qn"
+    provenance_ref: "SPEC.md L330-335([Q13]:半小時一個單位,不收 15 分鐘那種零頭)"
+    expects_rejection: true
+    proxy_for: "散文的 Given 是客戶 C-FOOD,但被拒情境的 customer_id 不得與成立情境共用(共用的話 list_no_row_for_customer 會撞到 S1 寫進去的那一列),而散文只給了兩家客戶、兩家都被成立情境用掉了,故改用本情境專屬的 C-REJ-S7。時數驗證與客戶屬性無關,結果等價。錯誤碼 HOURS_NOT_HALF_HOUR_MULTIPLE 無法斷言:斷言的 kind 只驗狀態碼與「沒有殘骸」。「subtotalAmount 不變」以 list_no_row_for_customer(這家客戶連一列都不該出現)代替。"
+    rejected_requests:
+      - alias: "s7Fraction"
+        customer_id: "C-REJ-S7"
+        items:
+          - product_id: "P-1"
+            quantity: 1.3
+            unit_price_cents: 3000
+            currency: "TWD"
+    rejected_assertions:
+      - kind: "status_is"
+        target: "s7Fraction"
+        expected_number: 400
+      - kind: "list_no_row_for_customer"
+        target: "s7Fraction"
+
+  # ── S8:時數為 0 或負 → 拒絕(SPEC.md L337-342)────────────────────────
+  - id: "S8"
+    given_when: "工時單狀態 OPEN;新增明細時 hours = 0(或 hours = -2)"
+    then_expect: "拒絕,回 400,錯誤碼 HOURS_NOT_POSITIVE"
+    provenance: "本案自決"
+    provenance_ref: "SPEC.md L341-342 與 L594(A2:時數必須 > 0;負數的唯一用途是沖銷更正,而那條路已被 B1 阻斷。B1 解掉後這條必須重審)"
+    expects_rejection: true
+    proxy_for: "散文的 Given 是客戶 C-FOOD,理由同 S7:被拒情境的 customer_id 不得與成立情境共用,故改用專屬的 C-REJ-S8。錯誤碼 HOURS_NOT_POSITIVE 無法斷言,只驗狀態碼與「沒有殘骸」。散文的「0 或 -2」寫成兩筆請求,各自斷言。"
+    rejected_requests:
+      - alias: "s8Zero"
+        customer_id: "C-REJ-S8"
+        items:
+          - product_id: "P-1"
+            quantity: 0
+            unit_price_cents: 3000
+            currency: "TWD"
+      - alias: "s8Negative"
+        customer_id: "C-REJ-S8"
+        items:
+          - product_id: "P-1"
+            quantity: -2
+            unit_price_cents: 3000
+            currency: "TWD"
+    rejected_assertions:
+      - kind: "status_is"
+        target: "s8Zero"
+        expected_number: 400
+      - kind: "list_no_row_for_customer"
+        target: "s8Zero"
+      - kind: "status_is"
+        target: "s8Negative"
+        expected_number: 400
+      - kind: "list_no_row_for_customer"
+        target: "s8Negative"

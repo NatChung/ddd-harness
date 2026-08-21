@@ -1,0 +1,104 @@
+# 架構規則 —— 來源:spec/SPEC.md §10(L645-662)
+#
+# ⚠️ authorized_templates 必為空。[Q3] 需求方原話:「我們沒有那種『以後系統都要照
+#    這個架構寫』的東西,這是第一次認真做」(L11、L647、L686)。沒有被授權為架構
+#    模板的文件,所以白名單是空的 —— 而白名單空的時候,provenance「模板既定」物理上
+#    寫不進去(schema.sql 的四個 trigger 會 ABORT)。本規格自己也不是架構模板,
+#    不得引用自己的行號來充數(L649)。因此本案自己決定的架構,出處一律「本案自決」,
+#    並在 provenance_ref 寫依據。
+#
+# ⚠️ id 用零填的 A-01…A-10,對應散文的 A-1…A-10。理由:id 決定生成順序,而字串排序
+#    會把 A-10 排在 A-2 前面,生成物就 diff 不穩。
+#
+# ⚠️ 十條裡有九條 enforcement: none —— 這不是偷懶,是形狀對不上。生成器只吃三種形狀
+#    (禁依賴 / 禁 annotation / 禁回傳型別),而散文這幾條要判定的是「必須存在什麼」
+#    (A-02 的單一 repository)、「不得存在什麼」(A-09 的自動判定旗標)、
+#    「某段邏輯寫在哪一層」(A-10)、「執行期的交易邊界」(A-03)、
+#    「欄位是什麼型別」(A-04)。硬塞成三種之一,只會生出一條檢查不到那件事的測試,
+#    而它會綠 —— 那比沒有更糟。缺的是哪一種 kind,逐條寫在 ladder_note。
+#
+# ⚠️ 散文的「由誰強制」欄裡有幾條寫了情境編號(A-03 寫 S24、A-06 寫 S19 …),
+#    那是散文作者指的驗收情境,**不是 enforcement 的值**,也不是機械檢查。
+#    enforced_by 一欄本檔一律不填 —— 那是生成器回填的。
+
+authorized_templates: []
+
+architecture_rules:
+
+  - id: "A-01"
+    rule: "領域層(tw.hengyue.timesheet.domain..)不得相依任何 web 或持久化框架的 package"
+    provenance: "本案自決"
+    provenance_ref: "SPEC.md L653:依據是需求方第一次做系統([Q2] [Q3],L685-686),而唯一擋得住的規矩 R4(L30)全在領域層,不能被框架綁死。base package 名為本案自決,理由同 §2 A1(L593):需求方不懂技術,不該問他;但不釘死的話兩份實作會各取各的名字"
+    enforcement: "archunit_forbidden_dependency"
+    forbidden_dependencies:
+      from: "tw.hengyue.timesheet.domain.."
+      to:
+        - "org.springframework.."
+        - "jakarta.persistence.."
+        - "javax.persistence.."
+        - "org.hibernate.."
+        - "jakarta.servlet.."
+        - "jakarta.ws.rs.."
+
+  - id: "A-02"
+    rule: "Timesheet 是唯一的聚合根;TimesheetEntry 只能經由 Timesheet 建立與修改,不得有自己的 repository"
+    provenance: "推導自"
+    provenance_ref: "SPEC.md L654(推導自 [Q6]:一張單 = 客戶 × 月,明細是它上面的一列,見 L689)"
+    enforcement: "none"
+    ladder_note: "這是一條「某種東西不得存在」的規則(不得有 TimesheetEntryRepository),而三種 kind 沒有一種在查類別的存在性:禁依賴查的是 import、禁 annotation 查的是掛了什麼、禁回傳型別查的是 public 方法回什麼。缺的是「某個 package 底下不得存在某種類名形狀的類別」這一種 kind。⚠️ 硬用 forbidden_return_type 去湊(例如「Repository 結尾的類別不得回傳 TimesheetEntry」)會生出一條檢查不到這件事的綠測試 —— 一個叫 TimesheetEntryDao 的類別照樣過。"
+
+  - id: "A-03"
+    rule: "一次交易只寫一個 Timesheet 聚合根"
+    provenance: "本案自決"
+    provenance_ref: "SPEC.md L655:依據是 C14 的原子性以工時單為交易邊界(L512、A3 見 L595)"
+    enforcement: "none"
+    ladder_note: "要判定的是執行期行為(這一次交易碰了幾個聚合根),三種 kind 全是靜態結構檢查,看不到執行期。缺的是「交易邊界」這一類 kind(例如:標了交易的方法不得同時取得兩個 repository)。這與 C14 是同一個缺口 —— 那一條也是 none。"
+
+  - id: "A-04"
+    rule: "金額一律以整數(新台幣元)承載;領域層不得出現任何浮點數金額欄位,折扣一律以整數運算求值(× 85 / 100),不得先轉成 0.85 再乘"
+    provenance: "推導自"
+    provenance_ref: "SPEC.md L656(推導自 [Q18][Q22][Q26];整數求值為本案自決 A10,見 L602)"
+    enforcement: "none"
+    ladder_note: "三種 kind 沒有一種看得到**欄位的型別**:forbidden_return_type 只看 public 方法的回傳型別,看不到欄位,更看不到「先轉成 0.85 再乘」這種運算。缺的是兩種 —— 「某個 package 底下不得有某型別的欄位」與「不得對某型別做算術」。⚠️ 用 forbidden_return_type 去湊只擋得到「有方法回傳 double」,一個私有的 double 欄位照樣過,而那正是這條規則要擋的東西。散文 §11 把這一條列為骨架必須提供的機械檢查(L670),所以這是明確的搬階目標,不是可以放著的缺口。"
+
+  - id: "A-05"
+    rule: "單一 Bounded Context,不切"
+    provenance: "推導自"
+    provenance_ref: "SPEC.md L657(推導自 [Q7]:工時單與請款單是同一份資料的兩種樣子,見 L690)"
+    enforcement: "none"
+    ladder_note: "這一條今天沒有可判定的對象:只有一個 context,就不存在「跨 context 的依賴」可以禁。缺的是「未來若切了 context,才需要一條 forbidden_dependency 把兩邊隔開」—— 也就是說它要等到前提改變才搬得上去,而不是等生成器。若日後真的切了,這一條要改寫成逐對 context 的禁依賴。"
+
+  - id: "A-06"
+    rule: "跨聚合根的「同一顧問同一天」查詢(E5)只能是唯讀模型,不得回寫、不得回傳判定結果"
+    provenance: "Qn"
+    provenance_ref: "SPEC.md L658([Q16b]:不需要系統自動判定對錯,見 L700);這是 §4 C18 的架構處置 —— 不新增聚合根,降為讀取視圖"
+    enforcement: "none"
+    ladder_note: "兩半都套不上:「不得回寫」要看方法有沒有呼叫到寫入端,缺的是呼叫關係那一類 kind;「不得回傳判定結果」要看回傳的型別**裡面**有沒有旗標欄位,而 forbidden_return_type 只擋整個型別來自哪個 package,擋不到某個型別裡的某個欄位。硬湊會生出綠測試。"
+
+  - id: "A-07"
+    rule: "費率解析(C10)是寫入時的一次性快照,不是持續不變式;職級費率對照表以唯讀查詢介面注入領域層,領域層不得持有它的可變參照"
+    provenance: "推導自"
+    provenance_ref: "SPEC.md L659(推導自 [Q9];這是 C10 跨聚合根的處置 —— 不新增聚合根,改以外部規則集 + 快照,見 L522-528)"
+    enforcement: "none"
+    ladder_note: "「不得持有可變參照」是欄位型別的判定,缺的 kind 與 A-04 同一種(某個 package 底下不得有某型別的欄位)。⚠️ 另外提醒:這一條的完整實作被阻斷級 B5 卡住(費率生效日怎麼設、對照表誰維護沒問到,L578),所以搬階之前先確認需求,而不是先補測試。"
+
+  - id: "A-08"
+    rule: "權限判定(C11)放在應用層授權關卡,不進領域層;工時單不持有組織結構"
+    provenance: "本案自決"
+    provenance_ref: "SPEC.md L660:依據是 [Q28] 的規則需要組織架構資料而工時單看不到(L713);這是 C11 跨聚合根的處置 —— 不新增聚合根,判定移出領域層"
+    enforcement: "none"
+    ladder_note: "要判定的是「授權判定不出現在領域層」與「每一條讀取路徑都經過那道關卡」。前半看起來像禁依賴,但今天連組織資料住哪個 package 都還沒定(B8 沒問到顧問怎麼歸組,L581),寫得出的 from/to 會是憑空捏的;後半要的是呼叫關係那一類 kind,今天沒有。等組織查詢介面的 package 定下來,前半可以搬成一條 forbidden_dependency。"
+
+  - id: "A-09"
+    rule: "R2 / R3 / R5 一律不得實作任何自動判定 —— 任何「疑似重複」「疑似該計費」「疑似不當措辭」的旗標、警告、分數都違背本規格"
+    provenance: "Qn"
+    provenance_ref: "SPEC.md L661([Q16b] [Q17] [Q20] 三次明示,見 L700-704;後果見 §0 L23-35:這三條唯一的防線是兩道人工關卡)"
+    enforcement: "none"
+    ladder_note: "這是一條「某種東西不得存在」的規則,而且要判定的是**語意**(一個布林欄位到底是不是「疑似重複」旗標),不是 package、annotation 或型別。三種 kind 一種都不到,而且這一條特別禁不起硬湊:湊出來的測試會綠,而綠會被讀成「已經確認沒有自動判定」。散文自己把它寫成「需要一條反向測試」(L661、L670),那屬於驗收情境而不是架構檢查 —— 而反向測試也要等 fixture 表達得出 E5 的查詢才寫得出來。"
+
+  - id: "A-10"
+    rule: "SENT 之後的不可變性由聚合根自己守,不得只靠 UI 或 API 層擋"
+    provenance: "Qn"
+    provenance_ref: "SPEC.md L662([Q11] R4 —— 五條規矩裡唯一擋得住的那條,見 L30、L694)"
+    enforcement: "none"
+    ladder_note: "要判定的是「某段邏輯寫在哪一個物件裡」,三種 kind 都不看方法內容,也不看某個判定發生在哪一層。缺的是「某個檢查必須出現在某個類別內」這一類 kind(存在性 + 位置)。這一條與 C7 / C8 是同一件事的兩面,那兩條在契約表也是 none —— 也就是說本規格唯一擋得住的那條規矩,今天一條機械檢查都沒有。"

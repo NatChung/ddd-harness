@@ -1,0 +1,243 @@
+# 詞彙表 —— 來源:spec/SPEC.md §1(L39-75)
+#
+# ⚠️ wire_field 留空的七個詞,是「這個詞不上線」而不是漏填,逐個理由:
+#    職級 Grade         —— 需求方只給費率數字、未給職級名稱(L51),對外沒有欄位
+#    職級費率對照表      —— 外部規則集,以唯讀查詢介面注入,不出現在 §2 任何端點(L52)
+#    金額 Money         —— 它在 §2 上不是**一個**欄位:三個層級各有各的欄位名
+#                          (lineAmount / subtotalAmount / totalAmount,L74),
+#                          而 wire_field 是 UNIQUE 的單一識別字。挑其中一個等於
+#                          宣稱另外兩個不是「金額」—— 那正是 §1.1 要禁的混用。
+#    行政 / 組裡經理 / 老闆 —— 角色。§2 只有 actorId / lastModifiedBy 這種泛用欄位,
+#                          沒有一個欄位叫得出這三個角色其中之一(L59-61)
+#    明細狀態 EntryStatus —— 它在 §2 裡的位置是 `entries[].status`(L95),那是一條
+#                          路徑不是一個識別字;而 `status` 這個識別字已經是**工時單
+#                          狀態**的欄位名(L86、L202),同一個欄名不能對兩個詞
+
+glossary_terms:
+
+  - term: "工時單 Timesheet"
+    definition: "一個客戶、一個月一張。同一張上有多位顧問的紀錄,每筆註明是誰做的"
+    ddd_type: "Aggregate Root"
+    representation: null
+    wire_field: "timesheetId"
+    provenance: "Qn"
+    provenance_ref: "SPEC.md L47([Q4] [Q6])"
+
+  - term: "工時明細 TimesheetEntry"
+    definition: "工時單上的一列。一列 = 某顧問某天在某案子上做的一件事"
+    ddd_type: "Entity(生命週期在工時單內)"
+    representation: null
+    wire_field: "entryId"
+    provenance: "Qn"
+    provenance_ref: "SPEC.md L48([Q6] [Q12])"
+
+  - term: "時數 Hours"
+    definition: "一筆明細花的時間"
+    ddd_type: "Value Object"
+    representation: "單位=小時;只能是 0.5 的正倍數(0.5 / 1 / 1.5 …);不收 15 分鐘零頭;必須 > 0"
+    wire_field: "hours"
+    provenance: "Qn"
+    provenance_ref: "SPEC.md L49([Q13];其中「必須 > 0」為本案自決 A2,見 L594)"
+
+  - term: "費率 HourlyRate"
+    definition: "每小時多少錢。掛在人身上、看職級,不掛案子。同一顧問不管做哪個案子費率都一樣"
+    ddd_type: "Value Object"
+    representation: "新台幣元;整數,無小數。已知五級:5,000 / 4,200 / 3,000 / 2,000 / 1,100"
+    wire_field: "hourlyRateAmount"
+    provenance: "Qn"
+    provenance_ref: "SPEC.md L50([Q5] [Q22])"
+
+  - term: "職級 Grade"
+    definition: "決定費率的分級"
+    ddd_type: "Value Object"
+    representation: "需求方只給了費率數字,未給職級名稱 → §6 規格沉默"
+    wire_field: null
+    provenance: "Qn"
+    provenance_ref: "SPEC.md L51([Q5] [Q22];職級名稱未問到見 L579 B6)"
+
+  - term: "職級費率對照表"
+    definition: "職級 → 費率的對應"
+    ddd_type: "外部規則集"
+    representation: "誰維護、怎麼改、生效日怎麼設 → §6 阻斷級 B5"
+    wire_field: null
+    provenance: "推導自"
+    provenance_ref: "SPEC.md L52(推導自 [Q5][Q9];阻斷級 B5 見 L578)"
+
+  - term: "金額 Money"
+    definition: "錢"
+    ddd_type: "Value Object"
+    representation: "新台幣(TWD)整數,無小數;無外幣;相等性=數值相等"
+    wire_field: null
+    provenance: "Qn"
+    provenance_ref: "SPEC.md L53([Q18] [Q22] [Q26])"
+
+  - term: "折扣 DiscountRate"
+    definition: "部分客戶簽約時談定的整案優惠"
+    ddd_type: "Value Object"
+    representation: "表示為乘數:85 折 = 0.85,不打折 = 1.00。不要用「折數 85」或「折讓 15%」"
+    wire_field: "discountRate"
+    provenance: "Qn"
+    provenance_ref: "SPEC.md L54([Q22] [Q25a])"
+
+  - term: "可計費 billable"
+    definition: "這一筆算不算錢。由顧問自己一筆一筆填,案子性質只是背景參考,系統不驗證"
+    ddd_type: "Value Object(布林)"
+    representation: "true / false"
+    wire_field: "billable"
+    provenance: "Qn"
+    provenance_ref: "SPEC.md L55([Q17])"
+
+  - term: "客戶 Client"
+    definition: "收錢的對象,清一色台灣廠商"
+    ddd_type: "識別碼(本聚合只持有 clientId)"
+    representation: "客戶主檔怎麼建、誰建 → §6 規格沉默"
+    wire_field: "clientId"
+    provenance: "Qn"
+    provenance_ref: "SPEC.md L56([Q4] [Q18];主檔未問到見 L580 B7)"
+
+  - term: "案子 Project"
+    definition: "客戶底下的一個工作項目。同一個客戶底下可能不只一個案子在跑"
+    ddd_type: "識別碼(本聚合只持有 projectId)"
+    representation: "案子主檔怎麼建 → §6 規格沉默"
+    wire_field: "projectId"
+    provenance: "Qn"
+    provenance_ref: "SPEC.md L57([Q12];主檔未問到見 L580 B7)"
+
+  - term: "顧問 Consultant"
+    definition: "填工時的人"
+    ddd_type: "識別碼 + 角色"
+    representation: null
+    wire_field: "consultantId"
+    provenance: "Qn"
+    provenance_ref: "SPEC.md L58([Q1] [Q4])"
+
+  - term: "行政 Admin"
+    definition: "月初彙整大家工時的人。能改明細,但要留得出是誰動的"
+    ddd_type: "角色"
+    representation: null
+    wire_field: null
+    provenance: "Qn"
+    provenance_ref: "SPEC.md L59([Q1] [Q27])"
+
+  - term: "組裡經理 GroupManager"
+    definition: "過目自己那組的人"
+    ddd_type: "角色"
+    representation: null
+    wire_field: null
+    provenance: "Qn"
+    provenance_ref: "SPEC.md L60([Q1] [Q28])"
+
+  - term: "老闆 Owner"
+    definition: "最後過目、全部看得到"
+    ddd_type: "角色"
+    representation: null
+    wire_field: null
+    provenance: "Qn"
+    provenance_ref: "SPEC.md L61([Q1] [Q28])"
+
+  - term: "工時單狀態 TimesheetStatus"
+    definition: "工時單走到哪一站,見 §1.3(一)。寄出前都在 OPEN,寄出那一刻定案"
+    ddd_type: "階段或狀態"
+    representation: "OPEN / PENDING_CLIENT_CONFIRMATION / CLIENT_CONFIRMED / SENT"
+    wire_field: "status"
+    provenance: "Qn"
+    provenance_ref: "SPEC.md L62([Q8] [Q21];四值的定義見 L86-93)"
+
+  - term: "明細狀態 EntryStatus"
+    definition: "一筆明細交出去了沒有,見 §1.3(二)。DRAFT 不計入任何金額"
+    ddd_type: "階段或狀態"
+    representation: "DRAFT / SUBMITTED"
+    wire_field: null
+    provenance: "Qn"
+    provenance_ref: "SPEC.md L63([Q24];兩值的定義見 L95-100)"
+
+# 禁用同義詞 —— SPEC.md §1.1(L65-75)。散文一格裡擠了好幾種講法的,一種一列。
+banned_synonyms:
+
+  - banned: "請款單"
+    use_instead: "工時單 Timesheet"
+    note: "[Q7]:「骨子裡是同一份東西換個樣子出去,不是完全獨立的兩套資料」。取兩個名字會讓人以為是兩個聚合。要指「已寄給客戶的那份」就寫 工時單(狀態 = SENT)"
+
+  - banned: "帳單"
+    use_instead: "工時單 Timesheet"
+    note: "[Q7]:同「請款單」那一列 —— 同一份資料的另一個叫法"
+
+  - banned: "invoice"
+    use_instead: "工時單 Timesheet"
+    note: "[Q7]:同「請款單」那一列。⚠️ 它與「發票」不是同一件事:發票整個在系統外"
+
+  - banned: "發票"
+    use_instead: null
+    no_replacement_note: "本案沒有替代詞,而且不該有:[Q7]「那是會計另外開的,跟這個不算同一件事,我們不管那塊」—— 發票這個東西在本系統的範圍之外(§6 訪談否決,L561),詞彙表裡不存在它指的概念。指向「工時單」是錯的,那會把被排除的東西接回來"
+    note: "本系統不得出現這個詞,連欄位名都不行"
+
+  - banned: "工時"
+    use_instead: "時數 Hours"
+    note: "同一個東西三種叫法"
+
+  - banned: "工時數"
+    use_instead: "時數 Hours"
+    note: "同一個東西三種叫法"
+
+  - banned: "duration"
+    use_instead: "時數 Hours"
+    note: "同一個東西三種叫法"
+
+  - banned: "time"
+    use_instead: "時數 Hours"
+    note: "同一個東西三種叫法"
+
+  - banned: "單價"
+    use_instead: "費率 HourlyRate"
+    note: "「單價」會被誤讀成商品定價"
+
+  - banned: "時薪"
+    use_instead: "費率 HourlyRate"
+    note: "「單價」會被誤讀成商品定價(同一列的其他講法)"
+
+  - banned: "price"
+    use_instead: "費率 HourlyRate"
+    note: "「單價」會被誤讀成商品定價(同一列的其他講法)"
+
+  - banned: "rate"
+    use_instead: "費率 HourlyRate"
+    note: "「單價」會被誤讀成商品定價(同一列的其他講法)"
+
+  - banned: "專案"
+    use_instead: "案子 Project"
+    note: "—"
+
+  - banned: "case"
+    use_instead: "案子 Project"
+    note: "—"
+
+  - banned: "job"
+    use_instead: "案子 Project"
+    note: "—"
+
+  - banned: "金額(裸用)"
+    use_instead: null
+    no_replacement_note: "沒有單一一個詞可以替代:散文要的替代品是**三個對外欄位名**(lineAmount 單筆 / subtotalAmount 打折前小計 / totalAmount 最終應收,L74),它們是 §2 的欄位而不是詞彙表裡的詞。指向「金額 Money」等於保留了裸用 —— 而裸用正是這一列要禁的東西"
+    note: "三個層級的錢必須分清楚,混用會直接算錯帳"
+
+  - banned: "總價"
+    use_instead: null
+    no_replacement_note: "同「金額(裸用)」那一列:替代品是三個對外欄位名,不是一個詞。「總價」尤其危險,因為它同時像 subtotalAmount 也像 totalAmount"
+    note: "三個層級的錢必須分清楚,混用會直接算錯帳"
+
+  - banned: "amount(裸用)"
+    use_instead: null
+    no_replacement_note: "同「金額(裸用)」那一列:替代品是三個帶前綴的欄位名(lineAmount / subtotalAmount / totalAmount),裸的 amount 沒有對應的詞"
+    note: "三個層級的錢必須分清楚,混用會直接算錯帳"
+
+  - banned: "折數"
+    use_instead: "折扣 DiscountRate"
+    note: "「85 折」與「折 15%」互為相反,混用必出錯。discountRate 定義為乘數(0.85)"
+
+  - banned: "打折"
+    use_instead: "折扣 DiscountRate"
+    note: "「85 折」與「折 15%」互為相反,混用必出錯。discountRate 定義為乘數(0.85)"
+
+  - banned: "discount(裸用)"
+    use_instead: "折扣 DiscountRate"
+    note: "「85 折」與「折 15%」互為相反,混用必出錯。discountRate 定義為乘數(0.85)"
