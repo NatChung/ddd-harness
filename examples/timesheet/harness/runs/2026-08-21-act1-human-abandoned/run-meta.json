@@ -1,0 +1,14 @@
+{
+  "run": "2026-08-21-act1-human-abandoned",
+  "case": "timesheet —— 計費工時單",
+  "kind": "live-human-stakeholder",
+  "seed": "我想做一個計費的工時單",
+  "interviewer_model": "claude (subagent, 只給 interview-prompt.md)",
+  "stakeholder": "human: Nat",
+  "inputs": {
+    "interview-prompt.md": "fa32e71e32ad"
+  },
+  "deviation": "沿用 2026-08-19 那跑的刻意偏差:不給訪談者 prompt.txt。需求方身分與技術程度、有無既有系統、有無被授權的架構模板文件,三樣都要它自己問出來。⚠️ interview-prompt.md 的 blob 與 2026-08-19 那跑(ba8f147340f6)不同,不得與該跑比訪談品質基線。",
+  "prediction": ".scratch/ddd-harness/act1-timesheet-2026-08-21-PREDICTION.md (commit a9dc507,寫在跑之前)",
+  "abandoned": "跑了一輪(7 題)就中止。需求方改用 orchestrate.py 的 agent 需求方 + 凍結 SPEC,理由是課堂要能一行指令重現。這一輪的問題留著當素材:同一份 interview-prompt.md、同一句需求,但訪談者沒拿到 prompt.txt,所以它自己問了身分/既有系統/架構模板三樣。"
+}
