@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>參考卡 04 — 訪談檢查表:必須問到哪些答案</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+</head>
+<body>
+
+<p class="lesson-meta">參考卡 04 · DDD × Agent Harness</p>
+<h1>訪談檢查表:必須問到哪些答案</h1>
+<p class="subtitle">清單先寫死,不是訪談當下想出來的。標不出「這題補哪一格」的題目就不要問——那是閒聊。</p>
+
+<h2>這張卡在治什麼</h2>
+
+<p>需求方丟一句話進來(「我要一個系統,客人能下單,我能看到所有訂單」),
+訪談 agent 的工作<b>不是開始設計</b>,是把這句話問到<b>每個答案都有格子可以放</b>。
+這張卡就是那些格子:哪些答案非拿到不可、答案用什麼分類、沒拿到的怎麼追、
+以及哪幾格有機器在數、哪幾格靠自覺。</p>
+
+<div class="box key">
+  <span class="box-label">一句口訣</span>
+  <p><b>「還缺什麼」這句話,要問得出口,就得先有分母。</b></p>
+  <p>把「該問什麼」交給 LLM 自由發揮,就沒有分母——它漏了不會知道自己漏了。
+  這張卡把分母寫死:<b>8 列路由 → 13 節產出合約 → 11 條收齊判準</b>。</p>
+</div>
+
+<h2>檢查表分兩層</h2>
+
+<table>
+  <thead><tr><th>層</th><th>什麼時候用</th><th>判準</th></tr></thead>
+  <tbody>
+    <tr><td><b>四格盤點</b></td>
+      <td>每一輪結束貼一次</td>
+      <td>每格只能填「已有落點」或「還空著」——<b>空格要現形,不是跳過</b></td></tr>
+    <tr><td><b>11 條收齊判準</b></td>
+      <td>收尾前掃一遍</td>
+      <td>每條都是可判定的一句話;不通過就是訪談還沒完</td></tr>
+  </tbody>
+</table>
+
+<h3>四格盤點</h3>
+
+<table>
+  <thead><tr><th>尺度</th><th>約束什麼</th></tr></thead>
+  <tbody>
+    <tr><td><b>需求</b></td><td>行為 → GWT,<b>含失敗路徑</b></td></tr>
+    <tr><td><b>大</b></td><td>架構規則、聚合與邊界</td></tr>
+    <tr><td><b>小</b></td><td>命名 / 詞彙 / 禁用同義詞</td></tr>
+    <tr><td><b>微</b></td><td>契約 pre / post / invariant</td></tr>
+  </tbody>
+</table>
+
+<div class="box warn">
+  <span class="box-label">五個尺度,這裡只填四格</span>
+  <p><b>中尺度(sub-agent 職責)不在這裡填</b>——它住 harness 過程層,不進 spec 包。
+  五個尺度的完整定義與「哪個尺度配哪個約束手段」見
+  <a href="0003-三幕流程與五尺度盤點.html">參考卡 03</a>。</p>
+</div>
+
+<h2>8 列路由:聽到什麼 → 追問什麼 → 餵給哪一節</h2>
+
+<p>這張表的每一列,在產出合約都有對應的必填欄。<b>問了卻沒地方放 = 白問。</b></p>
+
+<table>
+  <thead><tr><th>他說出這種話</th><th>你追問</th><th>餵給哪一節</th></tr></thead>
+  <tbody>
+    <tr><td>一個<b>名詞</b></td>
+      <td>這個詞別的部門講的是同一件事嗎?</td>
+      <td>§1 GLOSSARY;不一樣 → §1.1 Bounded Context</td></tr>
+    <tr><td>一個<b>數字或金額</b></td>
+      <td>單位?怎麼表示?可不可以是負的?有沒有第二種幣別?</td>
+      <td>§1,<b>型態必須判定是不是 Value Object</b></td></tr>
+    <tr><td>「<b>當…就…</b>」</td>
+      <td>失敗的時候呢?<b>做到一半、系統掛掉的時候呢?</b></td>
+      <td>§2 GWT,必含系統中途失敗那條</td></tr>
+    <tr><td>「<b>不可以 / 一定要 / 不能超過</b>」</td>
+      <td>這條違反了,<b>是誰的錯</b>?</td>
+      <td>§3 契約:呼叫方錯 = pre / 實作方錯 = post / 隨時成立 = invariant</td></tr>
+    <tr><td>「<b>…之後,要…</b>」</td>
+      <td>誰在等這件事發生?跟前一步同一筆交易內嗎?</td>
+      <td>§4 Domain Event 清單</td></tr>
+    <tr><td>任何會<b>改變狀態</b>的動作</td>
+      <td>這個動作失敗的時候,狀態要停在哪?會不會留下半筆?</td>
+      <td>§3 postcondition(失敗路徑)</td></tr>
+    <tr><td>「<b>這一段是誰負責</b>」</td>
+      <td>這兩段之間是同一筆交易嗎?一段的資料另一段看得到嗎?</td>
+      <td>§1.1 邊界 + §9 ARCHITECTURE 相依方向</td></tr>
+    <tr><td>他<b>沒提到</b>的</td>
+      <td>(不要自己補)</td>
+      <td>§5 明確不在範圍,標「規格沉默」</td></tr>
+  </tbody>
+</table>
+
+<div class="box key">
+  <span class="box-label">分類之前先問「這句話在描述什麼東西」</span>
+  <p>不要看句子裡最顯眼的關鍵字就分類(<a href="0002-先問這是什麼-再問它屬於哪一類.html">參考卡 02</a>)。
+  而且<b>同一條規則常常兩個載體都要</b>:「已成立訂單不能改」= precondition(拋例外)
+  <b>加上</b>一條 GWT(測試驗它真的拋)。不是二選一。</p>
+</div>
+
+<h2>答案用什麼分:五格來源標記</h2>
+
+<p>每條寫進 spec 的東西必須標來源。<b>查無來源的 = 捏造,不得存在。</b>
+不得自創第六格。</p>
+
+<table>
+  <thead><tr><th>標記</th><th>意思</th><th>限制</th></tr></thead>
+  <tbody>
+    <tr><td><code>[Qn]</code></td><td>第 n 題直接問出來的,他親口說的</td>
+      <td>只能標他真的說過的話。<b>改寫語意就不算</b></td></tr>
+    <tr><td><code>暫定 [Qn]</code></td><td>他說了,但原話是「先這樣吧 / 再看看」</td>
+      <td><b>不可當穩定規則實作</b>,必須列進待確認</td></tr>
+    <tr><td><code>推導自 [Qn]</code></td><td>從他的答案算出來、或邏輯上必然的</td>
+      <td>要寫出推導哪一步</td></tr>
+    <tr><td><code>模板既定</code></td><td>架構常備前提,指向文件行號</td>
+      <td>只能指向<b>被授權為架構模板</b>的文件。沒有這種文件時這格就是空的——
+        寧可空著,也不要找一份指得出行號的東西來充數</td></tr>
+    <tr><td><code>本案自決</code></td><td>他沒說、但非決不可</td>
+      <td>必須附<b>依據</b>與<b>待確認點</b>,並記進 ASSUMPTIONS</td></tr>
+  </tbody>
+</table>
+
+<div class="box warn">
+  <span class="box-label">最貴的一種造假</span>
+  <p>把 <code>本案自決</code> 偽裝成 <code>模板既定</code>。歷史上模型兩輪都這麼做過——
+  所以它現在住<b>第 1 階</b>:四張 store 表各配一個 trigger,
+  白名單為空時那個值<b>物理上寫不進 DB</b>。靠自覺守不住的規則就往上搬
+  (<a href="../lessons/0009-pattern-language-讓它會長大.html">第 9 課</a>)。</p>
+</div>
+
+<h2>產出合約:13 個區塊,缺一即未完成</h2>
+
+<table>
+  <thead><tr><th>§</th><th>內容</th><th>硬條件</th></tr></thead>
+  <tbody>
+    <tr><td>1</td><td>GLOSSARY</td>
+      <td>DDD 型態必須從固定清單選(<code>Decimal</code>、<code>String</code> 不是 DDD 型態);
+        量值先判斷是不是 Value Object;<b>必須有禁用同義詞清單</b></td></tr>
+    <tr><td>1.1</td><td>Bounded Context</td>
+      <td>發現同名不同義時才有。<b>切界是一個決定,要標來源</b></td></tr>
+    <tr><td>1.2</td><td>wire shape</td>
+      <td>逐欄寫明對外 JSON。需求方不懂技術,這節標 <code>本案自決</code> 是對的,
+        但<b>自決完必須寫成合約</b></td></tr>
+    <tr><td>2</td><td>GWT 清單</td>
+      <td>每個改狀態的行為,失敗路徑至少覆蓋:業務規則不通過 / 外部系統回失敗 /
+        <b>系統中途失敗</b>。第 3 類不得缺席</td></tr>
+    <tr><td>3</td><td>領域契約</td>
+      <td>invariant 與 precondition 必填「<b>守在哪個聚合根內</b>」;
+        需要看聚合根以外的資料 → 標「跨聚合根,邊界可能錯」<b>並回報</b>。
+        postcondition 不得只有成功路徑</td></tr>
+    <tr><td>4</td><td>Domain Event</td>
+      <td>訪談中每句「…之後,要…」都要找得到對應。一句都沒有要寫為什麼</td></tr>
+    <tr><td>5</td><td>明確不在範圍</td>
+      <td>逐項標「訪談否決」或「規格沉默」;標出哪些是<b>阻斷級</b>,
+        並指名阻斷了哪幾條契約</td></tr>
+    <tr><td>6</td><td>ASSUMPTIONS</td><td>所有 <code>本案自決</code> 的集中處</td></tr>
+    <tr><td>7</td><td>內部矛盾</td>
+      <td>列出來、指出哪兩條、<b>不要自行調和</b>,標「需求方裁決」</td></tr>
+    <tr><td>8</td><td>未答追蹤清單</td><td>從頭到尾沒被回答的,原樣保留</td></tr>
+    <tr><td>9</td><td>ARCHITECTURE</td>
+      <td>每條規則要有「出處」與「<b>由誰強制</b>」——指名哪條 ArchUnit 規則 / 哪個測試,
+        或寫「目前無機械檢查(第 4 階)」</td></tr>
+    <tr><td>10</td><td>PROMPT</td>
+      <td>凍結清單、要填的範圍、<b>指名哪幾套測試</b>的完成定義、歧義處置、
+        <b>不得開工的部分</b></td></tr>
+    <tr><td>11</td><td>INTERVIEW-LOG</td>
+      <td>逐字稿每一個答案都指得出落點。<b>指不出來 = 漏接</b></td></tr>
+  </tbody>
+</table>
+
+<h2>11 條收齊判準</h2>
+
+<ol>
+  <li>8 列路由每一列都在產出裡找得到對應(或明寫「本案無此類」)</li>
+  <li>四格盤點無漏格(有落點,或明寫空缺)</li>
+  <li>每條規則都有五格來源標記之一;<code>模板既定</code> 指得出被授權的架構模板文件</li>
+  <li>每條 invariant / precondition 都標了守在哪個聚合根內;跨聚合根的已回報</li>
+  <li>postcondition 含<b>失敗路徑的狀態保證</b>(失敗後停在哪、有沒有留半筆)</li>
+  <li>§4 Domain Event 非空,或寫明為何空</li>
+  <li>§1 有禁用同義詞清單</li>
+  <li>§9 每條架構規則都有出處與「由誰強制」;無授權模板文件時 <code>模板既定</code> 必為零筆</li>
+  <li>§9 對 §3 每條「跨聚合根」都有處置(新增聚合根 / 移到別處 / 明寫待裁決)</li>
+  <li>§10 有凍結清單、指名的完成測試、以及 §5 阻斷級構成的「不得開工」清單</li>
+  <li>§11 逐字稿的每一個答案都指得出落點</li>
+</ol>
+
+<h2>問不到的:「猜錯了,誰賠錢?」</h2>
+
+<p>到收尾仍未答的每一項,<b>必須</b>給建議 + 依據,並分成兩類。判準只有一句話。</p>
+
+<table>
+  <thead><tr><th>類型</th><th>判準</th><th>例</th><th>處置</th></tr></thead>
+  <tbody>
+    <tr><td><b>技術判斷</b></td>
+      <td>猜錯了「只是工程不好維護」</td>
+      <td>金額精度、單號格式、重試次數與退避</td>
+      <td><b>採用建議</b>,標 <code>本案自決</code>,列待確認點</td></tr>
+    <tr><td><b>業務政策</b></td>
+      <td>猜錯了「客人或公司會賠錢 / 被客訴」</td>
+      <td>期限從哪天算、多少錢以下公司吸收、零頭算誰的、誰付運費</td>
+      <td><b>不採用</b>,留在「規格沉默」,附建議供他日後挑</td></tr>
+  </tbody>
+</table>
+
+<p>收尾時單獨列一張表:<b>「以下 N 條沒人答,是照建議填的」</b>。
+而 §5 標<b>阻斷級</b>的規格沉默,會逐條被搬進 §10 給實作 agent 的「不得開工的部分」——
+spec 包裡有洞是正常的,<b>把洞交出去而不標明,實作 agent 就會自己填</b>。</p>
+
+<h2>追蹤:三張人寫的,兩支機器數的</h2>
+
+<p>這條線反覆出現的失效是<b>「轉交了 ≠ 記下來了」</b>。所以追蹤分兩層。</p>
+
+<table>
+  <thead><tr><th>誰</th><th>查什麼</th></tr></thead>
+  <tbody>
+    <tr><td><b>訪談者自己寫</b><br>(語意判斷)</td>
+      <td><b>四格盤點表</b>(每輪貼一次)/ <b>未答追蹤</b>(這輪沒答到的原樣列出,
+        下輪重問,<b>不准默默消失</b>)/ <b>§11 逐題落點對照</b></td></tr>
+    <tr><td><code>relay_ledger</code></td>
+      <td>每筆 answered 都要有對應的 relayed。<b>判準刻意寫得很笨</b>——
+        寫成「大致上都有轉交」的話,原本那個洞就會被形式滿足</td></tr>
+    <tr><td><code>landing_check</code></td>
+      <td>第 N 輪問出去的每個題號,要出現在第 N+1 輪<b>開頭那張表格的某一資料列</b>裡。
+        散文寫一句「收到了 Q8 到 Q11 的回答」<b>不算</b>——那句話裡 Q9、Q10 一次都沒出現</td></tr>
+  </tbody>
+</table>
+
+<div class="box warn">
+  <span class="box-label">「不適用」不算「通過」</span>
+  <p>離開碼 <code>0</code> 通過 / <code>1</code> 有漏接或掃到卻掃錯 /
+  <code>2</code> 用法錯誤 / <code>3</code> <b>整份不適用</b>。</p>
+  <p>為什麼一定要有第 3 類:實測把一份 15 題的真實逐字稿,<b>只把題號寫法
+  <code>**Q1.</code> 改成 <code>**Q1:</code></b>(其他一字不動),舊版守衛就印出
+  「可比對 3 輪 / 0 題;通過 0、漏接 0」而 exit 0。
+  <b>訪談者換個標點,守衛靜靜地不再適用,而沒有人會發現。</b></p>
+</div>
+
+<h2>再往下:落檔那一端有哪些名詞</h2>
+
+<p>第二幕把散文轉成 <b>18 張表</b>的 SQLite。這裡的欄位名就是這套 harness 的名詞——
+<b>散文裝不進去的東西,下游一步都看不到</b>。</p>
+
+<h3>訪談那份清單:7 個 DDD 型態</h3>
+
+<p>訪談 prompt §1 寫死,不得用實作型別:
+<code>Aggregate Root</code> · <code>Entity</code> · <code>Value Object</code> ·
+<code>識別碼</code> · <code>階段或狀態</code> · <code>外部規則集</code> · <code>角色</code>。</p>
+
+<div class="box inference">
+  <span class="box-label">但 schema 沒有鎖這 7 個</span>
+  <p><code>glossary_term.ddd_type</code> 是<b>自由文字,刻意不做成固定清單</b>。
+  查過兩份真實詞彙表之後放棄鎖:它們的型態用語幾乎不重疊,鎖清單會逼下一份詞彙表
+  把自己的詞硬塞進別人的格子——<b>那會製造假資料,不是擋假資料</b>。</p>
+  <p>所以這 7 個型態今天只住<b>第 4 階</b>:規格層讀得懂,<b>沒有任何機械檢查在看</b>。
+  累積到看得見真正的值域再走搬階。</p>
+</div>
+
+<h3>18 張表,照尺度分</h3>
+
+<table>
+  <thead><tr><th>尺度</th><th>表</th><th>生成器</th></tr></thead>
+  <tbody>
+    <tr><td><b>大(架構)</b></td>
+      <td><code>architecture_rule</code> · <code>forbidden_dependency</code> ·
+        <code>forbidden_annotation</code> · <code>forbidden_return_type</code></td>
+      <td><code>gen_archunit</code></td></tr>
+    <tr><td><b>需求(情境)</b></td>
+      <td><code>acceptance_scenario</code> · <code>scenario_step</code> ·
+        <code>step_item</code> · <code>rejected_request</code> ·
+        <code>rejected_request_item</code> · <code>scenario_assertion</code> ·
+        <code>rejected_assertion</code></td>
+      <td><code>gen_acceptance</code></td></tr>
+    <tr><td><b>小(wire)</b></td>
+      <td><code>wire_contract</code> · <code>wire_list_field</code></td>
+      <td>兩個生成器都讀</td></tr>
+    <tr><td><b>微(契約)</b></td>
+      <td><code>domain_contract</code> · <code>contract_named_test</code></td>
+      <td><b>沒有</b>——<code>enforcement</code> 值域今天只有 <code>'none'</code></td></tr>
+    <tr><td><b>詞彙</b></td>
+      <td><code>glossary_term</code> · <code>glossary_banned_synonym</code></td>
+      <td><b>沒有</b>——只買分診</td></tr>
+    <tr><td>共用</td><td><code>authorized_template</code></td>
+      <td>「模板既定」的白名單</td></tr>
+  </tbody>
+</table>
+
+<p>微尺度與詞彙那兩組是 2026-08-18 才補的。在那之前它們<b>只活在散文裡</b>——
+於是一條 invariant 進得了 store 的唯一形式,是被寫成某條情境的斷言
+(<b>invariant 被降級成 example</b>);而「實作命名必須照詞彙表」那句話
+<b>沒有任何一步會去讀</b>。</p>
+
+<h3>必填欄,與空著會怎樣</h3>
+
+<table>
+  <thead><tr><th>表</th><th>必填的名詞</th><th>擋法</th></tr></thead>
+  <tbody>
+    <tr><td><code>architecture_rule</code></td>
+      <td><code>id</code> · <code>rule</code> · <code>provenance</code> ·
+        <code>provenance_ref</code> · <code>enforcement</code></td>
+      <td><code>enforcement='none'</code> 就必須填 <code>ladder_note</code>
+        (<b>搬階清單的原料</b>);<code>enforced_by</code> 由生成器回填,
+        agent 自己寫 import 會拒收</td></tr>
+    <tr><td><code>domain_contract</code></td>
+      <td><code>id</code> · <code>kind</code> · <code>statement</code> ·
+        <code>provenance</code> · <code>provenance_ref</code> ·
+        <code>guarded_in</code> · <code>crosses_aggregate</code></td>
+      <td><code>kind</code> 三選一;<code>crosses_aggregate=1</code> 必須填
+        <code>disposition</code>,而且<b>存本文不存指標</b>——「見某某節」的幾種寫法
+        擋在第 2 階;零列指名測試必須填 <code>no_named_test_reason</code></td></tr>
+    <tr><td><code>contract_named_test</code></td>
+      <td><code>contract_id</code> · <code>scenario_id</code></td>
+      <td>FK。指向一個不存在的情境編號(打字錯)<b>寫不進去</b>——第 1 階</td></tr>
+    <tr><td><code>glossary_term</code></td>
+      <td><code>term</code> · <code>definition</code> · <code>ddd_type</code> ·
+        <code>provenance</code> · <code>provenance_ref</code> · <code>seq</code></td>
+      <td><code>wire_field</code> 是 UNIQUE:兩個詞宣稱同一個對外欄位名 = 對譯有歧義,
+        寫不進來。空白<b>有語意</b>(不上線 ≠ 漏填)</td></tr>
+    <tr><td><code>glossary_banned_synonym</code></td>
+      <td><code>banned</code> · <code>note</code></td>
+      <td><code>use_instead</code> FK 指回 <code>glossary_term</code>——
+        <b>叫人改用一個詞彙表裡不存在的詞,寫不進來</b>。
+        NULL 時必須填為什麼沒有替代詞</td></tr>
+    <tr><td><code>wire_contract</code></td>
+      <td>12 個對外欄位名</td>
+      <td><code>CHECK (id = 1)</code> 讓第二份合約寫不進來。列表的總金額欄改名,
+        Σ(數量×單價) 那條不變式就<b>認不到人</b>——所以守衛的認人方式跟著合約走</td></tr>
+  </tbody>
+</table>
+
+<div class="box key">
+  <span class="box-label">四張表的 provenance 逐字相同</span>
+  <p><code>architecture_rule</code> / <code>acceptance_scenario</code> /
+  <code>domain_contract</code> / <code>glossary_term</code> 的五格值域
+  <b>一個字都不能差</b>,也不得為新表改格名——同一條規則寫在多個地方會漂。</p>
+</div>
+
+<h3>六支 script 數「少了什麼」</h3>
+
+<p>語意判斷歸 LLM,「少了什麼」歸 script。判準<b>刻意寫笨</b>——
+寫成「大致上都有記到」這支就白做了。</p>
+
+<table>
+  <thead><tr><th>script</th><th>數什麼</th><th>幕</th></tr></thead>
+  <tbody>
+    <tr><td><code>landing_check</code></td>
+      <td>第 N 輪問出去的每一題,有沒有出現在第 N+1 輪那張落點表裡</td><td>1</td></tr>
+    <tr><td><code>provenance_check</code></td>
+      <td>宣稱「他親口說的」值,逐字稿裡真的有嗎</td><td>2</td></tr>
+    <tr><td><code>glossary_check</code></td>
+      <td>每個對外欄位名對不對得到詞彙表:<b>差幾個、差哪幾個</b></td><td>2</td></tr>
+    <tr><td><code>contract_triage</code></td>
+      <td>哪幾條契約守不住、哪幾條指不出測試(兩段<b>分開印,不合併計數</b>——
+        合併就把 invariant → example 的降級蓋掉)</td><td>2</td></tr>
+    <tr><td><code>package_landing_check</code></td>
+      <td>規格宣告的 package,實作真的有 class 嗎</td><td>4</td></tr>
+    <tr><td><code>vacuous_tests</code></td>
+      <td>哪條測試什麼都沒約束到(假驗收)</td><td>4</td></tr>
+  </tbody>
+</table>
+
+<footer>
+
+<h2>誠實性標註:哪幾格有機器在數</h2>
+
+<div class="box inference">
+  <span class="box-label">11 條收齊判準裡,訪談當下只有 1 條有 script</span>
+  <p>這張檢查表是<b>清單級</b>強制:LLM 照固定清單自查,比「你檢查一下」強很多
+  (該有哪幾格不是它決定的),但不是 script 級。</p>
+  <p><b>訪談當下</b>只有第 11 條(逐題落點)有 <code>landing_check</code> 在旁邊數題號。
+  第 3 條(來源標記)與第 8 條(由誰強制)要等<b>第二幕落檔之後</b>才有
+  <code>provenance_check</code> / <code>contract_triage</code> 部分接得上——
+  而<b>接不上的部分,以及其餘八條,靠訪談 agent 自覺,漏了不會知道自己漏了</b>。
+  §11 那張收尾表是訪談者自己寫的,<b>不進判定</b>——不能拿來把「不適用」補成「通過」。</p>
+</div>
+
+<h2>來源</h2>
+
+<p>本卡的內容<b>逐條出自受測輸入本身</b>,不是二手轉述:
+8 列路由、五格來源標記、四格盤點、11 條收齊判準與 §1–§11 產出合約,
+出自 <code>tools/harness/interview-prompt.md</code>(第一幕的正本);
+18 張表與必填欄出自 <code>tools/harness/schema.sql</code>;
+六支 script 與離開碼規約出自 <code>tools/harness/PIPELINE.md</code>。</p>
+
+<p><strong>幕的數法要對齊</strong>:<a href="0003-三幕流程與五尺度盤點.html">參考卡 03</a>
+講的<b>三幕</b>是「spec 包生產線」那一段的視角(對話 / 落檔 / 搬階);
+<code>PIPELINE.md</code> 的<b>五幕</b>是整條管線(訪談 / 落檔 / 生成 / 實作 / review),
+卡 03 的第三幕「搬階」對應五幕的第三幕「生成」。<b>兩種數法都對,別混起來。</b></p>
+
+<h2>相關</h2>
+<ul>
+  <li><a href="../lessons/0010-訪談-一句話到驗收.html">第 10 課:一句話到驗收</a>
+      —— 這張卡是清單,那一課是拿著清單走一次真的訪談(逐輪逐題)</li>
+  <li><a href="0003-三幕流程與五尺度盤點.html">參考卡 03:三幕流程與五尺度盤點</a>
+      —— 幕 / 尺度 / 階梯三軸各就各位</li>
+  <li><a href="0002-先問這是什麼-再問它屬於哪一類.html">參考卡 02:先問「這是什麼」</a>
+      —— 8 列路由分類卡住時翻這張</li>
+  <li><a href="../lessons/0008-design-by-contract-這是誰的錯.html">第 8 課:Design by Contract</a>
+      —— 「違反了是誰的錯」那一列的判準</li>
+  <li><code>tools/harness/interview-prompt.md</code> —— 第一幕的正本(改了它要回頭同步 skill)</li>
+  <li><code>tools/harness/PIPELINE.md</code> —— 每一段的輸入、工具、產出、<b>驗過沒有</b></li>
+</ul>
+
+</footer>
+
+</body>
+</html>
