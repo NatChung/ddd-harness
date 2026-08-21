@@ -303,10 +303,16 @@ import com.shop.adapter.OrderRepository;   // ❌ 內層 import 外層 —— �
   <p>挑你專案裡<b>任何一支 API</b>,把一次請求經過的檔案照順序列出來,每個標一層。
   兩件事會馬上現形:</p>
   <ul>
-    <li>有沒有哪一步<b>跳層</b>(Controller 直接呼叫 JPA,沒經過 use case)</li>
+    <li>有沒有哪一步<b>繞過中間層</b>(Controller 不經過 use case,自己開 transaction、自己打 SQL)</li>
     <li>有沒有哪個「應該是 Entities 層」的檔案,import 了框架</li>
   </ul>
   <p>這比讀十遍定義有效。</p>
+  <p>⚠️ 第一項<b>不是「跳層」</b>,那個詞有兩個意思、只有一個是問題:
+  Controller 直接寫出內層某個型別的名字(例如 <code>Money</code>)是<b>參照上的跳層</b>,
+  方向往內,相依性原則完全允許;上面問的是<b>控制流繞過中間層</b>——它同樣沒違反相依性原則,
+  但流程編排漏到了翻譯層。兩者的差別在於<b>誰抓得到</b>:前者不用抓,後者機械檢查抓不到,
+  只能靠 review。展開見
+  <a href="../research/0002-clean-architecture-相依性分層.html">討論筆記 02</a>。</p>
 </div>
 
 <h2>別看資料夾</h2>
@@ -461,6 +467,10 @@ import com.shop.adapter.OrderRepository;   // ❌ 內層 import 外層 —— �
   <li><a href="./0004-aggregate-一次任務的大小.html">第 4 課:Aggregate</a>(一致性邊界)——本課開頭那三行拆掉的就是它</li>
   <li><a href="../practice/0001-交錯練習-前四課.html">交錯練習 01:前四課混合</a>(給情境、不給選項)</li>
   <li><a href="./0006-cqrs-讀與寫的不對稱.html">第 6 課:CQRS</a> —— 為什麼「讀」那一側可以整套跳過上面這些規矩</li>
+  <li><a href="../research/0002-clean-architecture-相依性分層.html">討論筆記 02:相依性分層在解決什麼問題</a>
+    —— 本課的背景版:這套規矩的歷史因果(它是從 DDD 的需求長出來的)、
+    <b>結構式分層 vs 相依性分層</b>的逐項對照、<b>什麼時候不該套</b>,以及一張走完四圈的圖。
+    附查證表,含兩條流傳很廣但不成立的引用。</li>
 </ul>
 
 <div class="ask-teacher">

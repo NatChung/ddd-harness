@@ -50,11 +50,54 @@
   **已用於第 5 課。**⚠️ 同樣只核對引用句,全文未逐字讀完。
 
 - **Evans 的 DDD 四層(User Interface / Application / Domain / Infrastructure)**:
-  第 5 課的對應表用到,但 ⚠️ **來源是社群整理而非藍皮書原文**——
+  第 5 課的對應表用到。**2026-08-21 已回藍皮書原文核對(Final Manuscript, 2003-04-15,
+  第四章),四層名稱與職責描述皆符**——原本標的「來源是社群整理」已不適用。
+  一併核對到的原句(給 `research/0002` 用):依賴方向是
+  「Develop a design within each LAYER that is cohesive and is dependent only on the layers
+  below.」、「The infrastructure layer usually does not initiate action in the domain layer.
+  Being "below" the domain…」;Repository(第六章)是
+  「Set up access through a well-known global interface」、
+  「the interface is simple and conceptually connected to the domain model」、
+  「teams add a framework to the infrastructure layer to support the implementation of
+  repositories」。
+  ⚠️ **`dependency inversion` 在藍皮書全文出現 0 次**——「Evans 的 Repository 本身已經是
+  DIP」是後人的框架,不是他的話,引用時不要掛在他名下。
+  「Evans 把 Repository 掛 Domain 層、Clean Architecture 這派掛 Use Cases 層」這個差異
+  **原本標未查證,現在有依據了**:上面第六章那兩句把介面繫在 domain model 上,
+  而藍皮書根本沒有「Use Cases 層」這個名字(它叫 Application 層)。
+  ⚠️ 只核對這幾章的引用句,全文未逐字讀完。
+  社群整理的舊來源留著備查:
   [ajlopez](https://ajlopez.wordpress.com/2008/09/12/layered-architecture-in-domain-driven-design/)、
   [SSENSE Tech](https://medium.com/ssense-tech/domain-driven-design-everything-you-always-wanted-to-know-about-it-but-were-afraid-to-ask-a85e7b74497a)。
-  多個來源說法一致,但要正式引用得回去查書。同樣未查證的還有
-  「Evans 把 Repository 放 Domain 層、Clean Architecture 這派放 Use Cases 層」這個差異。
+
+- [`research/0002-clean-architecture-相依性分層.html`](research/0002-clean-architecture-相依性分層.html)
+  —— **本 repo 自己的討論筆記**(2026-08-21)。第 5 課的背景版:Clean Architecture 的歷史因果、
+  結構式分層 vs 相依性分層的逐項對照、一次 API request 走完四圈的圖、什麼時候不該套。
+  附 14 條查證表。**下面這幾條流傳很廣但查證後不成立,不要引用**:
+  - ❌ **「Evans 2014 年在 QCon 說 Hexagonal 比 Layered 好」** —— 場合與年份都對不上。
+    2014 那場是 **DDD eXchange**(不是 QCon),主題是 challenging DDD 的基本假設,
+    [通篇未談架構風格](https://www.infoq.com/news/2014/06/dddx-evans-challenging/)。
+    **正確出處**是 Evans 給 Vernon《Implementing Domain-Driven Design》寫的推薦序
+    (Addison-Wesley, 2013, p. xvii):「It explains the hexagonal architecture, which has
+    emerged as a better description of what we do than the layered architecture.」
+    (核對自 Pearson 官方 sample pages PDF)
+  - ❌ **「Palermo 的 Onion(2008)是明確標榜為 DDD 而設計的」** —— 對
+    [part 1](https://jeffreypalermo.com/2008/07/the-onion-architecture-part-1/)/2/3 全文檢索,
+    `DDD`、`Domain-Driven`、`Evans`、`ubiquitous` 各 **0 次**;它明確引用的是 Cockburn 的
+    Hexagonal。已核對的原句:「The fundamental rule is that all code can depend on layers
+    more central, but code cannot depend on layers further out from the core. In other words,
+    all coupling is toward the center.」與「Transitive dependencies are still dependencies.」
+    (日期是 **2008-07-29**,多數二手來源寫 7/30)
+  - ⚠️ **`driving side` / `driven side` 不是 2005 年 Hexagonal 原文的用語** ——
+    [2005-09-04 那篇 v0.9](https://alistair.cockburn.us/hexagonal-architecture) 用的是
+    **primary / secondary actor**;driving/driven 定於 Cockburn《Hexagonal Architecture
+    Explained》(2024)。兩組都通行,但別把它算成 2005 年的命名。
+  - ⚠️ **「2003 年 Entity 得繼承 base class、掛 annotation」年代疊錯** ——
+    annotation 出自 JSR-175(2004 通過、隨 Java 5 進語言),JPA/EJB 3.0 是 2006;
+    2003 成立的是 EJB 2.x 的 base class 耦合,而 Hibernate 當年的賣點恰恰是「映射 POJO、
+    不要求繼承」。
+  Use for:被問「Clean Architecture 到底從哪來、為什麼是這樣」時;
+  以及要跟人論辯「分層有沒有用」時(那場爭論多半是兩種分層被混為一談)
 
 - [CQRS — Martin Fowler](https://martinfowler.com/bliki/CQRS.html)
   **已用於第 6 課。**已核對的原句:定義「you can use a different model to update information

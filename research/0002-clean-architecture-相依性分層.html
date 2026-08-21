@@ -1,0 +1,1293 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>*{margin:0}</style>
+<title>相依性分層在解決什麼問題</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Noto+Sans+TC:wght@500;700&family=Noto+Serif+TC:wght@400;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap">
+
+<style>
+  :root {
+    --ground:      #EEF0EC;
+    --surface:     #F8F9F7;
+    --surface-2:   #E4E8E3;
+    --ink:         #14181A;
+    --ink-2:       #4A524E;
+    --ink-3:       #7A837E;
+    --rule:        #D2D7D1;
+    --rule-strong: #B6BEB8;
+    --accent:      #1B6B5A;
+    --accent-ink:  #12463B;
+    --accent-soft: #DBE7E2;
+    --warn:        #A34A15;
+    --warn-ink:    #7E390F;
+    --warn-soft:   #F1E2D6;
+
+    --display: "Archivo", "Noto Sans TC", "PingFang TC", system-ui, sans-serif;
+    --body: "Source Serif 4", "Noto Serif TC", "Songti TC", Georgia, serif;
+    --mono: "IBM Plex Mono", "Noto Sans TC", ui-monospace, SFMono-Regular, monospace;
+
+    --measure: 34rem;
+    --shell: 54rem;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground:      #0F1312;
+      --surface:     #171C1A;
+      --surface-2:   #1F2624;
+      --ink:         #E8EDE9;
+      --ink-2:       #A6B0AA;
+      --ink-3:       #79837E;
+      --rule:        #2A322F;
+      --rule-strong: #3B4541;
+      --accent:      #63C2A6;
+      --accent-ink:  #8FD8C1;
+      --accent-soft: #15302A;
+      --warn:        #E28C4E;
+      --warn-ink:    #F0A870;
+      --warn-soft:   #33231A;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --ground:      #0F1312;
+    --surface:     #171C1A;
+    --surface-2:   #1F2624;
+    --ink:         #E8EDE9;
+    --ink-2:       #A6B0AA;
+    --ink-3:       #79837E;
+    --rule:        #2A322F;
+    --rule-strong: #3B4541;
+    --accent:      #63C2A6;
+    --accent-ink:  #8FD8C1;
+    --accent-soft: #15302A;
+    --warn:        #E28C4E;
+    --warn-ink:    #F0A870;
+    --warn-soft:   #33231A;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: var(--body);
+    font-size: 1.0625rem;
+    line-height: 1.72;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .shell {
+    max-width: var(--shell);
+    margin: 0 auto;
+    padding: clamp(2.5rem, 6vw, 5rem) clamp(1.1rem, 4vw, 2rem) 6rem;
+    display: flex;
+    flex-direction: column;
+    gap: 3.25rem;
+  }
+
+  p, li { max-width: var(--measure); }
+  p { margin: 0; }
+
+  a {
+    color: var(--accent-ink);
+    text-decoration-color: var(--rule-strong);
+    text-underline-offset: 0.18em;
+  }
+  a:hover { text-decoration-color: var(--accent); }
+  a:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
+
+  /* ---------- masthead ---------- */
+
+  .masthead {
+    display: flex;
+    flex-direction: column;
+    gap: 1.35rem;
+    border-bottom: 1px solid var(--rule-strong);
+    padding-bottom: 2.25rem;
+  }
+
+  .kicker {
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    font-weight: 500;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem 1.25rem;
+  }
+
+  h1 {
+    font-family: var(--display);
+    font-weight: 700;
+    font-size: clamp(2.15rem, 6.5vw, 3.4rem);
+    line-height: 1.08;
+    letter-spacing: -0.015em;
+    margin: 0;
+    text-wrap: balance;
+  }
+
+  .standfirst {
+    font-size: 1.2rem;
+    line-height: 1.6;
+    color: var(--ink-2);
+    max-width: 32rem;
+  }
+
+  .thesis {
+    border-left: 3px solid var(--accent);
+    background: var(--accent-soft);
+    padding: 1.1rem 1.35rem;
+    border-radius: 0 4px 4px 0;
+    font-size: 1.1rem;
+    line-height: 1.62;
+    max-width: 38rem;
+  }
+  .thesis b { font-weight: 600; color: var(--accent-ink); }
+
+  /* ---------- sections ---------- */
+
+  section { display: flex; flex-direction: column; gap: 1.5rem; }
+
+  .sec-head { display: flex; flex-direction: column; gap: 0.5rem; }
+
+  .sec-label {
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--accent);
+  }
+  .sec-label.cost { color: var(--warn); }
+  .sec-label.plain { color: var(--ink-3); }
+
+  h2 {
+    font-family: var(--display);
+    font-weight: 700;
+    font-size: clamp(1.5rem, 3.6vw, 1.95rem);
+    line-height: 1.2;
+    letter-spacing: -0.01em;
+    margin: 0;
+    text-wrap: balance;
+  }
+
+  h3 {
+    font-family: var(--display);
+    font-weight: 600;
+    font-size: 1.0625rem;
+    line-height: 1.4;
+    letter-spacing: 0;
+    margin: 0;
+  }
+
+  .stack { display: flex; flex-direction: column; gap: 1.15rem; }
+
+  /* ---------- boxes ---------- */
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: 5px;
+    padding: 1.35rem 1.45rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+  }
+
+  .rule-box {
+    border-left: 3px solid var(--accent);
+    background: var(--accent-soft);
+    padding: 1.1rem 1.35rem;
+    border-radius: 0 4px 4px 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    max-width: 40rem;
+  }
+  .rule-box b { color: var(--accent-ink); font-weight: 600; }
+
+  .limits {
+    background: var(--warn-soft);
+    border: 1px solid var(--warn);
+    border-radius: 5px;
+    padding: 1.35rem 1.45rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+  }
+  .limits ul { margin: 0; padding-left: 1.15rem; display: flex; flex-direction: column; gap: 0.55rem; }
+  .limits li { max-width: 36rem; }
+  .limits strong { color: var(--warn-ink); font-weight: 600; }
+
+  .box-label {
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+  }
+  .limits .box-label { color: var(--warn-ink); }
+
+  /* ---------- numbered path list ---------- */
+
+  ol.method {
+    list-style: none;
+    counter-reset: m;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1.15rem;
+  }
+  ol.method > li {
+    counter-increment: m;
+    display: grid;
+    grid-template-columns: 2.4rem 1fr;
+    gap: 0 0.9rem;
+    max-width: none;
+  }
+  ol.method > li::before {
+    content: counter(m, decimal-leading-zero);
+    font-family: var(--mono);
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--accent);
+    padding-top: 0.28rem;
+    font-variant-numeric: tabular-nums;
+  }
+  ol.method.out > li::before { color: var(--warn); }
+  .m-body { display: flex; flex-direction: column; gap: 0.35rem; }
+  .m-why {
+    font-family: var(--mono);
+    font-size: 0.735rem;
+    line-height: 1.62;
+    color: var(--ink-3);
+    max-width: none;
+  }
+  .m-why a { color: var(--ink-2); }
+
+  /* ---------- table ---------- */
+
+  .scroll { overflow-x: auto; border: 1px solid var(--rule); border-radius: 5px; background: var(--surface); }
+
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    min-width: 40rem;
+    font-family: var(--mono);
+    font-size: 0.75rem;
+    line-height: 1.55;
+  }
+  caption {
+    text-align: left;
+    padding: 0.9rem 1rem 0.7rem;
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    border-bottom: 1px solid var(--rule);
+  }
+  th, td {
+    text-align: left;
+    padding: 0.6rem 1rem;
+    border-bottom: 1px solid var(--rule);
+    vertical-align: top;
+  }
+  th {
+    font-weight: 600;
+    color: var(--ink-2);
+    white-space: nowrap;
+    background: var(--surface-2);
+  }
+  tbody tr:last-child td { border-bottom: none; }
+  td:first-child { color: var(--ink); font-weight: 500; }
+
+  /* ---------- verdict tags ---------- */
+
+  .tag {
+    font-family: var(--mono);
+    font-size: 0.66rem;
+    font-weight: 600;
+    letter-spacing: 0.07em;
+    padding: 0.14rem 0.44rem;
+    border-radius: 3px;
+    white-space: nowrap;
+    border: 1px solid transparent;
+    display: inline-block;
+  }
+  .t-ok   { background: var(--accent-soft); color: var(--accent-ink); border-color: var(--accent); }
+  .t-2nd  { background: var(--surface-2); color: var(--ink-2); border-color: var(--rule-strong); }
+  .t-fix  { background: var(--warn-soft); color: var(--warn-ink); border-color: var(--warn); }
+  .t-bad  { background: var(--warn-soft); color: var(--warn-ink); border-color: var(--warn); }
+  .t-mine { background: var(--surface-2); color: var(--ink-3); border-color: var(--rule); }
+
+  .quote {
+    font-family: var(--mono);
+    font-size: 0.74rem;
+    line-height: 1.65;
+    color: var(--ink-2);
+    border-left: 2px solid var(--rule-strong);
+    padding-left: 0.75rem;
+    max-width: none;
+  }
+
+  /* ---------- code ---------- */
+
+  pre {
+    margin: 0;
+    overflow-x: auto;
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: 5px;
+    padding: 1rem 1.15rem;
+  }
+  pre code {
+    font-family: var(--mono);
+    font-size: 0.755rem;
+    line-height: 1.7;
+    background: none;
+    padding: 0;
+    color: var(--ink-2);
+    white-space: pre;
+  }
+
+  /* ---------- diagram ---------- */
+
+  figure { margin: 0; display: flex; flex-direction: column; gap: 0.8rem; }
+  .diagram-scroll { overflow-x: auto; }
+  .diagram {
+    width: 100%;
+    min-width: 40rem;
+    height: auto;
+    color: var(--ink-2);
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: 5px;
+    padding: 0.5rem;
+  }
+  .diagram .layer      { fill: var(--surface-2); stroke: var(--rule-strong); }
+  .diagram .layer-name { fill: var(--ink-3); font-family: var(--mono); font-size: 11px; font-weight: 600; letter-spacing: 0.08em; }
+  .diagram .node       { fill: var(--surface); stroke: var(--rule-strong); }
+  .diagram .node-t     { fill: var(--ink); font-family: var(--mono); font-size: 11.5px; font-weight: 600; }
+  .diagram .node-s     { fill: var(--ink-3); font-family: var(--mono); font-size: 9.5px; }
+  .diagram .num        { fill: var(--ink-3); font-family: var(--mono); font-size: 10px; font-weight: 600; }
+  .diagram .flow       { stroke: currentColor; stroke-width: 1.4; fill: none; }
+  .diagram .flow-back  { stroke: currentColor; stroke-width: 1.4; fill: none; stroke-dasharray: 4 3; }
+  .diagram .flow-dip   { stroke: var(--accent); stroke-width: 2.2; fill: none; }
+  .diagram .arw        { fill: currentColor; }
+  .diagram .arw-dip    { fill: var(--accent); }
+  .diagram .lbl        { fill: var(--ink-3); font-family: var(--mono); font-size: 9.5px; }
+  .diagram .lbl-dip    { fill: var(--accent); font-family: var(--mono); font-size: 10px; font-weight: 600; }
+
+  figcaption {
+    font-family: var(--mono);
+    font-size: 0.735rem;
+    line-height: 1.65;
+    color: var(--ink-3);
+    max-width: 42rem;
+  }
+  figcaption b { color: var(--accent-ink); font-weight: 600; }
+
+  .footnote {
+    font-family: var(--mono);
+    font-size: 0.735rem;
+    line-height: 1.7;
+    color: var(--ink-3);
+    max-width: 42rem;
+    border-top: 1px solid var(--rule);
+    padding-top: 1.15rem;
+  }
+  .footnote a { color: var(--ink-2); }
+
+  ul.plain { margin: 0; padding-left: 1.15rem; display: flex; flex-direction: column; gap: 0.6rem; }
+
+  strong { font-weight: 600; }
+  em { font-style: italic; color: var(--ink-2); }
+
+  code {
+    font-family: var(--mono);
+    font-size: 0.86em;
+    background: var(--surface-2);
+    padding: 0.08em 0.32em;
+    border-radius: 3px;
+  }
+
+  @media (max-width: 34rem) {
+    ol.method > li { grid-template-columns: 1.8rem 1fr; gap: 0 0.6rem; }
+  }
+</style>
+
+</head>
+<body>
+<div class="shell">
+
+  <header class="masthead">
+    <div class="kicker">
+      <span>研究筆記</span>
+      <span>2026-08-21</span>
+      <span>Clean Architecture / DDD</span>
+    </div>
+    <h1>相依性分層在解決什麼問題</h1>
+    <p class="standfirst">
+      為什麼層 DDD 常搭 Clean Architecture、結構式分層與相依性分層的差別、
+      以及一次 API request 的完整路徑。
+    </p>
+    <p class="thesis">
+      兩者都叫「分層」，但規範的東西、保護的對象、以及
+      <b>能在什麼時候被檢查出來</b>，完全不同。
+      靠自律維持的架構不是架構，是共識。
+    </p>
+  </header>
+
+  <!-- ============ 體例 ============ -->
+  <section>
+    <div class="sec-head">
+      <span class="sec-label plain">體例</span>
+      <h2>這份是怎麼進來的</h2>
+    </div>
+    <div class="stack">
+      <p>
+        本文整理自一份架構討論筆記（2026/08），六節逐節搬進本 repo。搬的時候做了三件事，
+        都寫在明處：
+      </p>
+      <ul class="plain">
+        <li><strong>每個歷史宣稱都去查了原始出處</strong>，逐條判定列在文末
+          〈<a href="#verify">查證表</a>〉。</li>
+        <li><strong>兩處引用查證後不成立</strong>（Onion 的 DDD 淵源、Evans 的回顧場合），
+          已就地改掉，原話與更正都保留在查證表裡。</li>
+        <li><strong>原文的 code 是 TypeScript</strong>，本 repo 的教材是 Java。
+          這裡保留 TypeScript 原樣不轉——這是討論筆記，不是課，
+          跟 <code>examples/shop/</code> 沒有對齊義務。</li>
+      </ul>
+      <p class="m-why">
+        「整理自討論」這件事本身就是一個證據等級：本文的<strong>論點</strong>全部是整理的，
+        不是驗過的；只有查證表裡標 <span class="tag t-ok">一手</span> 的那幾條，
+        才是本 repo 自己核對過原文的。
+      </p>
+    </div>
+  </section>
+
+  <!-- ============ 1 ============ -->
+  <section>
+    <div class="sec-head">
+      <span class="sec-label">一</span>
+      <h2>DDD 不是借用 Clean Architecture，是 Clean Architecture 從 DDD 的需求長出來</h2>
+    </div>
+
+    <div class="stack">
+      <p>
+        常見的誤解是 DDD 挑了 Clean Architecture 當房子。實際的因果相反。
+        Evans 在 Blue Book 第四章就寫了自己的 Layered Architecture
+        （User Interface / Application / Domain / Infrastructure），
+        <strong>DDD 一直有自己的架構</strong>。
+      </p>
+
+      <p>
+        問題出在 2003 年那版的依賴方向是由上往下——Domain 直接依賴 Infrastructure。
+        Evans 的原話很明確：
+      </p>
+
+      <p class="quote">
+        “Develop a design within each LAYER that is cohesive and is dependent only on the layers below.”
+        ⟨…⟩ “The infrastructure layer usually does not initiate action in the domain layer.
+        Being ‘below’ the domain…”
+        <br>— Evans, <em>Domain-Driven Design</em>, ch. 4（Final Manuscript, 2003）
+      </p>
+
+      <p>
+        結果是 Entity 被持久化框架侵蝕、Aggregate 的邊界被 lazy loading 決定，
+        最後蓋出 anemic model。
+      </p>
+
+      <div class="rule-box">
+        <span class="box-label">真正的斷點在 Repository</span>
+        <p>
+          這個 pattern 要成立，<b>interface 必須在內、implementation 必須在外</b>。
+          Blue Book 第六章說 repository 要「Set up access through a well-known global interface」，
+          而且「the interface is simple and conceptually connected to the domain model」；
+          實作那頭則是「teams add a framework to the infrastructure layer to support
+          the implementation of repositories」。
+        </p>
+        <p>
+          也就是說 <b>DDD 的戰術模式在語意上已經內建了依賴反轉的要求</b>，
+          只是 Evans 沒把它升格成架構規則，所以照第四章那條「只依賴下層」施工的人幾乎都做錯——
+          第四章的規則與第六章的 pattern 在文字上就互相拉扯。
+        </p>
+      </div>
+
+      <p class="m-why">
+        ⚠️ 校正：<strong>「這本身已經是 dependency inversion」是後人的框架，不是 Evans 的話。</strong>
+        <code>dependency inversion</code> 這個詞在 Blue Book 全書出現 <strong>0 次</strong>
+        （對 2003 Final Manuscript 全文檢索）。介面在內、實作在外是他寫的；
+        叫它 DIP 是我們加的。
+      </p>
+
+      <p>
+        Cockburn 的 Hexagonal（2005）、Palermo 的 Onion（2008）、Uncle Bob 的 Clean（2012）
+        講的是同一件事的三種命名：<strong>讓 domain 成為依賴圖的終點</strong>。
+        所以與其說 DDD 用 Clean Architecture，不如說
+        <strong>Clean Architecture 是 DDD 分層的除錯版本</strong>。
+      </p>
+
+      <p>
+        Evans 本人也認過這件事。原文寫在 2013 年他給 Vernon《Implementing Domain-Driven Design》
+        寫的推薦序裡：
+      </p>
+
+      <p class="quote">
+        “It explains the hexagonal architecture, which has emerged as a better description
+        of what we do than the layered architecture.”
+        <br>— Eric Evans, Foreword to Vaughn Vernon, <em>Implementing Domain-Driven Design</em>
+        (Addison-Wesley, 2013), p. xvii
+      </p>
+
+      <p class="m-why">
+        ⚠️ 已更正：討論筆記原文寫的是「Evans 本人 2014 年在 QCon 回顧時」。
+        <strong>那個場合與年份查不到。</strong>2014 年 Evans 的那場是 DDD eXchange（不是 QCon），
+        主題是 challenging DDD 的基本假設——InfoQ 那份會議紀錄通篇沒提到架構風格。
+        （本 repo 查的是報導，沒有那場演講的逐字稿或錄影，所以只能說「查不到支持」，
+        不能說「他沒講過」。）
+        真正說得出處的是上面這句 2013 年的推薦序。細節見查證表第 10 條。
+      </p>
+
+      <div class="limits">
+        <span class="box-label">為什麼當年會設計成那樣</span>
+        <p>
+          2003 年的 layering 是為了<strong>關注點分離</strong>，不是為了依賴方向，
+          心智模型是 <strong>call stack</strong>——上層呼叫下層，所以畫成垂直堆疊。
+          而最底層被命名為 <strong>Infrastructure</strong>，這個詞本身就是隱喻：
+          它暗示 DB 是地基、是你踩著蓋房子的東西，那大家依賴它就天經地義。
+        </p>
+        <p>
+          技術上也確實躲不掉，但那是<strong>分兩波</strong>的：
+          2003 年當道的是 <strong>EJB 2.x</strong>，entity bean 得繼承／實作 framework 的型別；
+          <strong>annotation 那一波要更晚</strong>——Java annotation 出自 JSR-175，
+          2004 年通過、隨 Java 5 進語言，JPA／EJB 3.0 要到 2006 年。
+        </p>
+        <p class="m-why">
+          ⚠️ 已更正：原文寫「EJB / Hibernate 當道，Entity 得繼承 framework base class、掛 annotation」，
+          <strong>把兩個年代疊在一起了，而且 Hibernate 那半剛好相反</strong>——
+          Hibernate 當年的賣點正是「映射 POJO、不用繼承任何東西」。詳見查證表第 12 條。
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 2 ============ -->
+  <section>
+    <div class="sec-head">
+      <span class="sec-label">二</span>
+      <h2>Clean Architecture 的四圈</h2>
+    </div>
+
+    <div class="stack">
+      <div class="scroll">
+        <table>
+          <caption>四圈與對應的 DDD 建構元素</caption>
+          <thead><tr><th>圈層</th><th>內容</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><strong>Entities</strong><br>最內圈</td>
+              <td>企業級業務規則，跨 application 也成立。純資料 + 純運算，
+                沒有任何 import 指向外圈。對應 DDD 的 Entity / Value Object /
+                Aggregate / Domain Service / Domain Event。</td>
+            </tr>
+            <tr>
+              <td><strong>Use Cases</strong><br>第二圈</td>
+              <td>application 特有的流程編排：知道「取訂單 → 算折扣 → 存回去 → 發事件」
+                這個序列，但不知道訂單住哪裡。Repository / Gateway 的 interface
+                <strong>定義在這圈</strong>，transaction 邊界通常也落在這裡。
+                對應 Application Service / Command Handler。</td>
+            </tr>
+            <tr>
+              <td><strong>Interface Adapters</strong><br>第三圈</td>
+              <td>翻譯層，兩個方向都由它負責。Controller / Presenter / ViewModel
+                把 HTTP request 轉成 input DTO；Repository 的實作、
+                ORM Model ↔ Entity 的 mapping 也在這圈。</td>
+            </tr>
+            <tr>
+              <td><strong>Frameworks &amp; Drivers</strong><br>最外圈</td>
+              <td>Web framework、DB engine、message broker、外部 SDK、DI container、
+                <code>main()</code>。理想上薄到只有 glue code。</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="rule-box">
+        <span class="box-label">Dependency Rule（唯一的硬規則）</span>
+        <p>
+          <b>原始碼的依賴只能由外指向內。</b>
+          內圈不能提到外圈的任何名字——不能有它的 class、function、變數，連字串常數都不該有。
+          圈數可以增減，這條規則不能妥協。
+        </p>
+      </div>
+
+      <h3>DB 和 UI 為什麼被放在同一圈</h3>
+
+      <p>
+        這是刻意的，也是整件事的重點。判斷「外」的標準<strong>不是呼叫順序，是變動頻率與 I/O 距離</strong>。
+        <strong>DB 不在 app 下面，它在 app 旁邊</strong>，跟 UI 一樣只是外面世界跟你講話的一種方式。
+        Postgres 換成 DynamoDB、REST 換成 GraphQL，對「滿千折百不超過 30%」這條規則而言
+        是同一種等級的事件，都不該讓它重編譯。
+      </p>
+
+      <p>
+        Hexagonal 的命名在這件事上最精準：
+        UI / API / CLI / test runner 是 <strong>driving side</strong>（外面打進來），
+        DB / MQ / 第三方 API 是 <strong>driven side</strong>（domain 定義 port、外面來實作）。
+        同一圈，但控制流方向相反——<strong>這個不對稱決定了誰定義 interface</strong>。
+      </p>
+
+      <p class="m-why">
+        ⚠️ 用詞校正：<code>driving</code> / <code>driven</code> <strong>不是 2005 年原文的用語</strong>。
+        Cockburn 2005 那篇用的是 <strong>primary / secondary actor</strong>。
+        driving/driven 定於他 2024 年那本《Hexagonal Architecture Explained》，
+        書中的更新說明自陳：「In the preview edition we used driving/driven and primary/secondary. ⟨…⟩
+        Only driving/driven and primary/secondary apply to all three, actor, adapter and port.」
+        兩組都通行，但把 driving/driven 說成 2005 年的命名是錯的。
+      </p>
+    </div>
+  </section>
+
+  <!-- ============ 3 ============ -->
+  <section id="walk">
+    <div class="sec-head">
+      <span class="sec-label">三</span>
+      <h2>一次 API request 走完四圈</h2>
+    </div>
+
+    <div class="stack">
+      <p>
+        情境：<code>POST /orders/{id}/coupon</code>。
+        規則是「VIP 滿千折百，折扣不得超過訂單金額 30%，且不適用促銷商品」。
+      </p>
+
+      <figure>
+        <div class="diagram-scroll">
+        <svg class="diagram" viewBox="0 0 780 462" role="img"
+             aria-label="四層水平帶狀圖。由外而內依序是 Frameworks and Drivers、Interface Adapters、Use Cases、Entities。實線箭頭表示往內呼叫：1 Framework/Router 到 2 Controller 到 3 ApplyCouponUseCase；3 再分出兩條，一條向外到 4 PgOrderRepository（這是整條路徑上唯一需要依賴反轉的一跳，以強調色畫出），一條向內到 5 Order.applyDiscount。虛線箭頭表示往外回傳：3 回到 2 號位置的 Controller/Presenter，再回到最外圈的 Framework 送出 HTTP response。">
+          <defs>
+            <marker id="arw" viewBox="0 0 10 10" refX="9" refY="5"
+                    markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M 0 1 L 10 5 L 0 9 z" class="arw"/>
+            </marker>
+            <marker id="arwd" viewBox="0 0 10 10" refX="9" refY="5"
+                    markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M 0 1 L 10 5 L 0 9 z" class="arw-dip"/>
+            </marker>
+          </defs>
+
+          <!-- layer bands -->
+          <rect class="layer" x="100" y="40"  width="672" height="76" rx="5"/>
+          <rect class="layer" x="100" y="142" width="672" height="76" rx="5"/>
+          <rect class="layer" x="100" y="244" width="672" height="76" rx="5"/>
+          <rect class="layer" x="100" y="346" width="672" height="76" rx="5"/>
+
+          <text class="layer-name" x="88" y="74"  text-anchor="end">FRAMEWORKS</text>
+          <text class="layer-name" x="88" y="90"  text-anchor="end">&amp; DRIVERS</text>
+          <text class="layer-name" x="88" y="176" text-anchor="end">INTERFACE</text>
+          <text class="layer-name" x="88" y="192" text-anchor="end">ADAPTERS</text>
+          <text class="layer-name" x="88" y="286" text-anchor="end">USE CASES</text>
+          <text class="layer-name" x="88" y="388" text-anchor="end">ENTITIES</text>
+
+          <!-- node 1 -->
+          <rect class="node" x="124" y="59" width="180" height="38" rx="4"/>
+          <text class="num"    x="134" y="75">1</text>
+          <text class="node-t" x="148" y="75">Framework / Router</text>
+          <text class="node-s" x="148" y="89">收到 HTTP request</text>
+
+          <!-- node 2 -->
+          <rect class="node" x="124" y="161" width="180" height="38" rx="4"/>
+          <text class="num"    x="134" y="177">2</text>
+          <text class="node-t" x="148" y="177">Controller</text>
+          <text class="node-s" x="148" y="191">驗格式 → Command</text>
+
+          <!-- node 4 -->
+          <rect class="node" x="330" y="161" width="200" height="38" rx="4"/>
+          <text class="num"    x="340" y="177">4</text>
+          <text class="node-t" x="354" y="177">PgOrderRepository</text>
+          <text class="node-s" x="354" y="191">SQL → Aggregate</text>
+
+          <!-- node out-2 -->
+          <rect class="node" x="560" y="161" width="196" height="38" rx="4"/>
+          <text class="num"    x="570" y="177">②</text>
+          <text class="node-t" x="588" y="177">Controller / Presenter</text>
+          <text class="node-s" x="588" y="191">EXCEED_CAP → 422</text>
+
+          <!-- node 3 -->
+          <rect class="node" x="124" y="263" width="250" height="38" rx="4"/>
+          <text class="num"    x="134" y="279">3</text>
+          <text class="node-t" x="148" y="279">ApplyCouponUseCase</text>
+          <text class="node-s" x="148" y="293">開 transaction、編排流程</text>
+
+          <!-- node out-3 -->
+          <rect class="node" x="560" y="59" width="196" height="38" rx="4"/>
+          <text class="num"    x="570" y="75">③</text>
+          <text class="node-t" x="588" y="75">Framework</text>
+          <text class="node-s" x="588" y="89">序列化成 HTTP response</text>
+
+          <!-- node 5 -->
+          <rect class="node" x="330" y="365" width="200" height="38" rx="4"/>
+          <text class="num"    x="340" y="381">5</text>
+          <text class="node-t" x="354" y="381">Order.applyDiscount()</text>
+          <text class="node-s" x="354" y="395">純運算，唯一的判斷</text>
+
+          <!-- flows -->
+          <line class="flow" x1="214" y1="97"  x2="214" y2="157" marker-end="url(#arw)"/>
+          <line class="flow" x1="214" y1="199" x2="214" y2="259" marker-end="url(#arw)"/>
+
+          <!-- 3 -> 4 : the DIP hop (outward) -->
+          <polyline class="flow-dip" points="330,263 330,231 430,231 430,203" marker-end="url(#arwd)"/>
+          <text class="lbl-dip" x="440" y="228">3→4 唯一需要 DIP 的一跳</text>
+          <text class="lbl"     x="440" y="242">use case import 的是 interface</text>
+
+          <!-- 3 -> 5 -->
+          <polyline class="flow" points="280,301 280,333 430,333 430,361" marker-end="url(#arw)"/>
+          <text class="lbl" x="440" y="330">純規則、沒有 await</text>
+
+          <!-- 3 -> out2 -->
+          <polyline class="flow-back" points="374,282 658,282 658,203" marker-end="url(#arw)"/>
+          <text class="lbl" x="392" y="274">回傳 output DTO / EXCEED_CAP</text>
+
+          <!-- out2 -> out3 -->
+          <line class="flow-back" x1="658" y1="157" x2="658" y2="101" marker-end="url(#arw)"/>
+
+          <!-- legend -->
+          <line class="flow" x1="124" y1="440" x2="156" y2="440" marker-end="url(#arw)"/>
+          <text class="lbl" x="164" y="444">往內呼叫</text>
+          <line class="flow-back" x1="248" y1="440" x2="280" y2="440" marker-end="url(#arw)"/>
+          <text class="lbl" x="288" y="444">往外回傳</text>
+          <line class="flow-dip" x1="366" y1="440" x2="398" y2="440" marker-end="url(#arwd)"/>
+          <text class="lbl-dip" x="406" y="444">控制流往外、原始碼依賴往內</text>
+        </svg>
+        </div>
+        <figcaption>
+          控制流走完四圈，但<b>原始碼的依賴一路都指向內</b>。
+          唯一需要依賴反轉的是 <b>3→4</b> 那一跳——use case 要存資料，
+          卻不能認識 Postgres，所以它 import 的是自己那圈宣告的 <code>OrderRepository</code> interface，
+          執行期才由 DI 把 <code>PgOrderRepository</code> 接上去。
+          其餘每一跳（1→2、2→3、3→5）都是外圈直接呼叫內圈，不需要任何機關。
+        </figcaption>
+      </figure>
+
+      <h3>呼叫（往內）</h3>
+
+      <ol class="method">
+        <li><div class="m-body">
+          <p><strong>Framework / Router</strong>（最外圈）——收到 HTTP request，交給 Controller。</p>
+        </div></li>
+        <li><div class="m-body">
+          <p><strong>Controller</strong>（Adapter 圈）——解析、驗格式、從 token 取 actorId，
+            產出 <code>ApplyCouponCommand{ orderId, couponId }</code>。</p>
+          <p class="m-why">這是 plain struct，沒有 Request 物件、沒有 header。
+            翻譯完之後，「HTTP」這個字在後面的路徑裡永遠不再出現。</p>
+        </div></li>
+        <li><div class="m-body">
+          <p><strong>ApplyCouponUseCase</strong>（Use Case 圈）——開 transaction，
+            呼叫 <code>OrderRepository.findById()</code>。</p>
+          <p class="m-why">它需要的資料在 DB，但它只認得自己定義的 interface。</p>
+        </div></li>
+        <li><div class="m-body">
+          <p><strong>PgOrderRepository</strong>（Adapter 圈）——跑 SQL，
+            <code>OrderMapper.toDomain(row)</code> 把扁平的 Row 還原成不變量的 Aggregate，
+            回傳 <code>Order</code>。</p>
+        </div></li>
+        <li><div class="m-body">
+          <p><strong>Order.applyDiscount()</strong>（Entity 圈，最內）——純運算、沒有 await，
+            回傳 <code>Result&lt;Order, DomainError&gt;</code>。</p>
+          <p class="m-why">整條路徑上唯一真正的商業判斷發生在這幾行。</p>
+        </div></li>
+      </ol>
+
+      <h3>回傳（往外）</h3>
+
+      <ol class="method out">
+        <li><div class="m-body">
+          <p><strong>ApplyCouponUseCase</strong>——收 Result；成功就 <code>repo.save()</code>
+            （再穿一次 port 往外）、發 domain event、commit，回傳 output DTO。</p>
+          <p class="m-why">失敗回傳的是 <code>EXCEED_CAP</code> 這種 domain 語彙，不是 400。</p>
+        </div></li>
+        <li><div class="m-body">
+          <p><strong>Controller / Presenter</strong>——把 <code>EXCEED_CAP</code> 對應成 422，
+            加上 i18n 訊息。</p>
+          <p class="m-why">HTTP status code 的知識完整留在這圈。</p>
+        </div></li>
+        <li><div class="m-body">
+          <p><strong>Framework</strong>——序列化成 HTTP response 送出。</p>
+        </div></li>
+      </ol>
+
+      <h3>三個容易看錯的點</h3>
+
+      <p>
+        <strong>第 3→4 步是唯一需要 DIP 的地方。</strong>
+        控制流從內往外跑，但原始碼依賴仍然由外指向內：use case import 的是
+        <code>OrderRepository</code> 這個 interface，它不知道 Postgres 存在，執行期才由 DI 接起來。
+      </p>
+
+      <p>
+        <strong>第 2 步的 Controller 和第 4 步的 PgOrderRepository 同屬 Adapter 圈</strong>，
+        深度上平起平坐，只有控制流方向不同（driving vs driven）。
+      </p>
+
+      <p>
+        <strong>Framework → Controller → UseCase 沒有跳層，而且就算跳了也合法。</strong>
+        舊 Layered 的 strict layering 要求「每層只能呼叫緊鄰的下一層」，Clean 是 relaxed 的：
+        由外往內的直接呼叫不需要任何機關，Controller 直接 import domain 的 <code>Money</code>
+        型別都沒問題。需要 DIP 的只有反方向那一半。
+      </p>
+
+      <div class="limits">
+        <span class="box-label">「跳層」有兩個意思，不要混</span>
+        <p>
+          上面那段講的是<strong>參照上的跳層</strong>——Controller 直接寫出
+          <code>Money</code> 這個型別的名字。那是 import graph 往內指，
+          <strong>Dependency Rule 完全允許</strong>。
+        </p>
+        <p>
+          另一個意思是<strong>控制流繞過中間層</strong>——Controller 不經過 use case，
+          自己開 transaction、自己打 SQL。那<strong>同樣沒有違反 Dependency Rule</strong>
+          （方向仍然往內），但它是設計上的壞味道：流程編排漏到了翻譯層。
+        </p>
+        <p>
+          差別在於<strong>誰抓得到</strong>：前者不需要抓（它不是問題），
+          後者<strong>抓不到</strong>——它正好落在下一節那張表裡「結構式分層」那一欄，
+          只能靠 review。這也是本 repo
+          <a href="../lessons/0005-簡潔架構-三原則與爆炸半徑.html">第 5 課</a>
+          動手練習裡「有沒有哪一步跳層」那一格在問的東西：那一格問的是後者。
+        </p>
+      </div>
+
+      <pre><code>// use case 圈 — interface 住這裡
+interface OrderRepository {
+  findById(id: OrderId): Promise&lt;Order | null&gt;
+  save(o: Order): Promise&lt;void&gt;
+}
+
+// entity 圈 — 純規則，transitive dependency 是空集合
+class Order {
+  applyDiscount(d: Money): Result&lt;Order, DomainError&gt; {
+    if (d.gt(this.subtotal.percent(30))) return err('EXCEED_CAP')
+    if (this.items.some(i =&gt; i.onSale))  return err('SALE_ITEM')
+    return ok(this.withDiscount(d))
+  }
+}
+
+// 測它不需要任何 test double
+expect(orderWith(1000).applyDiscount(money(400))).toEqual(err('EXCEED_CAP'))</code></pre>
+    </div>
+  </section>
+
+  <!-- ============ 4 ============ -->
+  <section>
+    <div class="sec-head">
+      <span class="sec-label">四</span>
+      <h2>結構式分層 vs 相依性分層</h2>
+    </div>
+
+    <div class="stack">
+      <p>
+        這是整份文件真正要講的一件事。兩者都叫「分層」，
+        但<strong>規範的東西、保護的對象、以及能在什麼時候被檢查出來</strong>，完全不同。
+      </p>
+
+      <div class="scroll">
+        <table>
+          <caption>兩種分層的逐項對照</caption>
+          <thead><tr>
+            <th></th>
+            <th>結構式分層（strict layering）</th>
+            <th>相依性分層（Dependency Rule）</th>
+          </tr></thead>
+          <tbody>
+            <tr>
+              <td><strong>規範對象</strong></td>
+              <td>呼叫紀律：A 不准跳過 B 直接呼叫 C</td>
+              <td>import graph 的方向：箭頭一律指向內</td>
+            </tr>
+            <tr>
+              <td><strong>管不管方向</strong></td>
+              <td>不管。你可以嚴格遵守每層只呼叫下一層，domain 照樣依賴 ORM</td>
+              <td>只管方向。跳幾層無所謂</td>
+            </tr>
+            <tr>
+              <td><strong>實際保護到誰</strong></td>
+              <td>幾乎沒有。它是流程規範，不是變動隔離</td>
+              <td>內圈。變動傳播被拓樸擋住</td>
+            </tr>
+            <tr>
+              <td><strong>檢查時機</strong></td>
+              <td>Review 期。「請不要跳層呼叫」只能靠人記得、靠 code review 抓，事後才發現</td>
+              <td>編譯期／CI。「domain 不准 import pg」是 build 就能擋的——
+                Gradle module、Nx tag、eslint import boundaries、Go internal package</td>
+            </tr>
+            <tr>
+              <td><strong>違規的後果</strong></td>
+              <td>程式照跑，只是不好看</td>
+              <td>build 失敗，根本進不了 main branch</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="rule-box">
+        <span class="box-label">關鍵差異：可機械檢（machine-checkable）</span>
+        <p>
+          結構式分層的規則是一句人話，必須有人在 review 時記得它。
+          相依性分層的規則可以編碼成 build system 的 module 依賴宣告，
+          違反它的 commit 根本編譯不過。
+          <b>靠自律維持的架構不是架構，是共識，而共識會隨著人員流動和交期壓力蒸發。</b>
+        </p>
+      </div>
+
+      <h3>相依性分層換來的三件具體的事</h3>
+
+      <ul class="plain">
+        <li><strong>變動半徑可預測。</strong>Postgres 換成 DynamoDB，波及面到 mapper 為止——
+          這個保證是拓樸給的，不是靠小心。折扣規則改了，只有 domain 那個檔案動。</li>
+        <li><strong>可測性是副產品，不是目標。</strong>domain 的 transitive dependency 是空集合，
+          所以測它不需要任何 test double。這不是「我們有寫測試的紀律」，
+          而是「<strong>不可能</strong>寫出需要看 DB 的 domain test」——約束比紀律可靠。</li>
+        <li><strong>決策可以延後。</strong>只要 DB 在外圈，你可以先用 in-memory
+          把 use case 全部寫完，再決定用什麼 DB。反過來，如果 domain 依賴 ORM，
+          你在第一天就把後面兩年鎖死了。</li>
+      </ul>
+
+      <p class="m-why">
+        「transitive dependency 是空集合」這個講法跟 Palermo 2008 年那篇同源。
+        他的原話是：「Transitive dependencies are still dependencies.」——
+        傳統分層裡 UI 其實是耦合到 data access 的，只是中間隔了一層看不見。
+      </p>
+
+      <h3>常見疑問：那為什麼不把邏輯全寫在最外層？</h3>
+
+      <p>
+        執行期確實所有東西都在最外層被組裝起來。Composition root（<code>main</code>）住在最外圈，
+        它 import 所有東西、<code>new</code> 出所有物件，把 <code>PgOrderRepository</code>
+        塞進 <code>ApplyCouponUseCase</code>——Uncle Bob 自己把 <code>Main</code> 當成
+        最髒的那個元件、系統的「ultimate detail」，並且說它是個 plugin。
+      </p>
+
+      <p>
+        <strong>這完全合法，因為 Dependency Rule 管的是 source-code import graph，
+        不是 object graph</strong>：<code>main</code> 認識所有人是安全的，
+        因為沒有人認識 <code>main</code>，它的入度是 0，整個換成 CLI 或 Lambda handler，
+        內圈一個檔都不用改。
+      </p>
+
+      <p>
+        但邏輯本身的位置決定的<strong>不是執行結果，而是那段程式碼的 import 集合</strong>。
+        <code>applyDiscount</code> 寫在 Entity 圈，transitive dependency 是空的，
+        能單獨 <code>new</code> 出來測、能被任何 driver 呼叫。
+        同一段 if-else 貼進 Controller，它就繼承了 Controller 的全部依賴：
+        要觸發它得先有 HTTP request 物件、要測它得換 framework、要換 GraphQL 就得複寫一份。
+        <strong>邏輯沒變，可觸發面積變了。</strong>
+      </p>
+
+      <p>
+        用函式的角度看更清楚，就是 functional core / imperative shell：
+        <code>main</code> 做的是 partial application，把
+        <code>(repo, db, clock) =&gt; (cmd) =&gt; Result</code> 的前半段固定死。
+        <strong>分層在這個視角下不是階層，是「已解析依賴」與「未解析依賴」的分界線</strong>——
+        不用 class、只用 closure 和 module，這條界線依然存在。
+      </p>
+    </div>
+  </section>
+
+  <!-- ============ 5 ============ -->
+  <section>
+    <div class="sec-head">
+      <span class="sec-label cost">五</span>
+      <h2>什麼時候不該套</h2>
+    </div>
+
+    <div class="stack">
+      <p>
+        Clean Architecture 的成本是 mapping 樣板（Entity ↔ ORM Model ↔ DTO 三層轉換），
+        <strong>只在規則密度夠高時才划算</strong>。如果一個 use case 單薄到只有 CRUD——
+        多數 supporting subdomain 都是——直接 controller 打 SQL 是對的。
+        只拿戰術模式、跳過 strategic design 的取捨，是 DDD 社群最普遍的誤用。
+      </p>
+
+      <p>
+        替代方案也確實存在。<strong>Vertical Slice Architecture + CQRS</strong>
+        按 feature 切而非按 layer 切，每個 slice 自己決定要不要抽象：
+        複雜的走整套 domain model，簡單的直接查。
+        <strong>Event Sourcing</strong> 更是 DDD 原生的架構風格，
+        聚合狀態就是事件流的 fold，跟 Clean 的分層正交。
+      </p>
+
+      <p>
+        可以用自己的架構，只是任何選項最後都得回答同一個問題：
+        <strong>domain 的可測性怎麼保？</strong>
+        Clean Architecture 只是目前回答得最省事的那個。
+      </p>
+
+      <p class="m-why">
+        本 repo 對照：<a href="../lessons/0006-cqrs-讀與寫的不對稱.html">第 6 課</a>
+        講的是同一個取捨的另一半——為什麼「讀」那一側可以整套跳過這些規矩。
+        那一課刻意不碰 Event Sourcing，並且明講 CQRS 不需要 Event Sourcing 也成立；
+        本節把 Event Sourcing 當成獨立的架構風格提及，兩邊的立場一致，沒有衝突。
+      </p>
+    </div>
+  </section>
+
+  <!-- ============ 6 ============ -->
+  <section>
+    <div class="sec-head">
+      <span class="sec-label">六</span>
+      <h2>對 AI harness 的意義</h2>
+    </div>
+
+    <div class="stack">
+      <p>
+        同一條路徑，把 <code>PgOrderRepository</code> 換成 <code>InMemoryOrderRepository</code>，
+        就能不起 DB 跑完整套 use case。這給出<strong>三檔粒度不同的回饋迴圈</strong>：
+        純 domain（毫秒級）、in-memory use case（十毫秒級，驗編排）、
+        真 DB 的 integration test（秒級，驗 mapping 和 SQL，數量刻意少）。
+      </p>
+
+      <p>
+        Agent 在這種結構裡的行為差異很明顯。讓它改 <code>applyDiscount</code>，
+        錯了會有確定性的 assert failure 秒回；讓它改 <code>PgOrderRepository</code>，
+        錯了可能是 N+1 或 transaction 邊界問題，那種錯誤只有 integration test
+        或 production 才看得見。
+        <strong>state control 的交棒順序，跟這四圈由內而外的順序基本上重合。</strong>
+      </p>
+
+      <p>
+        而「檢查時機」那一欄在 agent 進場後會被放大。
+        Agent 為了讓測試變綠會抄近路，它的最短路徑通常就是在 domain 裡直接 import
+        那個能拿到資料的東西。你能不能在 CI 上擋住這件事，
+        決定了你敢不敢跟它交出 state control。從這個角度看，
+        <strong>Dependency Rule 就是一條寫給 harness 用的 invariant</strong>——
+        它跟 TDD 同類，都是外部的、非 AI 的客觀驗證機制，只是一個驗行為、一個驗結構。
+      </p>
+
+      <div class="limits">
+        <span class="box-label">這一節是推論，不是驗過的</span>
+        <p>
+          上面三段對 harness 的接法，<strong>本 repo 沒有跑過任何一次量測</strong>——
+          沒有「三檔迴圈各自的實測秒數」、沒有「加了 import 檢查之後 agent 抄近路減少多少」的資料。
+          它跟
+          <a href="../lessons/0005-簡潔架構-三原則與爆炸半徑.html">第 5 課</a>
+          的〈這對 harness 的用途〉一樣，是接上去的說法，不是引用來的，也不是驗過的。
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 查證表 ============ -->
+  <section id="verify">
+    <div class="sec-head">
+      <span class="sec-label plain">附錄</span>
+      <h2>查證表</h2>
+    </div>
+
+    <div class="stack">
+      <p>
+        討論筆記裡每個「誰在哪一年說了什麼」的宣稱，逐條去找原始出處的結果。
+        <span class="tag t-ok">一手</span> = 本 repo 核對過原文；
+        <span class="tag t-2nd">二手</span> = 只查到轉述；
+        <span class="tag t-fix">已更正</span> = 原文有誤，本文已改；
+        <span class="tag t-mine">本文整理</span> = 不是引用，是這份筆記自己的講法。
+      </p>
+
+      <div class="scroll">
+        <table>
+          <caption>2026-08-21 查證</caption>
+          <thead><tr><th>#</th><th>宣稱</th><th>判定</th><th>依據</th></tr></thead>
+          <tbody>
+            <tr>
+              <td>1</td>
+              <td>Blue Book 第四章的四層是 UI / Application / Domain / Infrastructure</td>
+              <td><span class="tag t-ok">一手</span></td>
+              <td>Evans, <em>DDD</em>, ch.4（Final Manuscript, 2003-04-15）逐字核對，
+                四層名稱與職責描述皆符。</td>
+            </tr>
+            <tr>
+              <td>2</td>
+              <td>2003 那版的依賴方向由上往下，Domain 依賴 Infrastructure</td>
+              <td><span class="tag t-ok">一手</span></td>
+              <td>同上：「dependent only on the layers below」、
+                「The infrastructure layer usually does not initiate action in the domain layer.
+                Being ‘below’ the domain…」</td>
+            </tr>
+            <tr>
+              <td>3</td>
+              <td>Repository 的 interface 屬 domain、implementation 靠 infrastructure</td>
+              <td><span class="tag t-ok">一手</span></td>
+              <td>同書 ch.6：「Set up access through a well-known global interface」、
+                「the interface is simple and conceptually connected to the domain model」、
+                「teams add a framework to the infrastructure layer to support
+                the implementation of repositories」。</td>
+            </tr>
+            <tr>
+              <td>3b</td>
+              <td>「這本身已經是 dependency inversion」</td>
+              <td><span class="tag t-mine">本文整理</span></td>
+              <td><code>dependency inversion</code> 在 Blue Book 全文出現 <strong>0 次</strong>。
+                介面在內、實作在外是 Evans 寫的；叫它 DIP 是後人的框架。</td>
+            </tr>
+            <tr>
+              <td>4</td>
+              <td>Cockburn 的 Hexagonal 是 2005 年</td>
+              <td><span class="tag t-ok">一手</span></td>
+              <td><a href="https://alistair.cockburn.us/hexagonal-architecture" target="_blank" rel="noopener">alistair.cockburn.us/hexagonal-architecture</a>
+                標記 2005-09-04, v0.9。</td>
+            </tr>
+            <tr>
+              <td>5</td>
+              <td>driving side / driven side 是 Hexagonal 的命名</td>
+              <td><span class="tag t-fix">已更正</span></td>
+              <td>2005 原文用的是 <strong>primary / secondary actor</strong>
+                （「A <em>primary actor</em> is an actor that drives the application… 」）。
+                driving/driven 定於 Cockburn《Hexagonal Architecture Explained》（2024）；
+                該書 v0.9→v1.1 更新說明：「In the preview edition we used driving/driven
+                and primary/secondary. ⟨…⟩ Only driving/driven and primary/secondary
+                apply to all three, actor, adapter and port.」</td>
+            </tr>
+            <tr>
+              <td>6</td>
+              <td>Palermo 的 Onion 是 2008 年</td>
+              <td><span class="tag t-ok">一手</span></td>
+              <td><a href="https://jeffreypalermo.com/2008/07/the-onion-architecture-part-1/" target="_blank" rel="noopener">The Onion Architecture: part 1</a>，
+                頁面自標 <strong>2008-07-29</strong>（不少二手來源寫 7/30）。</td>
+            </tr>
+            <tr>
+              <td>7</td>
+              <td>Onion「明確標榜為 DDD 而設計」</td>
+              <td><span class="tag t-bad">不成立</span></td>
+              <td>對 part 1／2／3 全文檢索：<code>DDD</code>、<code>Domain-Driven</code>、
+                <code>Evans</code>、<code>ubiquitous</code> 各 <strong>0 次</strong>。
+                它明確引用的是 Cockburn 的 Hexagonal。中心是「Domain Model」，
+                但沒有點名 DDD。<strong>本文已刪去這個修飾語。</strong></td>
+            </tr>
+            <tr>
+              <td>8</td>
+              <td>Onion 的核心是「all coupling is toward the center」</td>
+              <td><span class="tag t-ok">一手</span></td>
+              <td>Palermo part 1 逐字：「The fundamental rule is that all code can depend on
+                layers more central, but code cannot depend on layers further out from the core.
+                In other words, all coupling is toward the center.」
+                同篇另有「Transitive dependencies are still dependencies.」</td>
+            </tr>
+            <tr>
+              <td>9</td>
+              <td>Uncle Bob 的 Clean（2012）與 Dependency Rule 原句</td>
+              <td><span class="tag t-ok">一手</span></td>
+              <td>已在
+                <a href="../lessons/0005-簡潔架構-三原則與爆炸半徑.html">第 5 課</a>
+                引用並標註（2012-08-13 那篇）。本文沿用該課的核對結果，未重查全文。</td>
+            </tr>
+            <tr>
+              <td>10</td>
+              <td>「Evans 2014 年在 QCon 回顧時認為 Hexagonal 比 Layered 更好」</td>
+              <td><span class="tag t-fix">已更正</span></td>
+              <td><strong>場合與年份都對不上。</strong>2014 年 Evans 的那場是
+                <a href="https://www.infoq.com/news/2014/06/dddx-evans-challenging/" target="_blank" rel="noopener">DDD eXchange</a>（不是 QCon），
+                主題是 challenging DDD 的基本假設，InfoQ 的會議紀錄未提架構風格。
+                （查的是報導不是逐字稿，所以判定是「查不到支持」，不是「他沒說過」。）
+                <strong>正確出處</strong>：Evans 給 Vernon《IDDD》寫的推薦序（2013, p. xvii）：
+                「It explains the hexagonal architecture, which has emerged as a better
+                description of what we do than the layered architecture.」
+                （核對自 Pearson 官方 sample pages PDF）</td>
+            </tr>
+            <tr>
+              <td>11</td>
+              <td>「Uncle Bob 自己說 main 是最髒的 plugin」</td>
+              <td><span class="tag t-2nd">二手</span></td>
+              <td><em>Clean Architecture</em>(2017) ch.26 “The Main Component”，
+                內含 “The Ultimate Detail” 一節，把 <code>Main</code> 描述為
+                lowest-level policy 並要讀者「see it as a plugin」。
+                <strong>「dirtiest」這個字眼本 repo 只在二手摘要看到，沒有核對過書本身。</strong></td>
+            </tr>
+            <tr>
+              <td>12</td>
+              <td>「2003 年 EJB / Hibernate 當道，Entity 得繼承 framework base class、掛 annotation」</td>
+              <td><span class="tag t-fix">已更正</span></td>
+              <td>年代疊錯，而且 Hibernate 那半相反。Java annotation 出自 JSR-175
+                （2004 年通過，隨 JDK 1.5 進語言）；JPA／EJB 3.0 是 2006 年。
+                2003 年成立的是 <strong>EJB 2.x 的 base class 耦合</strong>；
+                Hibernate 當年的賣點恰恰是<strong>映射 POJO、不要求繼承</strong>。
+                本文已改寫成分兩波敘述。</td>
+            </tr>
+            <tr>
+              <td>13</td>
+              <td>「Clean 是 relaxed layering」「結構式分層 vs 相依性分層」這組對照</td>
+              <td><span class="tag t-mine">本文整理</span></td>
+              <td>不是任何一篇的原文分類，是討論筆記自己的整理。
+                對照表裡的每一格都是判斷，不是引用。</td>
+            </tr>
+            <tr>
+              <td>14</td>
+              <td>第六節對 AI harness 的三檔迴圈與 state control 交棒</td>
+              <td><span class="tag t-mine">本文整理</span></td>
+              <td>推論，且<strong>本 repo 沒有跑過對應的量測</strong>。見該節的警示框。</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="limits">
+        <span class="box-label">查證的界線</span>
+        <ul>
+          <li><strong>沒有逐字讀完任何一本書。</strong>Blue Book 是對 2003 Final Manuscript
+            全文檢索後讀相關章節；《IDDD》只讀了官方 sample pages 裡的推薦序；
+            《Clean Architecture》完全沒讀原書，只有二手摘要。</li>
+          <li><strong>第 9 條沿用第 5 課的核對，沒有重查。</strong>
+            那一課自己也標明「只核對引用的那幾句，沒有逐字讀完全文」。</li>
+          <li><strong>第 5 條的 2024 年書只讀了更新說明那份 PDF</strong>，不是書本身；
+            「driving/driven 首次出現在哪一版」沒有更精確的答案。</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 本 repo 對應 ============ -->
+  <section>
+    <div class="sec-head">
+      <span class="sec-label plain">本 repo 對應</span>
+      <h2>這份跟教材怎麼接</h2>
+    </div>
+
+    <div class="stack">
+      <ul class="plain">
+        <li><a href="../lessons/0005-簡潔架構-三原則與爆炸半徑.html">第 5 課：簡潔架構</a>——
+          同一個主題的教學版。<strong>四層與 Dependency Rule 兩邊重複是刻意的</strong>；
+          本文多出來的是<strong>歷史因果</strong>（第一節）、
+          <strong>兩種分層的對照</strong>（第四節）與<strong>什麼時候不該套</strong>（第五節），
+          第 5 課多出來的是型別該放哪一層的判準、互動練習與動手題。</li>
+        <li><a href="../lessons/0006-cqrs-讀與寫的不對稱.html">第 6 課：CQRS</a>——
+          第五節那些替代方案的另一半。</li>
+        <li><a href="./0001-機械關卡的複利.html">研究筆記 0001：機械關卡的複利</a>——
+          「把人的判斷往機械關卡上搬」的外部證據。第四節的〈可機械檢〉是同一條主張。</li>
+      </ul>
+    </div>
+  </section>
+
+  <p class="footnote">
+    整理自架構討論筆記（2026/08），2026-08-21 搬入本 repo 並補查證。
+    本文可編輯——它是整理，不是凍結證據；
+    <a href="./0001-機械關卡的複利.html">研究筆記 0001</a> 逐位元組凍結是因為那份是證據，兩者體例不同。
+    更動內容時請一併更新〈<a href="#verify">查證表</a>〉。
+  </p>
+
+</div>
+</body>
+</html>
