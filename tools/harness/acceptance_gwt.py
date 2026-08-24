@@ -15,6 +15,13 @@
 
 不動任何凍結檔:每輪都從 git 取出到 scratch 再改。
 
+離開碼:
+    0  三段都跑到了,而且都通過
+    1  有項目未通過
+    2  用法錯誤(參數個數不對 / 生成物裡找不到任何 `scenario_*`)
+    3  **有項目不適用** —— 跑到的都通過,但至少一段沒跑。不是通過。
+       (合約對不上 → 第 2、3 段不適用;有代理編碼的情境被排除在驗收之外。)
+
 用法:
     python3 acceptance_gwt.py <generated/OrderAcceptanceTest.java> <workdir>
 """
@@ -233,7 +240,11 @@ def main(argv: list[str]) -> int:
     if skipped:
         print(f"=== 跑到的都通過,但有 {len(skipped)} 項不適用 —— "
               f"**這不等於驗收通過** ===")
-        return 0
+        # 報表分得開、離開碼分不開,等於只有讀報表的人知道 —— 自動化一律讀成綠。
+        # **整份不適用,不是通過**(ADR 0005 §6),離開碼 3,跟「有項目未通過」(1)、
+        # 「用法錯誤」(2)分得開。跟 `landing_check` / `verify_generated` /
+        # `package_landing_check` 同一套。
+        return 3
     print("=== 全部通過 ===")
     return 0
 

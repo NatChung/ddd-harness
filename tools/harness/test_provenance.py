@@ -56,9 +56,13 @@ def test_掃不到東西不算通過() -> None:
 
     haiku 那份規格濾完之後一筆 `[Qn]`-帶值 都沒有 —— 報表必須說「不是乾淨」,
     而且 exit 非 0。
+
+    「沒有東西可查」是**不適用**,離開碼 **3**(ADR 0005 §6、`CONTEXT.md`〈不適用〉),
+    跟「吃錯目錄」(2)分得開。原本這裡回 1 —— 那把「整份不適用」跟這條線上
+    「有東西要人去看」擠在同一個碼裡。
     """
     assert pc.claims((HAIKU / "SPEC-draft.md").read_text(encoding="utf-8")) == []
-    assert pc.main(["x", str(HAIKU), str(HAIKU / "SPEC-draft.md")]) == 1
+    assert pc.main(["x", str(HAIKU), str(HAIKU / "SPEC-draft.md")]) == 3
 
 
 # ── 假陽性的三個來源(每條都是實跑撞到的,不是想像的)────────────────────
@@ -98,5 +102,20 @@ def test_一行兩個值要拆成兩筆() -> None:
 
 def test_沒有答案語料要當場掛(tmp_path: Path) -> None:
     """吃錯目錄要立刻知道,不要回一個空佇列讓人以為乾淨。"""
-    with pytest.raises(SystemExit):
+    with pytest.raises(pc.UsageError):
         pc.answers_corpus(tmp_path)
+
+
+def test_吃錯目錄的離開碼是2不是1(tmp_path: Path) -> None:
+    """「吃錯目錄」是**用法錯誤**(2),不是「有東西要人去看」(這條線上的 1)。
+
+    原本是 `raise SystemExit("字串")` —— Python 對字串型 `SystemExit` 一律離開碼 **1**。
+    兩種成因(沒有 `rounds/`、`rounds/` 底下沒有 `*-answers.md`)都要是 2。
+    """
+    spec = tmp_path / "SPEC.md"
+    spec.write_text("總額 12000 元 [Q1]\n", encoding="utf-8")
+
+    assert pc.main(["x", str(tmp_path), str(spec)]) == 2      # 沒有 rounds/
+
+    (tmp_path / "rounds").mkdir()
+    assert pc.main(["x", str(tmp_path), str(spec)]) == 2      # rounds/ 是空的

@@ -215,8 +215,18 @@ def test_引用形式不算問出去(tmp_path: Path) -> None:
 
 def test_吃錯目錄要當場掛(tmp_path: Path) -> None:
     """沒有 `rounds/` 就是餵錯東西,要立刻知道,不要回一個空報表讓人以為乾淨。"""
-    with pytest.raises(SystemExit):
+    with pytest.raises(lc.UsageError):
         lc.check(tmp_path)
+
+
+def test_吃錯目錄的離開碼是2不是1(tmp_path: Path) -> None:
+    """docstring 的離開碼表寫著「2 用法錯誤(吃錯目錄)」,行為要真的是 2。
+
+    原本這裡是 `raise SystemExit("字串")` —— Python 對字串型 `SystemExit` 一律
+    離開碼 **1**,於是「吃錯目錄」跟「有漏接」撞在同一個碼上,而報表寫的是 2。
+    **文件承諾 2、實測回 1** 就是這條測試釘住的東西。
+    """
+    assert lc.main(["x", str(tmp_path)]) == 2
 
 
 # ── 掃到卻掃錯:靜默綠燈那條路(2026-08-18 稽核 §二.A)────────────────────
