@@ -5,7 +5,7 @@ ADR 0010 記「hub 用搬檔案,不用 submodule / sparse-checkout」。
 
 **Blocked by:** None
 
-**Status:** needs-triage —— 2026-08-26 kc-hub 實搬一次量出來的洞;預測在 `32-PREDICTION.md`,寫在動手之前。
+**Status:** done —— 2026-08-26 `25c131a` 重排 + `vendor.sh`(ADR 0010);kc-hub 用 script 重搬取代手工那份;對答案在 `32-RESULT.md`(8 條全命中,漏預測 LICENSE 與測試檔空行)。vpin-hub 那次才是零手工的第一個樣本。
 
 ## 哪裡壞了
 
