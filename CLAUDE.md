@@ -10,7 +10,7 @@ DDD × AI Agent 的 development harness(五幕管線)+ 十一課教材。立論�
 ## 非標準位置(先讀這段,不然會找錯地方)
 
 - **票在 `.scratch/ddd-harness/issues/`**,markdown 一檔一票,不是 GitHub Issues。
-  18 張,9 張還活著。詳細規約見下面〈票怎麼開、怎麼關〉。
+  27 張,18 張還活著(2026-08-25)。詳細規約見下面〈票怎麼開、怎麼關〉。
 - **ADR 從 `0003` 開始**,不是掉了東西:`0001` / `0002` 是原 repo(`kc-log`)自己的決策,
   沒有跟著搬。這裡的 `0003`–`0006` 編號**刻意不重編**——`schema.sql`、`spec_store.py`、
   `gen_acceptance.py`、多支檢查器與三份 `build.gradle` 的註解都逐字引用這些編號,重編會斷
@@ -24,7 +24,7 @@ DDD × AI Agent 的 development harness(五幕管線)+ 十一課教材。立論�
 
 ## 票怎麼開、怎麼關
 
-**檔名**:`NN-kebab-slug.md`,`NN` 是兩位數流水號(目前到 18,下一張是 19)。
+**檔名**:`NN-kebab-slug.md`,`NN` 是兩位數流水號(目前到 27,下一張是 28)。
 
 **每張票的開頭**照這個形狀:
 
@@ -44,6 +44,10 @@ DDD × AI Agent 的 development harness(五幕管線)+ 十一課教材。立論�
 卡在什麼。
 
 **改一張票的 Status = 整格重寫**,不要在後面追加——狀態欄只放最新狀態,歷史寫進票的內文。
+
+**新立慣例要二選一(ADR 0007)**:同票交 lint(`tools/harness/harness_lint.py`,票 22),
+或在票裡逐字寫「prose-only, unenforced」+ 為什麼。以上規約由 `harness_lint.py` 守,
+規則名見票 22;票 22 合併前這一段是散文。
 
 **預測檔**:動 harness 之前先把「我預期會看到什麼」寫進
 `.scratch/ddd-harness/NN-PREDICTION.md`(**跟票是兄弟檔,不是票的一節**),跑完再寫
