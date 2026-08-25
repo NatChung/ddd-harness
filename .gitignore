@@ -9,3 +9,6 @@ build/
 *.class
 
 .DS_Store
+
+# Claude Code agent worktrees(暫時目錄,不進 git)
+.claude/worktrees/
