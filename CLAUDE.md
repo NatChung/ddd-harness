@@ -52,12 +52,9 @@ DDD × AI Agent 的 development harness(五幕管線)+ 十一課教材。立論�
 
 ## 硬規則
 
-- **`tools/harness/interview-prompt.md` 是第一幕的正本**。改了它,要回頭同步
-  `.claude/skills/spec-authoring/SKILL.md` —— 兩份散文講同一條規則會漂。
-  兩邊講到同一件事時**以 `interview-prompt.md` 為準**。
-  ⚠️ **skill 目前落後於正本,而且是刻意的**:它已經解凍(可以改),但把
-  `interview-prompt.md` 的內容同步進去這件事**排在最後才做**。所以兩邊對不上是已知狀態,
-  不是 bug —— **不要為了「讓它們一致」就自己去改 skill**。
+- **`tools/harness/interview-prompt.md` 是第一幕的正本,而且是唯一一份**。
+  `.claude/skills/spec-authoring/SKILL.md` 2026-08-25 刪了(它是落後的副本,兩份散文講
+  同一條規則會漂)。`runs/` 與 `NOTES.md` 裡對它的引用是歷史,不要去修。
 - **`examples/returns/interview-prompt.md` 一個字都不要動** —— 那是跨模型實驗的凍結受測品
   (blob `71c1eb7d6eb6`)。改它會毀掉實驗基準。
 - **`examples/` 底下所有 `runs/` 是歷史素材,不要改、也不要刪**(⚠️ 有四個,而且

@@ -1214,3 +1214,16 @@ Nat 問「如果我 clear 再說 Demo 流程呢?」—— 這是**唯一真正�
 跟第 4 級那句「Matt 自己承認的缺口:每個 session 都要重講領域術語」是同一個問題、同一種解法。
 
 檢查過 skill 引用的 6 條路徑全部存在、六輪字數與帳本一致(104/109/78/74/149/72)。
+
+## 2026-08-25 —— 刪掉 `spec-authoring` skill,第一幕只剩一份正本
+
+Nat 問訪談 AI「怎麼知道要問什麼」,答案全在 `tools/harness/interview-prompt.md`
+(追問表 / 盤點表 / §1–§11 產出合約 / 完成判準)。講到 `.claude/skills/spec-authoring/SKILL.md`
+是「落後、刻意還沒同步的副本」時,Nat 決定**整個 `spec-authoring/` 刪掉**。
+
+理由跟 8/18 分家那條一樣:兩份散文講同一條規則會漂。之前的處置是「以 interview-prompt
+為準、skill 排最後同步」,但「排最後」= 永遠不會做,留著只會誤導冷啟動的 agent。
+
+動到的活引用:`CLAUDE.md` 硬規則、`interview-prompt.md` 檔頭、`index.html`、
+`reference/0003`。`examples/*/runs/` 底下 10 個檔與本檔前面的條目照舊 —— 那是歷史。
+`/spec-authoring` 這個 slash command 從此不存在;要跑第一幕就照 `interview-prompt.md`。
