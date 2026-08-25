@@ -70,11 +70,31 @@ HARNESS="$(cd "$(dirname "$0")" && pwd)"
 SKEL_ABS="$(cd "$SKEL" && pwd)"
 SPEC_ABS="$(cd "$(dirname "$SPEC")" && pwd)/$(basename "$SPEC")"
 
+# ---- 0. 閘門(票 21):幕三的檢查證據 ---------------------------------------
+# 帳本住在**骨架目錄**(acceptance_gwt 的 workdir 跑之前可能還不存在,所以那支要
+# `check.py --run-dir <骨架目錄> acceptance_gwt …` 明給)。要求 acceptance_gwt 有一筆 exit 0。
+# ⚠️ 離開碼 3(不適用)不算通過;而 acceptance_gwt 對綁非 shop-frozen-v1 合約的 spec
+#    第 2、3 段一定不適用 → 整支回 3 → 這道閘門對那些 spec **只能靠 ACT_GATE_SKIP 過**,
+#    直到 acceptance_gwt 能單獨回報第一段(改檢查器本體,不在票 21)。
+# 閘門在 rm -rf "$WORK" **之前**:拒絕的話什麼都不動。dry-run 一樣要過閘門(閘門管的是順序,不是錢)。
+if [ "${ACT_GATE_SKIP:-0}" = "1" ]; then
+  [ -n "${ACT_GATE_SKIP_REASON:-}" ] || {
+    echo "ACT_GATE_SKIP=1 需要 ACT_GATE_SKIP_REASON(沒理由不准跳)" >&2; exit 2; }
+  echo "⚠️ 閘門跳過(ACT_GATE_SKIP=1):$ACT_GATE_SKIP_REASON"
+  GATE_SKIPPED=true
+else
+  python3 "$HARNESS/check.py" --gate act4 "$SKEL_ABS" || exit $?
+  GATE_SKIPPED=false
+fi
+GATE_REASON_JSON="$(python3 -c 'import json,sys; print(json.dumps(sys.argv[1], ensure_ascii=False))' \
+  "${ACT_GATE_SKIP_REASON:-}")"
+
 # ---- 1. 組隔離工作目錄:骨架 + 散文規格,別的都不放 ------------------------
 rm -rf "$WORK"; mkdir -p "$WORK"
 WORK_ABS="$(cd "$WORK" && pwd)"
 cp -R "$SKEL_ABS/." "$WORK_ABS/"
 rm -rf "$WORK_ABS/build" "$WORK_ABS/.gradle"     # 上一跑的產物,不給看
+rm -f "$WORK_ABS/check-ledger.jsonl"             # 骨架的帳本不帶進來:新跑新帳本(票 26 讀它)
 mkdir -p "$WORK_ABS/spec" "$WORK_ABS/harness" "$WORK_ABS/src/innerTest/java"
 cp "$SPEC_ABS" "$WORK_ABS/spec/SPEC.md"
 
@@ -378,7 +398,9 @@ cat > "$WORK_ABS/run-meta.json" <<META
     "src/test/java/acceptance/OrderAcceptanceTest.java": "$(blob "$WORK_ABS/src/test/java/acceptance/OrderAcceptanceTest.java")",
     "src/test/java/acceptance/OrderProxyAcceptanceTest.java": "$(blob "$WORK_ABS/src/test/java/acceptance/OrderProxyAcceptanceTest.java")",
     "src/test/java/architecture/ArchitectureTest.java": "$(blob "$WORK_ABS/src/test/java/architecture/ArchitectureTest.java")"
-  }
+  },
+  "gate_skipped": $GATE_SKIPPED,
+  "gate_skip_reason": $GATE_REASON_JSON
 }
 META
 

@@ -47,6 +47,42 @@
    └──────────────────────────────────────────────────────────┘
 ```
 
+## 幕與幕之間的閘門(票 21,2026-08-25)
+
+上面每一段的「檢查」以前都是文字約定:可以直接 `run_act4.sh` 而空骨架從沒驗過紅。
+現在**擋在 runner 本身**,不是另一支「沒人被迫用」的 pipeline script:
+
+```bash
+python3 tools/harness/check.py [--run-dir <dir>] <checker> <args…>   # 跑檢查器,把離開碼記進 <run_dir>/check-ledger.jsonl
+python3 tools/harness/check.py --gate act2|act3|act4 <dir> [<dir>…]  # runner 開頭呼叫的閘門:0 過 / 1 沒過 / 3 不適用
+```
+
+| runner | 讀哪裡的帳本 | 要求 |
+|---|---|---|
+| `run_act2.sh` | 散文規格所在目錄,或它的上一層(`interviewer/`) | `landing_check` 有一筆 `exit == 0` |
+| `run_act3.sh` | `<spec.db>` 所在目錄 | `spec_store import` 有一筆 0;`provenance_check` / `contract_triage` / `glossary_check` 各至少跑過一筆 |
+| `run_act4.sh` | **骨架目錄** | `acceptance_gwt` 有一筆 `exit == 0` |
+
+- **離開碼 3 不算通過。** 閘門判準是 `exit == 0`,不是 `exit != 1`;帳本裡那筆是 3 → 閘門回 1。
+- 帳本沒有那一幕的任何紀錄 → runner 印「不適用:上一幕從沒被檢查過」、離開碼 3;
+  有紀錄但沒一筆 0 → 1。**兩種都在 `rm -rf` 工作目錄之前**,拒絕的話什麼都不動。
+- 逃生口:`ACT_GATE_SKIP=1` + `ACT_GATE_SKIP_REASON=…`,沒理由 → 2。跳了會寫
+  `gate_skipped: true` + 理由進該跑的 `run-meta.json`(`run_act4.sh` 為此新增了 run-meta.json)。
+- **誰逼你用 `check.py`**:沒有人 —— 除了下一幕的閘門,沒帳本它就拒絕。這是這條慣例的機械化。
+  尾端沒人守:幕四自己的檢查(`vacuous_tests` 等)不擋任何下游,**prose-only, unenforced**。
+- 帳本查的是「跑過且過了」,**不查「檢查完之後東西有沒有再動」**。
+- `check-ledger.jsonl` 每行 `{"checker","argv","exit","ts","cwd"}`,append-only,跟幕一的
+  `relay-ledger.jsonl` 同一種形狀。格式本身 prose-only, unenforced(票 26 會讀它,讀不動就知道)。
+
+**驗過沒有(2026-08-25,`.scratch/ddd-harness/21-RESULT.md`,全在 scratch 複本上跑)**:
+- ✅ haiku roleplay 那份 `landing_check` exit 1 → `run_act2.sh` 拒絕(1),先前的工作目錄沒被動;
+  同一份沒跑過檢查 → 3;opus-rerun 那份 exit 0 → 放行
+- ✅ 2026-08-19-act2 那份:import + 三支分診跑過 → `run_act3.sh` 放行、生成器自己回 3(沒交 `architecture.yaml`)
+- ❌ **幕四的閘門在真實素材上目前只能靠 `ACT_GATE_SKIP` 過**:`acceptance_gwt` 第一段
+  `git archive 4567d31`,而 `4567d31` 與 `layered/OL1-integration` 都留在 `kc-log`、沒跟著搬
+  → 它在本 repo 一跑就炸(exit 1)。就算搬過來,綁非 `shop-frozen-v1` 合約的 spec 第 2、3 段
+  不適用 → 整支回 3 → 閘門照樣拒絕。修法要動檢查器本體(讓第一段能單獨回報),不在票 21。
+
 ---
 
 ## 幕一:訪談
@@ -62,7 +98,7 @@ python3 tools/harness/orchestrate.py <run_dir> examples/shop/harness/act1 [round
 ```
 
 ```bash
-python3 tools/harness/landing_check.py <run_dir> [<run_dir>/SPEC-draft.md]
+python3 tools/harness/check.py landing_check <run_dir> [<run_dir>/SPEC-draft.md]   # 記進 <run_dir>/check-ledger.jsonl,run_act2.sh 的閘門讀它
 ```
 
 **受測輸入 4 份,全部由 `stage_inputs()` 機械複製**(手動放檔案就是接錯的原因):
@@ -151,9 +187,10 @@ python3 tools/harness/landing_check.py <run_dir> [<run_dir>/SPEC-draft.md]
 ## 幕二:落檔
 
 ```bash
-tools/harness/run_act2.sh <散文規格.md> <工作目錄> [model]
-python3 tools/harness/spec_store.py import <acceptance.yaml> <spec.db>
-python3 tools/harness/provenance_check.py <run_dir> <散文規格.md>
+tools/harness/run_act2.sh <散文規格.md> <工作目錄> [model]       # 開頭查幕一的帳本(票 21);ACT2_DRY_RUN=1 只組目錄
+python3 tools/harness/check.py spec_store import <工作目錄>/{acceptance,glossary,contracts}.yaml <工作目錄>/spec.db
+python3 tools/harness/check.py --run-dir <工作目錄> provenance_check <幕一 run_dir> <散文規格.md>
+#   ↑ provenance_check 的目錄參數是幕一的 run,推不到幕二 → --run-dir 明給,帳本才會落在 run_act3.sh 讀的地方
 ```
 
 隔離是刻意的:agent 只拿到散文規格 + `schema.sql` + `spec_store.py`。
@@ -180,8 +217,9 @@ python3 tools/harness/provenance_check.py <run_dir> <散文規格.md>
 **再加兩支分診(2026-08-18,ADR 0005 / 票 06-A、08-A)**:
 
 ```bash
-python3 tools/harness/contract_triage.py <spec.db>   # 微尺度:§3 領域契約
-python3 tools/harness/glossary_check.py  <spec.db>   # 詞彙:§1 詞彙表 ↔ 對外欄位名
+python3 tools/harness/check.py contract_triage <spec.db>   # 微尺度:§3 領域契約
+python3 tools/harness/check.py glossary_check  <spec.db>   # 詞彙:§1 詞彙表 ↔ 對外欄位名
+# 兩支的離開碼閘門不看(佇列不是判決),只要求跑過;帳本落在 <spec.db> 所在目錄
 ```
 
 兩支都**不生成任何可執行的東西**,買的是分診;兩個對應的頂層區塊
@@ -234,9 +272,10 @@ python3 tools/harness/glossary_check.py  <spec.db>   # 詞彙:§1 詞彙表 ↔ 
 ## 幕三:生成
 
 ```bash
-python3 tools/harness/gen_archunit.py   <spec.db> <out>/ArchitectureTest.java
-python3 tools/harness/gen_acceptance.py <spec.db> <out>/OrderAcceptanceTest.java
-python3 tools/harness/verify_generated.py <generated_dir> <spec1.yaml> [<spec2.yaml> …]
+tools/harness/run_act3.sh <spec.db> <out>          # 開頭查幕二的帳本(票 21),再跑下面兩支生成器;任一不適用 → 3
+python3 tools/harness/gen_archunit.py   <spec.db> <out>/ArchitectureTest.java      # ⚠️ 直接跑生成器繞得過閘門 ——
+python3 tools/harness/gen_acceptance.py <spec.db> <out>/OrderAcceptanceTest.java   #    閘門只在 run_act3.sh(test_harness.py 直接呼叫兩支的 main(),本體不動)
+python3 tools/harness/check.py verify_generated <generated_dir> <spec1.yaml> [<spec2.yaml> …]
 ```
 
 `gen_acceptance` 生**兩個** class:
@@ -261,12 +300,18 @@ python3 tools/harness/verify_generated.py <generated_dir> <spec1.yaml> [<spec2.y
 ## 幕四:實作 ⚠️ 2026-08-19 跑通了一次,而「全綠」只證明了 1 條真情境
 
 ```bash
+python3 tools/harness/check.py --run-dir <骨架目錄> acceptance_gwt <generated>/OrderAcceptanceTest.java <workdir>
+#   ↑ 先跑這個:run_act4.sh 的閘門讀**骨架目錄**的帳本,要一筆 exit 0(workdir 跑之前可能不存在,推不到 → 明給)
 tools/harness/run_act4.sh <散文規格.md> <骨架目錄> <工作目錄> [model]
-ACT4_DRY_RUN=1 tools/harness/run_act4.sh …   # 只組工作目錄,不呼叫 claude(不花錢)
+ACT4_DRY_RUN=1 tools/harness/run_act4.sh …   # 只組工作目錄,不呼叫 claude(不花錢);閘門一樣要過
+ACT_GATE_SKIP=1 ACT_GATE_SKIP_REASON='…' tools/harness/run_act4.sh …   # 逃生口,理由寫進 run-meta.json
 
-python3 tools/harness/acceptance_gwt.py <generated>/OrderAcceptanceTest.java <workdir>
-python3 tools/harness/vacuous_tests.py …   # 假驗收分診(PIT + 支配關係)
+python3 tools/harness/check.py vacuous_tests …   # 假驗收分診(PIT + 支配關係);不擋任何下游
 ```
+
+⚠️ **這道閘門在本 repo 目前過不了,只能跳**(見開頭〈幕與幕之間的閘門〉的驗證):`acceptance_gwt`
+第一段要 `git archive 4567d31`,那個物件沒跟著從 `kc-log` 搬過來;而且它對非凍結合約的 spec
+一定回 3。**跳的時候理由要寫這個**,不要寫別的。
 
 隔離同幕二:bare dir,只有**散文規格 + 骨架**。生成器、spec store、凍結的
 `examples/shop/app/` 都不在裡面。工作契約寫死在 runner 的 heredoc(**受測品**,
@@ -395,6 +440,7 @@ wire shape 措辭,**全部等 opus 那跑的資料再決定**。
 09 幕四方法論(→ `docs/adr/0006`)/ 10 骨架(`examples/shop/app-from-interview/`)/
 11 package 落點檢查(`package_landing_check.py`)/ 12 幕四 runner(`run_act4.sh`)/
 14 兩個檢查缺陷 / 16 第二幕加交架構規則 / 18 本檔與 README 對齊現況 /
+21 幕間閘門 + 檢查帳本(`check.py`、`run_act3.sh`、三支 runner 開頭)。
 25 檢查器考卷(`exam.py` + `fixtures/exams/`,20 case;`package_landing_check` 仍在無考卷佇列)。
 
 **要 grill 才動得了**(形狀未定,動 schema 或動受測品):

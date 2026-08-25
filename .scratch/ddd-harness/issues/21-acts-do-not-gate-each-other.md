@@ -5,7 +5,7 @@
 
 **Blocked by:** None
 
-**Status:** needs-triage —— 2026-08-25 Nat 拍板要做(survey §9 #1),尚未開工。
+**Status:** done —— 2026-08-25 落在 `tools/harness/check.py`(包裝器 + `--gate`)、`run_act2.sh` / 新 `run_act3.sh` / `run_act4.sh` 開頭、`test_check_ledger.py`(33 條);預測 15 條命中 14、落空 1(P8,我自己的前置條件寫錯:spec.db 還沒建,runner 在閘門之前就 66)、不適用 0;⚠️ 幕四那道閘門在本 repo 只能靠 `ACT_GATE_SKIP` 過 —— `acceptance_gwt` 要的 `4567d31` / `layered/OL1-integration` 沒跟著從 kc-log 搬來,而且它對非凍結合約的 spec 一定回 3;修法動檢查器本體,不在本票(細節 `21-RESULT.md`)。
 
 ## 哪裡壞了
 

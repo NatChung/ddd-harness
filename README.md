@@ -122,7 +122,7 @@ python3 tools/harness/verify_generated.py \
 
 ```bash
 pip install pytest pyyaml
-cd tools/harness && python3 -m pytest      # 236 passed
+cd tools/harness && python3 -m pytest      # 269 passed
 ```
 
 **相依講精確一點**:各支檢查器本身只用 stdlib,單獨跑不需要裝東西;
@@ -133,6 +133,18 @@ cd tools/harness && python3 -m pytest      # 236 passed
 `glossary_check.py`(對譯檢查)、
 `contract_triage.py`(契約分診)、`vacuous_tests.py`(假驗收分診)、
 `package_landing_check.py`(宣告的 package 有沒有 class)、`verify_generated.py`(生成物有沒有被手改)。
+
+**跑整條線的話,檢查器要透過 `check.py` 跑**(票 21,2026-08-25):它把每次的離開碼記進
+run 目錄的 `check-ledger.jsonl`,而 `run_act2.sh` / `run_act3.sh` / `run_act4.sh` 開頭會讀上一幕的帳本,
+沒紀錄(3)或沒過(1)就拒絕啟動。**離開碼 3「不適用」不算通過。**
+
+```bash
+python3 tools/harness/check.py landing_check <幕一 run_dir>        # 之後 run_act2.sh 才肯跑
+python3 tools/harness/check.py --gate act2 <幕一 run_dir>          # 自己先問閘門也行:0 過 / 1 沒過 / 3 不適用
+ACT_GATE_SKIP=1 ACT_GATE_SKIP_REASON='為什麼' tools/harness/run_act2.sh …   # 逃生口,理由落 run-meta.json
+```
+
+每幕要哪些紀錄、帳本住哪裡,見 `tools/harness/PIPELINE.md` 開頭的〈幕與幕之間的閘門〉。
 
 ## 三、實跑紀錄
 
