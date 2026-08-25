@@ -148,7 +148,7 @@ cd tools/harness && python3 -m pytest      # 236 passed
 
 ⚠️ **「全綠」的真實含意**:9 條裡只有 1 條是真情境,17 條 GWT 只有 1 條、17 條契約只有
 8 條走到實作面前。這條線最有價值的產出是**它自己的缺陷清單**,不是那個綠燈。
-未結的洞在 `.scratch/ddd-harness/issues/`(27 張票,18 張還活著)。
+未結的洞在 `.scratch/ddd-harness/issues/`(27 張票,17 張還活著)。
 
 `examples/specimens/` 收標本——目前一個:一條**恆真**的 no-setter 反射測試,
 不管實作怎麼寫都會綠,而且看起來很像在守一條真的領域規則。

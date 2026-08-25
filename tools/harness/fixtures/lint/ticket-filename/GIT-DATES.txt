@@ -1,0 +1,2 @@
+.scratch/ddd-harness/issues/03_bad_name.md 2026-08-26
+.scratch/ddd-harness/issues/02-dup.md 2026-08-26

@@ -1,0 +1,3 @@
+# 01 的 RESULT 比 PREDICTION 早一天(動 RESULT 不動 PREDICTION,免得 prediction-before-run 跟著響)
+.scratch/ddd-harness/01-RESULT.md 2026-08-18
+.scratch/ddd-harness/03-RESULT.md 2026-08-26
