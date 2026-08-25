@@ -1,0 +1,21 @@
+{
+  "note": "⚠️ 這三筆是**已知假陽性**(票 03 reopened:opus 重跑 52/60 標記、真陽性 0)。推導值 120(兩列合併)、格式字串 YYYY-MM-DD、錯誤碼常數 QUANTITY_OUT_OF_RANGE —— 需求方本來就不會說這些,字串比對必標。考卷把它們**釘成今天會印**:票 03 修好那天這個 case 會翻紅,到時改 expected,不是改考卷讓它靜靜地過。",
+  "source": "examples/shop/harness/runs/2026-08-18-act1-opus-rerun/SPEC-draft.md L33、L142、L255 + rounds/r3-answers.md(Q11)、r4-answers.md(Q18–Q20)。",
+  "args": [
+    "run",
+    "SPEC.md"
+  ],
+  "exit": 0,
+  "must_print": [
+    "標 [Qn] 且帶具體值的:5 筆;**答案語料裡找不到的:3 筆**"
+  ],
+  "must_not_print": [
+    "值 '100' 沒出現",
+    "整份不適用"
+  ],
+  "false_positives": [
+    "值 '120' 沒出現在需求方的任何回答裡",
+    "值 'YYYY-MM-DD' 沒出現在需求方的任何回答裡",
+    "值 'QUANTITY_OUT_OF_RANGE' 沒出現在需求方的任何回答裡"
+  ]
+}

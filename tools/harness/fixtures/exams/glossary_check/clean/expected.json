@@ -1,0 +1,21 @@
+{
+  "note": "11 個對外欄位每個都對得到一個宣告了對外欄位名的詞,反向也沒有孤兒 → 0。",
+  "source": "glossary.yaml 合成;acceptance.yaml 抽自 examples/shop/harness/acceptance.yaml。",
+  "store": [
+    "glossary.yaml",
+    "acceptance.yaml"
+  ],
+  "args": [
+    "{db}"
+  ],
+  "exit": 0,
+  "must_print": [
+    "5 個欄位:對得到 5 個、**對不到 0 個**",
+    "6 個欄位:對得到 6 個、**對不到 0 個**"
+  ],
+  "must_not_print": [
+    "❌",
+    "合約裡沒有這個欄位",
+    "不適用(不是通過)"
+  ]
+}

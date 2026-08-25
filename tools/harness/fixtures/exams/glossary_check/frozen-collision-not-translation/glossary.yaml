@@ -1,0 +1,38 @@
+# 抽自 examples/shop/harness/glossary.yaml(凍結那份的轉寫):15 條留 5 條 ——
+# 唯一撞得到列表欄位的 OrderId、撞得到請求側的 CustomerId / ProductId、撞不到的 Order / Money。
+# 那份詞彙表沒有「對外欄位名」這一欄,所以 wire_field 全空。
+glossary_terms:
+  - term: Order
+    definition: 一筆訂單。一致性邊界:明細與總額永遠一致
+    ddd_type: Aggregate Root
+    provenance: 推導自
+    provenance_ref: examples/shop/spec/GLOSSARY.md L8
+
+  - term: OrderId
+    definition: 訂單的識別。以值相等比較
+    ddd_type: Value Object
+    provenance: 推導自
+    provenance_ref: examples/shop/spec/GLOSSARY.md L10
+
+  - term: CustomerId
+    definition: 顧客的識別。Order 只持有 CustomerId,不持有 Customer 物件
+    ddd_type: Value Object
+    provenance: 推導自
+    provenance_ref: examples/shop/spec/GLOSSARY.md L11
+
+  - term: ProductId
+    definition: 商品的識別
+    ddd_type: Value Object
+    provenance: 推導自
+    provenance_ref: examples/shop/spec/GLOSSARY.md L12
+
+  - term: Money
+    definition: 金額 = 數值 + 幣別(如 TWD)。以值相等比較
+    ddd_type: Value Object
+    provenance: 推導自
+    provenance_ref: examples/shop/spec/GLOSSARY.md L13
+
+banned_synonyms:
+  - banned: Purchase
+    use_instead: Order
+    note: GLOSSARY.md L4「不得另創同義詞(例:不要把 Order 叫成 Purchase…)」

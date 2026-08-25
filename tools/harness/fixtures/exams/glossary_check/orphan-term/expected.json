@@ -1,0 +1,20 @@
+{
+  "note": "對譯那一側 0 差額,唯一的問題是一個詞宣稱了合約裡沒有的欄位。反向那段**算進離開碼** → 1(只印不算的警告 = 永遠 gate 不住任何東西的警告)。",
+  "source": "合成:clean 的 glossary.yaml 多加一條孤兒詞。",
+  "store": [
+    "glossary.yaml",
+    "acceptance.yaml"
+  ],
+  "args": [
+    "{db}"
+  ],
+  "exit": 1,
+  "must_print": [
+    "**對不到 0 個**",
+    "fieldThatNoContractHas(合約裡沒有這個欄位)"
+  ],
+  "must_not_print": [
+    "❌",
+    "不適用(不是通過)"
+  ]
+}

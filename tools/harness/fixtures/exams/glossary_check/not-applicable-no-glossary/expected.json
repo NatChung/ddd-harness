@@ -1,0 +1,18 @@
+{
+  "note": "第一種不適用:這份 store 沒有 glossary_terms 那段(選填沒填)→ 3,不是通過。",
+  "source": "acceptance.yaml 抽自 examples/shop/harness/acceptance.yaml;沒有詞彙表檔。",
+  "store": [
+    "acceptance.yaml"
+  ],
+  "args": [
+    "{db}"
+  ],
+  "exit": 3,
+  "must_print": [
+    "詞彙表:0 條",
+    "不適用(不是通過)"
+  ],
+  "must_not_print": [
+    "對譯檢查(列表欄位)"
+  ]
+}

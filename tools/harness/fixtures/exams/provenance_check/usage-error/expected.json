@@ -1,0 +1,15 @@
+{
+  "note": "規格在、答案語料不在(沒有 rounds/)→ 用法錯誤 2。這支的離開碼表裡沒有 1。",
+  "source": "合成:SPEC.md 有一筆 [Qn]-帶值,run 目錄不存在。",
+  "args": [
+    "nowhere",
+    "SPEC.md"
+  ],
+  "exit": 2,
+  "must_print": [
+    "找不到答案語料"
+  ],
+  "must_not_print": [
+    "整份不適用"
+  ]
+}

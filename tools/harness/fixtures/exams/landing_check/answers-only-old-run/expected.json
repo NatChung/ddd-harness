@@ -1,0 +1,16 @@
+{
+  "note": "轉交帳本之前的舊 run:rounds/ 底下只有從逐字稿重建的答案檔,一個 rN-questions.md 都沒有。不是「沒有漏接」,是整份沒東西可查 → 3(05-PREDICTION 當年只釘 exit ≠ 0,票 14 後定為 3)。",
+  "source": "examples/shop/harness/runs/2026-08-18-act1-interview/rounds/r1-answers.md、r2-answers.md(各留兩題)。",
+  "args": [
+    "run"
+  ],
+  "exit": 3,
+  "must_print": [
+    "一個 rN-questions.md 都沒有",
+    "整份不適用,不是通過"
+  ],
+  "must_not_print": [
+    "【通過】",
+    "【漏接】"
+  ]
+}
