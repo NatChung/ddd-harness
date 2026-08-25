@@ -1227,3 +1227,23 @@ Nat 問訪談 AI「怎麼知道要問什麼」,答案全在 `tools/harness/inter
 動到的活引用:`CLAUDE.md` 硬規則、`interview-prompt.md` 檔頭、`index.html`、
 `reference/0003`。`examples/*/runs/` 底下 10 個檔與本檔前面的條目照舊 —— 那是歷史。
 `/spec-authoring` 這個 slash command 從此不存在;要跑第一幕就照 `interview-prompt.md`。
+
+## 2026-08-25 —— 對照 8 個 harness repo:驗收那段沒人做得比我們好,順序那段我們沒人管
+
+Nat 問「有沒有人做得比較好、這方式好不好、有沒有別的方式」。背景 agent 讀一手原始碼寫成
+`docs/research/2026-08-25-harness-survey.md`,之後把 fspec / Agentheim / ai-harness-template
+clone 到 `~/projects/harness-survey/`(repo 外)做 codegraph 深讀。
+
+三句結論:(1) 測試從結構化 spec 生成 + 空骨架全紅三態,沒有對照組有等價物;
+(2) 別人用狀態機擋跳幕、對 harness 自己的規約上 lint,我們這兩段全靠自律;
+(3) 根本不同的三種形狀 —— 限制動作空間、LLM 驗證員當閘門、架構分數比基線 —— 都跟
+MISSION「不靠主觀判斷」方向不同,不併。
+
+**DDD 那題**:自稱 DDD 的三套(Agentheim、ddd-lite、clean-code-skill)全把 DDD 當
+「給 AI 的規矩」或「給人的 YAML」,沒有一套從 DDD 的格子生出可執行檢查。ddd-lite 的
+模板有 invariant / pre / post / public_api,**機器只讀 BC 的 `paths` 一格**。
+我們是唯一把 DDD 寫進 schema 的;這是差異化,也是只跑通一次的賭注。
+
+值得抄的 10 條整理在報告 §9,依成本排,標了「動檢查器」還是「動受測品」。
+副產品:三個對照組都把「不適用」折進「通過」,是 CONTEXT.md 那條警語的活標本。
+

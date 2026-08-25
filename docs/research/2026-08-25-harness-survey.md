@@ -282,3 +282,37 @@ lopopolo 對「harness 該有哪些檢查」的定義不是清單,是**四條判
 
 ### 本 repo
 - `tools/harness/PIPELINE.md`、`MISSION.md`、`CONTEXT.md`、`CLAUDE.md`
+
+---
+
+## 9. 值得抄的(整理,2026-08-25 補)
+
+從 §3 的 20 條加上本機 clone 後深讀(Agentheim `.agentheim/contexts/` 與 `agents/`、
+ai-harness-template `methodologies/ddd-lite/`、clean-code-skill)挑出來的。判準:
+**補的是我們自己承認的洞**(順序靠自律、規約靠自律、驗收→實作沒落點、檢查器沒考卷),
+不是「他們有所以我們也要有」。成本由小到大排。
+
+⚠️ 「動什麼」那欄要看清楚:動 **檢查器** 是加儀器;動 **受測品**(`interview-prompt.md`、
+`schema.sql`、`run_act2.sh` 的 heredoc)是改被量的東西,要走票 + PREDICTION。
+
+| # | 抄什麼 | 從哪(驗過) | 補我們哪個洞 | 成本 | 動什麼 |
+|---|---|---|---|---|---|
+| 1 | **不准跳幕**:幕 N 的檢查離開碼不是 0,幕 N+1 的 runner 拒絕啟動 | fspec `update_work_unit_status.rs` `allowed_transitions`(20 行);Agentheim `lib/task-lifecycle.mjs` `LEGAL_MOVES`(3 行) | 五幕之間什麼都不擋(§6 判斷 2) | 小 | 檢查器(新 `run_pipeline.py` 或各 runner 開頭查上一幕的產物) |
+| 2 | **對 harness 自己的規約上 lint**:票 Status 開頭六詞、票檔名 `NN-slug.md`、`NN-PREDICTION.md` 的 git 首次 commit 早於 `NN-RESULT.md`、run 目錄被票引用就不准刪、票的 blocked 關係機器讀 | Agentheim `lib/human-eye-criteria.mjs` / `spike-stop-loss.mjs` / `duplicate-id-check.mjs`(stdlib、side-effect-free、loss-tolerant、有 `ADOPTION_DATE` 祖父條款);fspec `collect_active_blockers` | `CLAUDE.md` 列了規約、一條都沒 lint(§6 判斷 3) | 小 | 檢查器(新 `harness_lint.py`,進 pytest) |
+| 3 | **mechanize-or-drop 規約**:每條新慣例要嘛同票交 lint,要嘛在票裡寫「prose-only, unenforced」+ 理由 | Agentheim ADR-0059;`contexts/agentic-workflow/README.md` Ubiquitous language 節 | 「做了 ≠ 接上了」這個 repo 的老病,現在只靠「驗過沒有」欄事後標 | 小 | 文件規約(`CLAUDE.md` 票怎麼開那節加一行) |
+| 4 | **prefill 佔位符擋匯入**:yaml 任一格含 `TODO` / `[placeholder]` / 空字串就拒絕 import | fspec `detect_prefill` / `check_prefill` | `spec_store.py` 擋不擋佔位符沒驗過(§3 第 4 條) | 小 | 檢查器(`spec_store.py` import 路徑)⚠️ 它同時是幕二的受測輸入,改了要記 |
+| 5 | **時序檢查用 git**:生成測試檔的首次 commit 早於任何 `src/main` 檔 | ai-harness-template `check-test-first.sh` L146–208(比 fspec 的 mtime 穩) | `run_act4.sh` 雜湊只查「有沒有被改」,不查「測試是不是先存在」 | 小 | 檢查器(`run_act4.sh` 收尾多一段) |
+| 6 | **Aggregate 只寫 invariant**:每個 Aggregate 一句「它保護什麼」;沒有 invariant 就不是 Aggregate | Agentheim `contexts/agentic-workflow/README.md` §Aggregates;`agents/tactical-modeler.md` L44 | `interview-prompt.md` §1 的 DDD 型態判定沒有這條判準,§3「守在哪個聚合根內」是填格不是推理 | 小 | **受測品**(`interview-prompt.md` §1 / §3 加一句判準) |
+| 7 | **BC 加 `public_api` 與 `integration.pattern`**(shared-kernel / customer-supplier / conformist / ACL / open-host / published-language);詞彙表加 `cross_context`(same / similar / different) | ai-harness-template `templates/bounded-context.yaml`、`templates/glossary-entry.yaml`(模板有、機器沒讀——我們接上就贏) | `interview-prompt.md` §1.1 只寫「切幾個、各留哪些詞、跨界用什麼關聯」,沒有整合模式與對外 API 兩格 | 小–中 | **受測品**(§1.1)+ `schema.sql`(若要落檔) |
+| 8 | **驗收 → 實作的落點**:`src/innerTest/` 每支測試檔頭宣告 `@covers S<n>`,新 `innertest_landing_check`;沒宣告印「不適用」 | fspec `link_coverage.rs` / `audit_coverage.rs`(scenario → 測試行 → 實作行,並查檔還在不在) | 票 13 內圈落點;§6 判斷 5 稱「最大的空白」 | 中 | 檢查器 + 幕四 prompt 的工作契約(受測品) |
+| 9 | **檢查器的考卷**:每支檢查器配一組埋已知缺陷的 fixture 語料 + expected,重跑 k 次量命中率 | Agentheim `evals/verifier-catch-rate/fixtures/`(16 個:`vocab-violation`、`stale-readme`、`scope-creep`、`missing-ac`…) | `landing_check` / `provenance_check` 只對三四份真實 run 驗過,沒有「已知陽性 + 已知陰性」的考卷;幕五「改了沒重跑 = 沒閉環」的機械化版 | 中 | 檢查器(`tools/harness/fixtures/` 擴充 + pytest) |
+| 10 | **「不適用」比率統計**:跳過 / 不適用超過門檻就在下一跑開頭警告 | Harmonist README(`PROTOCOL-SKIP` > 25% 警告;**宣稱,未讀 hook 原始碼**) | 五支檢查器各自印「不適用」,沒人跨跑統計 | 中 | 檢查器(需要各跑的報表落成機器可讀) |
+
+**不抄的,以及為什麼**(避免下次再問):
+
+- LLM 當閘門(Agentheim verifier、aht `/evaluate` Stage 2/3)—— 跟 `MISSION.md`「對不對不需要人主觀判斷」反向。抄它的**考卷**(#9),不抄它本身。
+- 每階段工具白名單(statewright)—— 幕四已用 gradle source set + 雜湊做結構隔離;工具白名單擋的是「動作」不是「產物」,跟我們的賭注方向不同,先不併。
+- 架構分數對基線(sentrux)—— ArchUnit 是從 spec 生的 pass/fail;「退步多少」在沒有第二份實作之前沒東西比。
+- import grep 式邊界(ddd-lite `check-context-boundary.sh`、clean-code-skill ESLint warn)—— 我們的 ArchUnit 是 AST 級,不是缺口。ddd-lite 那支還有三個洞:沒 BC 就 exit 0、訊息說走 `public_api` 但 script 從沒讀那格、invariant / pre / post / 詞彙表沒有任何東西讀。
+- 一次 commit 檔數上限(aht `check-surgical-changes`)—— 幕四是 bare dir 一次交付,沒有 commit 粒度可管。
+
