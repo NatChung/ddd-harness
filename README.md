@@ -47,7 +47,9 @@ LLM agent 有一模一樣的失效模式,只是它填補含糊的方式是**照�
 ```
 「我要一個系統,客人能下單,我能看到所有訂單。」
         │
-   幕一 訪談    orchestrate.py         兩個 agent 互相訪談 N 輪 → 散文規格
+   幕一 訪談    AI 訪談者問、需求方答,N 輪 → 散文規格
+        │        正式那跑(2026-08-19):需求方是真人,轉述者手動轉交
+        │        儀器測試:orchestrate.py,需求方也是 agent(會現編細節,票 04)
         │ SPEC-draft.md
    幕二 落檔    run_act2.sh → agent    散文 → yaml → spec.db  ⚠️見下
         │ spec.db(結構化,唯一真相)
@@ -57,6 +59,38 @@ LLM agent 有一模一樣的失效模式,只是它填補含糊的方式是**照�
         │ 洞
    幕五 review  洞 → 搬階 → 改 harness → 重跑證明它掉不了
 ```
+
+### 每一幕在做什麼(白話版)
+
+要解決的事只有一件:**AI 會猜。** 需求講得含糊,它就補一個看起來合理的;換一個模型,
+補的東西就不一樣。所以整條線的做法是——每一幕的 agent 只拿該拿的,答案卷不給;
+每一段都有機器檢查;每個檢查都要標得出「驗過沒」。
+
+**幕一:訪談。** AI 訪談者只讀一份工作指示(`tools/harness/interview-prompt.md`),
+一輪最多丟 5 個要需求方做決定的點,沒有輪數上限(`orchestrate.py` 預設 4 輪,
+真人那跑 6 輪)。需求方說「沒想過」就記「沒有」,訪談者不准自己補。
+答案由轉述者原樣交給訪談者:`relay_ledger.py` 查每一句都交到了,
+`landing_check.py` 查每一題都記進了下一輪開頭的落點表。
+產出是散文規格 `SPEC-draft.md`。
+需求方有兩種:**正式那跑是真人**(2026-08-19,唯一一次);`orchestrate.py`
+那條讓 agent 扮需求方,用來便宜地測儀器——但它會現編細節(例:訂單編號
+`ORD-20260818-001`,原規格裡沒有),算不算儀器是票 04,還開著。
+
+**幕二:落檔。** agent 只拿到散文規格 + `schema.sql` + `spec_store.py`,
+把散文改寫成結構化的 yaml,匯進 `spec.db`。`schema.sql` 擋壞資料;
+`provenance_check.py` 查「這個值需求方真的說過嗎」。從這裡起 `spec.db` 是唯一真相。
+
+**幕三:生成。** 沒有模型。`gen_acceptance.py` / `gen_archunit.py` 從 `spec.db`
+機械產出 Java 測試,產出是決定性的——手改會被 `verify_generated.py` 抓到。
+真情境與代理編碼(fixture 做不到它宣稱的動作)分成兩個 class,後者全綠不算驗收。
+
+**幕四:實作。** agent 只拿到散文規格 + 空骨架,看不到測試怎麼生的。
+目標是 `./gradlew test` 全綠。開跑前先確認空骨架全紅——全紅才證明測試不是恆真;
+`vacuous_tests.py` 抓假測試。
+
+**幕五:review。** 人做。找到 harness 擋不住的洞 → 把靠自覺守的規則往上搬成機械擋的
+→ 重跑量到差異。沒重跑就不算閉環。這是唯一會複利的一幕:agent 犯過一次的錯,
+之後同類的就被擋住。
 
 **幕三沒有模型。** 從 yaml 到可執行的 Java 驗收之間一次模型都沒有,所以那段可重跑、
 逐字相同——`verify_generated.py` 重新生成一次跟 commit 的比,不一樣就紅。
@@ -88,7 +122,7 @@ python3 tools/harness/verify_generated.py \
 
 ```bash
 pip install pytest pyyaml
-cd tools/harness && python3 -m pytest      # 229 passed
+cd tools/harness && python3 -m pytest      # 236 passed
 ```
 
 **相依講精確一點**:各支檢查器本身只用 stdlib,單獨跑不需要裝東西;
