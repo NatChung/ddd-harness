@@ -1,0 +1,2 @@
+{"checker": "glossary_check", "argv": ["spec.db"], "exit": 1, "ts": "2026-08-27T00:00:00+00:00", "cwd": "/repo"}
+{"checker": "contract_triage", "argv": ["spec.db"], "exit": 1, "ts": "2026-08-27T00:00:00+00:00", "cwd": "/repo"}

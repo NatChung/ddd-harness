@@ -1,0 +1,15 @@
+{
+  "note": "合併票 21 之後的現況:run 目錄都在,一份 check-ledger.jsonl 都沒有 → 整份不適用 3,不是乾淨。舊 run 印張數。",
+  "source": "合成:兩個空的 run 目錄(.keep 佔位)。",
+  "args": [
+    "examples"
+  ],
+  "exit": 3,
+  "must_print": [
+    "一份 check-ledger.jsonl 都沒有 —— 整份不適用,不是通過",
+    "舊 run 2 張"
+  ],
+  "must_not_print": [
+    "⚠️ landing_check"
+  ]
+}

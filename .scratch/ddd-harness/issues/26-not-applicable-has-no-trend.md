@@ -5,7 +5,7 @@
 
 **Blocked by:** 票 21(帳本格式由它定)
 
-**Status:** blocked —— 2026-08-25 Nat 拍板要做(survey §9 #10),等票 21 合併後開工。
+**Status:** done —— 2026-08-25 落在 `tools/harness/na_ratio.py`(儀表:離開碼只有 0 / 2 / 3,超門檻印 ⚠️ 不回 1)、`run_act2.sh` / `run_act4.sh` 閘門之後各一行(`|| true`,`NA_RATIO_ROOT` 可換掃描根)、`test_na_ratio.py`(34 條)、`fixtures/exams/na_ratio/` 6 case(`exam.py` 改一行把它納進檢查器名單);預測 7 條命中 7、落空 0;⚠️ 對現有 18 張 run 一份帳本都沒有 → exit 3,趨勢要等票 21 之後的跑累積才看得到;skip 欄是從 `run-meta.json` 欄位形狀**推斷**的幕別;`run_act3.sh` 沒加那行(票只點名 act2 / act4);細節 `26-RESULT.md`。
 
 ## 哪裡壞了
 

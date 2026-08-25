@@ -1,0 +1,15 @@
+{
+  "note": "帳本檔在、一筆都讀不動 → 沒東西可統計 = 不適用 3(不是 0)。loss-tolerance 開出來的邊界,釘住。",
+  "source": "合成帳本。",
+  "args": [
+    "examples"
+  ],
+  "exit": 3,
+  "must_print": [
+    "帳本裡一筆都讀不動",
+    "讀不動 1 行"
+  ],
+  "must_not_print": [
+    "Traceback"
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "note": "loss-tolerant:一份帳本裡 1 行好、3 行壞(不是 JSON / checker 不是字串 / exit 不是整數)→ 跳過並印「讀不動 3 行」,離開碼 0,不 crash。",
+  "source": "合成帳本。",
+  "args": [
+    "examples"
+  ],
+  "exit": 0,
+  "must_print": [
+    "帳本 1 份、1 筆",
+    "讀不動 3 行"
+  ],
+  "must_not_print": [
+    "Traceback",
+    "整份不適用"
+  ]
+}
