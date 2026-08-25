@@ -64,7 +64,7 @@ A-03  none                           本案自決
 A-04  none                           推導自
 A-05  none                           推導自
 A-06  none                           Qn
-A-07  none                           本案自決
+A-07  none                           推導自
 A-08  none                           本案自決
 A-09  none                           Qn
 A-10  none                           Qn
@@ -203,6 +203,32 @@ EXIT=0
 生出**一個** `@ArchTest`。**這只證明形狀吃得下,不證明它抓得到東西**——
 timesheet 沒有骨架、沒有實作,這條規則今天沒有 class 可掃,跑起來會是票 10 那個
 `allowEmptyShould(true)` 的免費綠燈。**記成不適用,不是通過。**
+
+### ⚠️ 這一跑把它自己要證的東西改壞了(2026-08-24,已還原)
+
+**`gen_archunit.generate()` 對 store 有寫入副作用** —— `tools/harness/gen_archunit.py:324`:
+
+```sql
+UPDATE architecture_rule SET enforced_by = ? WHERE id = ?
+```
+
+檔頭 `:9` 就寫明「生成後把『由誰強制』回填進 store」,但上面那次「額外驗證」是**直接拿凍結
+run 目錄裡的 `spec.db` 當輸入**,於是回填寫進了凍結素材:`A-01.enforced_by` 從 `NULL` 變成
+`'ArchitectureTest.rule_A-01'`。
+
+**它毀掉的正好是本檔上面那條證據** —— L77 的「`A-01|<NULL>` … `A-10|<NULL>` ← 十條全空,
+agent 沒有自己填『由誰強制』」重跑會拿不到。寫這份對答案的動作,把這份對答案的憑據改掉了。
+
+已還原(`UPDATE … SET enforced_by = NULL WHERE id = 'A-01'`,非 NULL 列數 1 → 0,
+`pragma integrity_check` = ok)。L77 那條證據現在重跑得回來。
+
+**兩個要記住的:**
+
+1. **`git status` 看不到這件事。** `.gitignore:4` 排掉 `*.db`,所以凍結 run 裡的 store
+   不在版控裡 —— 改壞了沒有紅字、也沒有 `git restore` 可以救。`CLAUDE.md` 的
+   「`runs/` 不要改也不要刪」那條規則,**對 `*.db` 沒有任何機械保護**。
+2. **拿生成器去「查」store 不是唯讀操作。** 要對凍結 store 跑生成器,先複製一份到
+   scratchpad 再跑。這件事現在沒有寫在任何地方,也沒有東西擋。
 
 ---
 

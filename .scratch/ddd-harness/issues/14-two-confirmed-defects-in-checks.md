@@ -4,7 +4,7 @@
 
 **Blocked by:** None
 
-**Status:** **done**(2026-08-19 修掉)—— 兩個缺陷已修,離開碼語意統一成一張跨**五**支檢查的表(不是四支;哪五支、哪幾支不照,見檔末 2026-08-24 那節)。⚠️ 舊 Status 引的 commit `215ae8c` **在本 repo 查不到** —— 它是搬過來之前 `kc-log` 的 hash,要看 commit message 得去 `~/projects/kc-log`。檔末另記三條回報未修的,其中 (c) 仍未修。
+**Status:** **done**(2026-08-19 修掉)—— 兩個缺陷已修,離開碼語意統一成一張跨**六**支檢查的表(不是四支;`42c61d6` 把 `acceptance_gwt` 也補齊了,哪六支、哪幾支不照,見檔末 2026-08-24 那節)。⚠️ 舊 Status 引的 commit `215ae8c` **在本 repo 查不到** —— 它是搬過來之前 `kc-log` 的 hash,要看 commit message 得去 `~/projects/kc-log`。檔末另記三條回報未修的,其中 (c) 仍未修。
 
 ## 缺陷一:`verify_generated.py` 對「沒有架構規則的 store」整支 crash
 

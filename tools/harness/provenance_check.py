@@ -71,9 +71,9 @@ class UsageError(Exception):
     """呼叫方式錯了 / 吃錯目錄 —— **錯誤,不是不適用**(離開碼 2)。
 
     刻意**不**用 `SystemExit`:Python 對**字串型** `SystemExit` 一律離開碼 **1**,
-    而 1 在這條線上是「有東西要人去看」的意思 —— 吃錯目錄跟真的掃出問題撞在同一個
-    碼上,自動化就分不開。形狀照抄 `verify_generated.py` 的 `UsageError`:
-    由 `main()` 捕捉、`return 2`。
+    而這支的離開碼表裡**根本沒有 1**(見檔頭:0 / 2 / 3)—— 吃錯目錄會落在一個
+    沒有定義的碼上,自動化讀不出它是什麼。形狀照抄 `verify_generated.py` 的
+    `UsageError`:由 `main()` 捕捉、`return 2`。
     """
 
 

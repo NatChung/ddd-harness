@@ -107,9 +107,10 @@ def test_沒有答案語料要當場掛(tmp_path: Path) -> None:
 
 
 def test_吃錯目錄的離開碼是2不是1(tmp_path: Path) -> None:
-    """「吃錯目錄」是**用法錯誤**(2),不是「有東西要人去看」(這條線上的 1)。
+    """「吃錯目錄」是**用法錯誤**(2)。這支的離開碼表裡沒有 1。
 
-    原本是 `raise SystemExit("字串")` —— Python 對字串型 `SystemExit` 一律離開碼 **1**。
+    原本是 `raise SystemExit("字串")` —— Python 對字串型 `SystemExit` 一律離開碼 **1**,
+    落在一個這支沒定義的碼上。
     兩種成因(沒有 `rounds/`、`rounds/` 底下沒有 `*-answers.md`)都要是 2。
     """
     spec = tmp_path / "SPEC.md"
