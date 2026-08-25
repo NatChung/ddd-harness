@@ -5,7 +5,8 @@
 它交一份 yaml/json,這支 script 驗證後匯入;失敗就退回一份逐條錯誤,agent 改完再交。
 schema 是我們的,agent 改不掉 —— 那才是第 1 階。
 
-兩層強度,不要混:
+三層強度,不要混:
+  * 本檔的佔位符守衛(整格是 TODO / [] / <>)     = 第 0 階(連 schema 都還沒到;票 23)
   * schema.sql 的 CHECK / REFERENCES / TRIGGER  = 第 1 階(填不了就寫不進去)
   * 本檔的跨列不變式(kind ↔ 參數要不要有)      = 第 2 階(會被擋下來,但擋的是 script)
 
@@ -127,6 +128,88 @@ BANNED_SYNONYM_KEYS = {"banned", "use_instead", "no_replacement_note", "note"}
 # 拿去跟合約比對永遠不會中 —— **靜靜地不中**,那正是本線最怕的失效形狀。
 # 所以在這裡擋下來,逼轉寫的人當場決定:要嘛給一個真的欄位名,要嘛留空(= 不上線)。
 WIRE_FIELD_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
+
+
+# ── 第 0 階:佔位符守衛(票 23)──────────────────────────────────────────
+# 幕二 agent 的完成定義是「import 印 ok」;如果 `TODO` 能 ok,它就會交 `TODO`。
+# 這一階在 schema 之前跑:schema 的 `length(trim(x)) > 0` 只擋得住空白,擋不住一格
+# `[待補]`,而且不是每一欄都有那條 CHECK。
+#
+# 判準是「**整格只有**佔位符」,不是「含有」—— GWT 步驟、provenance_ref 本來就會寫
+# `[Q12] — SPEC.md L83`,那是引用不是便條。所以每條 regex 頭尾都錨。
+# `TODO` / `FIXME` 是**起頭**錨定:`TODO: 明天補` 整格就是一張便條,而句中出現
+# `TODO` 的本文(「…把它列進 TODO 清單」)不是。這跟票 23 引用的 fspec `detect_prefill`
+# 同一種讀法。
+#
+# 只看 `str` 值:key 不看(打錯的 key 由 _check_shape 的「未知 key」擋)、`None` 不算
+# (`wire_field:` / `use_instead:` 留空是既有的選填語意,ADR 0005)、數字 / bool 不算。
+# YAML 註解在 parse 時已經丟掉,本階看不到 —— 那是票 15 的事,不在這裡。
+#
+# 兩條刻意收窄的(2026-08-25 對儀器自己的測試語料跑出來的,不是空想):
+# * `[Qn]` 整格**不是**佔位符:那是這個 repo 的來源標記寫法(provenance `Qn` 配
+#   `provenance_ref: [Q7] …`),test_glossary / test_domain_contract 有 40 格拿它當合法值。
+#   `[待補]` / `[role]` / `[]` 照擋。
+# * 「空字串」收的是**恰好 `""`**,「只有空白」(`"   "`)不收 —— 空白格是第 1 階的事:
+#   schema 的 `length(trim(x)) > 0` 守著,而且 `test_harness.py::test_來源為空寫不進去`
+#   釘死了「空白格 = schema 擋下來了」。第 0 階再收一次就是同一條規則兩份載體,會漂。
+#   ⚠️ 沒有那條 CHECK 的欄(`id`、`expected_text`、`field`、`proxy_for`)寫 `"   "`
+#   今天會靜默進庫 —— 那是第 1 階的覆蓋缺口,見票 23 RESULT,不在這裡補。
+#
+# 這份清單是 prose-only, unenforced(票 23〈慣例〉):清單漏了什麼,只能靠 RESULT 補。
+PLACEHOLDER_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
+    ("空字串(整格是 \"\")",   re.compile(r"^$")),
+    ("整格一個方括號 [...]",  re.compile(r"^\s*\[(?!Q\d+\])[^\]]*\]\s*$")),
+    ("整格一個尖括號 <...>",  re.compile(r"^\s*<[^>]*>\s*$")),
+    ("整格只有問號 ???",      re.compile(r"^\s*\?+\s*$")),
+    ("TODO / FIXME 起頭",     re.compile(r"^\s*(?:TODO|FIXME)\b", re.IGNORECASE)),
+)
+
+# 空字串在**這一格**有語意,不是沒填:S7「未登入者下單」送的就是空的 customer_id。
+# 這條豁免不是取捨,是儀器自洽的必然 —— `schema.sql` L282 刻意拿掉那格的
+# `length(trim(customer_id)) > 0`、`_check_rejection_scenario` 明寫「要送空的請寫 ""」、
+# `fixtures/negative-scenarios.yaml:111` 就是 `customer_id: ''`,
+# `test_negative_scenarios.py:61` 直接斷言它等於 ""。**只豁免空字串**:那格寫 `TODO`
+# 一樣被擋。路徑格式跟拒絕訊息裡印的一樣(`acceptance_scenarios[3].rejected_requests[0].customer_id`)。
+EMPTY_ALLOWED_AT: tuple[re.Pattern[str], ...] = (
+    re.compile(r"^acceptance_scenarios\[\d+\]\.rejected_requests\[\d+\]\.customer_id$"),
+)
+
+
+def _walk_strings(node: Any, path: str):
+    """走整棵 spec 樹,yield (路徑, 字串值)。路徑長 `a[2].b[0].c`。"""
+    if isinstance(node, dict):
+        for key, value in node.items():
+            yield from _walk_strings(value, f"{path}.{key}" if path else str(key))
+    elif isinstance(node, list):
+        for i, value in enumerate(node):
+            yield from _walk_strings(value, f"{path}[{i}]")
+    elif isinstance(node, str):
+        yield path, node
+
+
+def check_placeholders(spec: dict[str, Any]) -> list[str]:
+    """第 0 階。回傳逐格的問題;空 list = 沒有佔位符(不是「通過驗證」,後面還有兩階)。
+
+    **逐格收集,不 fail-fast** —— agent 要一次看到所有沒填的格,不是改一格跑一次。
+    每一行都以「第 0 階 佔位符:」開頭,好跟「schema 擋下來了:」(第 1 階)與
+    第 2 階的訊息分開 —— 兩種「沒東西」不准折成一種(票 14 缺陷一)。
+    """
+    problems: list[str] = []
+    for path, text in _walk_strings(spec, ""):
+        for label, pattern in PLACEHOLDER_PATTERNS:
+            if not pattern.match(text):
+                continue
+            if label.startswith("空字串") and any(p.match(path) for p in EMPTY_ALLOWED_AT):
+                break
+            problems.append(f"第 0 階 佔位符:{path} = {text[:40]!r}({label})")
+            break
+    if problems:
+        problems.append(
+            "第 0 階 佔位符:以上這些格還沒填。判準是「整格只有佔位符」;清單:"
+            + "、".join(label for label, _ in PLACEHOLDER_PATTERNS)
+            + "。填真的值,不要改成別的佔位符"
+        )
+    return problems
 
 
 ASSERTION_KINDS: dict[str, set[str]] = {
@@ -833,6 +916,11 @@ def _check_rejection_customers_are_exclusive(spec: dict[str, Any]) -> list[str]:
 
 def build_store(db_path: str | Path, spec: dict[str, Any]) -> None:
     """建 store。任何一條掛掉就整個不寫 —— 部分匯入比匯入失敗更難查。"""
+    # 第 0 階先跑、單獨 raise:一格 TODO 在形狀檢查眼裡可能是「合法的字串」,
+    # 在 schema 眼裡也是(length > 0)。它得在那兩階看到之前就被指出來。
+    problems = check_placeholders(spec)
+    if problems:
+        raise SpecError(problems)
     problems = _check_shape(spec)
     if problems:
         raise SpecError(problems)
