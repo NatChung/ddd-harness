@@ -43,6 +43,16 @@
 #    生不出任何測試。這份規格三個獨立證據說它用不到(見 .scratch/ddd-harness/10-RESULT.md)。
 # 6. **prompt 本身是新的一片洩題面** —— 它寫死了 package 名、任務結構與方法論。
 #    骨架的洩題面清單見 .scratch/ddd-harness/10-PREDICTION.md 最後一節。
+# 7. **順序檢查(order-check.txt,票 24)跟雜湊一樣是「查得出,擋不住」。**
+#    注入完、呼叫 claude 之前,工作目錄自己 commit 一版基線(歷史放 harness/act4.git,
+#    **不放 .git** —— 外層 repo 會把帶 .git 的 run 目錄記成 gitlink,run 的檔案一個都進不了
+#    主 repo;git 2.54 實測);跑完再 commit 一版,act4_order_check.py 比「測試檔在基線裡、
+#    實作檔在基線之後」。agent 對 harness/act4.git 做 --amend / 改寫歷史 / 連 run-meta.json
+#    一起刪,檢查就過或回 3。基線 hash 另記在 run-meta.json,事後能比 —— 但它也在工作目錄裡。
+#    ⚠️ 兩個副作用要知道:(a) agent 的環境多了 harness/act4.git 這個目錄,跟 2026-08-19
+#    那跑的環境不完全一樣;(b) agent 自己 `git commit` 不會進這份歷史(它看不到那是 git dir),
+#    所以檢查只分得出「基線裡 / 基線之後」,分不出 agent 內部誰先誰後。
+#    沒有這份歷史的舊 run 是 **3 不適用**,不折成通過。
 # ---------------------------------------------------------------------------
 set -u
 
@@ -336,6 +346,54 @@ controller、也不是打在 repository。
 開始吧。從 S1 那一條開始。
 EOF
 
+# ---- 4b. 基線 commit:agent 看到的那棵樹,一個檔都不少(票 24)-------------
+# 時機在 prompt.txt 寫完之後、呼叫 claude 之前 —— 基線 = agent 開工時看到的東西。
+# 歷史放 harness/act4.git,**不放 .git**(檔頭上限 7);info/exclude 擋它 track 自己。
+# `--template=` 不產 sample hooks;gc.auto=0 免得 auto-gc 在外層 commit 時還在寫。
+ACT4_GIT="$WORK_ABS/harness/act4.git"
+wgit() {
+  git --git-dir="$ACT4_GIT" --work-tree="$WORK_ABS" \
+      -c user.name=harness -c user.email=harness@ddd-harness.local \
+      -c commit.gpgsign=false -c gc.auto=0 "$@"
+}
+wgit init -q --template= || exit 90
+mkdir -p "$ACT4_GIT/info" && echo "harness/act4.git/" > "$ACT4_GIT/info/exclude"
+( cd "$WORK_ABS" && wgit add -A && wgit commit -q -m "harness-injected baseline" ) || exit 90
+BASELINE="$(wgit rev-parse HEAD)"
+
+# ---- 4c. 這一跑吃了什麼:run-meta.json(形狀照 run_act2.sh)-------------
+# 呼叫 claude 之前算 —— 事後算到的可能是 agent 動過的版本。基線 hash 也記在這裡,
+# order-check 會拿它跟 harness/act4.git 的 root commit 比(歷史被改寫過就對不上)。
+blob() { git hash-object "$1" 2>/dev/null || echo unknown; }
+cat > "$WORK_ABS/run-meta.json" <<META
+{
+  "model": "$MODEL",
+  "spec": "$SPEC_ABS",
+  "skeleton": "$SKEL_ABS",
+  "baseline_commit": "$BASELINE",
+  "input_blobs": {
+    "prompt.txt": "$(blob "$WORK_ABS/prompt.txt")",
+    "spec/SPEC.md": "$(blob "$WORK_ABS/spec/SPEC.md")",
+    "harness/inner-tests.gradle": "$(blob "$WORK_ABS/harness/inner-tests.gradle")",
+    "src/test/java/acceptance/OrderAcceptanceTest.java": "$(blob "$WORK_ABS/src/test/java/acceptance/OrderAcceptanceTest.java")",
+    "src/test/java/acceptance/OrderProxyAcceptanceTest.java": "$(blob "$WORK_ABS/src/test/java/acceptance/OrderProxyAcceptanceTest.java")",
+    "src/test/java/architecture/ArchitectureTest.java": "$(blob "$WORK_ABS/src/test/java/architecture/ArchitectureTest.java")"
+  }
+}
+META
+
+# 順序檢查(票 24):stdout 落 order-check.txt,離開碼三態(0 過 / 1 沒過 / 3 不適用)。
+order_check() {
+  python3 "$HARNESS/act4_order_check.py" "$WORK_ABS" > "$WORK_ABS/order-check.txt" 2>&1
+  orc=$?
+  case "$orc" in
+    0) echo "ok: 測試在基線裡、實作全在基線之後(order-check.txt)" ;;
+    3) echo "⚠️ 順序檢查不適用 —— 這一跑沒有基線歷史?細節見 $WORK_ABS/order-check.txt" >&2 ;;
+    *) echo "⚠️ 順序檢查沒過(rc=$orc)—— 細節見 $WORK_ABS/order-check.txt" >&2 ;;
+  esac
+  return $orc
+}
+
 # ---- 5. 跑(或 dry-run)---------------------------------------------------
 if [ "$DRY" = "1" ]; then
   echo "dry-run:工作目錄組好了,沒有呼叫 claude"
@@ -344,8 +402,11 @@ if [ "$DRY" = "1" ]; then
   echo "  gradle 注入: $WORK_ABS/harness/inner-tests.gradle"
   echo "  雜湊基線  : $WORK_ABS/harness/protected-baseline.txt"
   echo "  骨架 blob : $WORK_ABS/harness/skeleton-blobs.txt"
+  echo "  git 基線  : $BASELINE($ACT4_GIT)"
+  echo "  run-meta  : $WORK_ABS/run-meta.json"
   echo "  model     : $MODEL(未使用)"
-  exit 0
+  order_check            # dry run 也查:只有基線、沒有實作,預期 0
+  exit $?
 fi
 
 cd "$WORK_ABS" || exit 90
@@ -367,6 +428,15 @@ if diff -u "$WORK_ABS/harness/protected-baseline.txt" \
 else
   echo "⚠️ 受保護檔被改過 —— 這一跑作廢,細節見 $WORK_ABS/tamper-check.txt" >&2
 fi
+
+# ---- 6b. 跑完 commit 一版,再查順序(票 24)--------------------------------
+# --allow-empty:agent 一個檔都沒產出也要有第二個 commit,檢查才分得出「跑過了」。
+# 先 commit 再查;order-check.txt 落在 commit 之後,檢查只看 src/ 底下有沒有沒 commit 的,
+# 所以歸檔後重跑不會因它翻 1。最後 repack 成一個 pack —— 進主 repo 的是兩三個檔,不是幾百個。
+( cd "$WORK_ABS" && wgit add -A && wgit commit -q --allow-empty -m "agent output" ) \
+  || echo "⚠️ 跑完那版 commit 失敗,順序檢查會看不到 agent 的產出" >&2
+order_check
+wgit repack -a -d -q 2>/dev/null
 
 if find "$WORK_ABS/src/main/java/com/shop" -name '*.java' ! -name 'Application.java' | grep -q .; then
   echo "ok: 有實作落地,跑 ./gradlew test 看完成的定義"
