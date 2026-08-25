@@ -10,7 +10,7 @@ DDD × AI Agent 的 development harness(五幕管線)+ 十一課教材。立論�
 ## 非標準位置(先讀這段,不然會找錯地方)
 
 - **票在 `.scratch/ddd-harness/issues/`**,markdown 一檔一票,不是 GitHub Issues。
-  27 張,13 張還活著(2026-08-25,票 21–25 done)。詳細規約見下面〈票怎麼開、怎麼關〉。
+  28 張,14 張還活著(2026-08-25,票 21–25 done)。詳細規約見下面〈票怎麼開、怎麼關〉。
 - **ADR 從 `0003` 開始**,不是掉了東西:`0001` / `0002` 是原 repo(`kc-log`)自己的決策,
   沒有跟著搬。這裡的 `0003`–`0006` 編號**刻意不重編**——`schema.sql`、`spec_store.py`、
   `gen_acceptance.py`、多支檢查器與三份 `build.gradle` 的註解都逐字引用這些編號,重編會斷
@@ -24,7 +24,7 @@ DDD × AI Agent 的 development harness(五幕管線)+ 十一課教材。立論�
 
 ## 票怎麼開、怎麼關
 
-**檔名**:`NN-kebab-slug.md`,`NN` 是兩位數流水號(目前到 27,下一張是 28)。
+**檔名**:`NN-kebab-slug.md`,`NN` 是兩位數流水號(目前到 28,下一張是 29)。
 
 **每張票的開頭**照這個形狀:
 

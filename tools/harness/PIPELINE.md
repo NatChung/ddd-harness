@@ -433,7 +433,7 @@ wire shape 措辭,**全部等 opus 那跑的資料再決定**。
 
 ## 開著的票
 
-`.scratch/ddd-harness/issues/` —— **共 27 張,10 張已完成**(更新 2026-08-25;21–27 是 survey §9 的落地,見 ADR 0007 / 0008)。
+`.scratch/ddd-harness/issues/` —— **共 28 張,14 張已完成**(更新 2026-08-25;21–27 是 survey §9 的落地,見 ADR 0007 / 0008)。
 
 **已完成**:05 答案落點檢查(`landing_check.py`)/ 06-A 契約進 store(`domain_contract` +
 `contract_triage.py`)/ 08-A 詞彙進 store(`glossary_term` + `glossary_check.py`)/
