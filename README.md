@@ -66,7 +66,7 @@ LLM agent 有一模一樣的失效模式,只是它填補含糊的方式是**照�
 補的東西就不一樣。所以整條線的做法是——每一幕的 agent 只拿該拿的,答案卷不給;
 每一段都有機器檢查;每個檢查都要標得出「驗過沒」。
 
-**幕一:訪談。** AI 訪談者只讀一份工作指示(`tools/harness/interview-prompt.md`),
+**幕一:訪談。** AI 訪談者只讀一份工作指示(`harness/interview-prompt.md`),
 一輪最多丟 5 個要需求方做決定的點,沒有輪數上限(`orchestrate.py` 預設 4 輪,
 真人那跑 6 輪)。需求方說「沒想過」就記「沒有」,訪談者不准自己補。
 答案由轉述者原樣交給訪談者:`relay_ledger.py` 查每一句都交到了,
@@ -99,7 +99,7 @@ LLM agent 有一模一樣的失效模式,只是它填補含糊的方式是**照�
 自己跑一次(~0.1 秒,離線,只寫暫存目錄):
 
 ```bash
-python3 tools/harness/verify_generated.py \
+python3 harness/verify_generated.py \
   examples/shop/harness/runs/2026-08-19-act3 \
   examples/shop/harness/runs/2026-08-19-act2/{acceptance,contracts,glossary}.yaml
 ```
@@ -116,14 +116,25 @@ python3 tools/harness/verify_generated.py \
 ⚠️ **幕五的兩個詞**:「洞」= 這一跑暴露出來、harness 擋不住的缺陷;
 「搬階」= 把一條原本靠自覺守的規則,往上搬成機械擋得住的(五級階梯見 `MISSION.md`)。
 
-逐段的輸入 / 工具 / 產出 / **驗過沒有**,見 [`tools/harness/PIPELINE.md`](./tools/harness/PIPELINE.md)。
+逐段的輸入 / 工具 / 產出 / **驗過沒有**,見 [`harness/PIPELINE.md`](./harness/PIPELINE.md)。
 
 ### 跑起來
 
+```
+ddd-harness/
+  harness/          ← 五幕管線,自足的一塊(腳本、測試、prompt、schema.sql、CONTEXT.md、docs/adr/)
+  examples/         ← 語料;examples/shop/tests/ 是讀語料的測試
+  tools/lint/       ← 票的 lint(harness_lint.py)
+  lessons/ practice/ reference/ research/ learning-records/   ← 教材
+```
+
 ```bash
 pip install pytest pyyaml
-cd tools/harness && python3 -m pytest      # 269 passed
+python3 -m pytest harness examples/shop/tests tools/lint   # 全 repo;只跑 harness 那塊:cd harness && python3 -m pytest
 ```
+
+**Hub(kc-hub / vpin-hub)怎麼拿**:不是 submodule,`harness/vendor.sh <hub>` 把 `harness/` 整個 copy
+過去、之後各自發展(ADR 0010);開工 prompt 見 [`harness/hub-bootstrap.md`](./harness/hub-bootstrap.md)。
 
 **相依講精確一點**:各支檢查器本身只用 stdlib,單獨跑不需要裝東西;
 但**跑測試需要 `pytest`**,而**匯入 spec yaml 需要 `PyYAML`**
@@ -139,12 +150,12 @@ run 目錄的 `check-ledger.jsonl`,而 `run_act2.sh` / `run_act3.sh` / `run_act4
 沒紀錄(3)或沒過(1)就拒絕啟動。**離開碼 3「不適用」不算通過。**
 
 ```bash
-python3 tools/harness/check.py landing_check <幕一 run_dir>        # 之後 run_act2.sh 才肯跑
-python3 tools/harness/check.py --gate act2 <幕一 run_dir>          # 自己先問閘門也行:0 過 / 1 沒過 / 3 不適用
-ACT_GATE_SKIP=1 ACT_GATE_SKIP_REASON='為什麼' tools/harness/run_act2.sh …   # 逃生口,理由落 run-meta.json
+python3 harness/check.py landing_check <幕一 run_dir>        # 之後 run_act2.sh 才肯跑
+python3 harness/check.py --gate act2 <幕一 run_dir>          # 自己先問閘門也行:0 過 / 1 沒過 / 3 不適用
+ACT_GATE_SKIP=1 ACT_GATE_SKIP_REASON='為什麼' harness/run_act2.sh …   # 逃生口,理由落 run-meta.json
 ```
 
-每幕要哪些紀錄、帳本住哪裡,見 `tools/harness/PIPELINE.md` 開頭的〈幕與幕之間的閘門〉。
+每幕要哪些紀錄、帳本住哪裡,見 `harness/PIPELINE.md` 開頭的〈幕與幕之間的閘門〉。
 
 ## 三、實跑紀錄
 
@@ -170,9 +181,10 @@ ACT_GATE_SKIP=1 ACT_GATE_SKIP_REASON='為什麼' tools/harness/run_act2.sh …  
 | 想知道 | 讀 |
 |---|---|
 | 為什麼做這個 | [MISSION.md](./MISSION.md) |
-| 這些詞是什麼意思 | [CONTEXT.md](./CONTEXT.md) —— 10 個詞,每個都附「別跟誰搞混」 |
-| 管線每一段的證據 | [tools/harness/PIPELINE.md](./tools/harness/PIPELINE.md) |
-| 為什麼設計成這樣 | [docs/adr/](./docs/adr/) |
+| 這些詞是什麼意思 | [harness/CONTEXT.md](./harness/CONTEXT.md) —— 10 個詞,每個都附「別跟誰搞混」 |
+| 管線每一段的證據 | [harness/PIPELINE.md](./harness/PIPELINE.md) |
+| 為什麼設計成這樣 | [harness/docs/adr/](./harness/docs/adr/) |
+| hub 怎麼拿 harness | [harness/hub-bootstrap.md](./harness/hub-bootstrap.md) + `harness/vendor.sh` |
 | 逐日的決定與教訓 | [NOTES.md](./NOTES.md)(1208 行) |
 | 來源出處 | [RESOURCES.md](./RESOURCES.md) |
 | 還沒解決的 | [.scratch/ddd-harness/issues/](./.scratch/ddd-harness/issues/) |
@@ -193,7 +205,7 @@ DDD 的部分拆出來獨立成本 repo;完整的逐 commit 歷史留在原處�
 那些 hash 指向的是原 repo,而原 repo 是私有的。引用它們的地方講的事實本身在檔案裡都看得到,
 hash 只是出處註記。*
 
-*⚠️ **一個例外,而且它是可執行的**:`tools/harness/acceptance_gwt.py` 對 `4567d31`
+*⚠️ **一個例外,而且它是可執行的**:`harness/acceptance_gwt.py` 對 `4567d31`
 (凍結骨架)與 branch `layered/OL1-integration`(OL1 的實作)有**硬相依**,所以那支在本
 repo 直接 `CalledProcessError 128` 跑不起來。骨架那半換成複製 `examples/shop/app/` 就救得回來
 (隔壁 `acceptance_archunit.py` 就是這樣做的),但 **OL1 的實作整份沒有跟著搬**,
