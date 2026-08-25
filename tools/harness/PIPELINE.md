@@ -275,6 +275,25 @@ python3 tools/harness/vacuous_tests.py …   # 假驗收分診(PIT + 支配關�
 filter 它的測試就回到 `test` 裡。runner 在注入之後算雜湊基線,跑完再算一次,
 落 `tamper-check.txt` —— **擋不住,只查得出來**。其餘已知上限見 `run_act4.sh` 檔頭。
 
+**雜湊證不了「測試先於實作存在」**(票 24,2026-08-25)。那條原本只靠幕三 → 幕四的
+構造順序保證。⚠️ 直接抄 ai-harness-template 的 `check-test-first.sh`(比測試檔與 source
+檔的首次 commit 時間)會抄到一支**永遠不會響**的檢查:工作目錄是 bare dir,產物一次 commit
+進主 repo,兩者的首次 commit 永遠是同一個。所以 runner 現在在 `prompt.txt` 寫完、呼叫
+claude **之前**,讓工作目錄自己 commit 一版基線(歷史放 `harness/act4.git`,**刻意不放
+`.git`** —— git 2.54 實測,run 目錄帶 `.git` 會被主 repo 記成 gitlink,run 的檔案一個都
+進不了主 repo);跑完再 commit 一版,`act4_order_check.py` 比「`src/test/**` 全在基線裡、
+`src/main/**` 扣掉受保護 wiring 與 `.gitkeep` 全在基線之後」,落 `order-check.txt`,
+基線 hash 另記進 `run-meta.json`。三態:**0** 過 / **1** 任一測試檔不在基線、任一實作檔在
+基線裡、歷史與 `run-meta.json` 對不上、有紀錄說做過基線但歷史不見了 / **3 不適用**:沒有
+`harness/act4.git` 也沒有紀錄(舊 run)—— **不折成通過**,印在最上面。跟雜湊同一種性質:
+agent 對 `harness/act4.git` 做 `--amend`、改寫歷史、連 `run-meta.json` 一起刪,就過或回 3
+—— 上限印在報表裡。⚠️ `ACT4_DRY_RUN=1` 也做基線 + 檢查(不花錢,測得到)。
+**驗過的**:對 `runs/2026-08-19-act4/` 跑 → 3;dry run 重組 → 0,`run-meta.json` 的
+`baseline_commit` = root commit;用 stub `claude` 走完跑完那段(commit → 檢查 → repack)→ 0,
+歸檔形狀重跑仍 0;合成三態 14 條 pytest(`test_act4_order.py`,`.scratch/ddd-harness/24-RESULT.md`)。
+**沒驗過的**:真的 claude 跑一次 —— agent 的環境從此多了 `harness/act4.git`,
+跟 2026-08-19 那跑不完全同環境;agent 自己 `git commit` 不會進這份歷史,檢查分不出它內部的先後。
+
 `acceptance_gwt` 三段,**三態**(過 / 沒過 / **不適用**):
 
 1. **空骨架 → 全紅** —— 證明驗收不是恆真。與被測規格是哪份無關,**永遠適用**

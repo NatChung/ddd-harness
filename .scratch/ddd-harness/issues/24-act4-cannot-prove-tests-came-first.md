@@ -6,7 +6,7 @@ git 首次 commit 時間查:生成的三支測試檔在基線裡、`src/main` �
 
 **Blocked by:** None
 
-**Status:** needs-triage —— 2026-08-25 Nat 拍板要做(survey §9 #5),尚未開工。
+**Status:** done —— 2026-08-25 `act4_order_check.py` + `test_act4_order.py`(14 條,pytest 236 → 250)+ `run_act4.sh` heredoc 之外的 4b/4c/6b;預測命中 5 / 落空 0(`24-PREDICTION.md` / `24-RESULT.md`)。跟票的形狀兩處刻意不同:歷史放 `harness/act4.git` 不放 `.git`(run 目錄帶 `.git` 會被主 repo 記成 gitlink,實測),所以「agent 自己 commit 照收」不成立;基線 commit 在 `prompt.txt` 寫完之後。真 claude 沒跑過。
 
 ## 哪裡壞了
 
