@@ -316,3 +316,39 @@ ai-harness-template `methodologies/ddd-lite/`、clean-code-skill)挑出來的。
 - import grep 式邊界(ddd-lite `check-context-boundary.sh`、clean-code-skill ESLint warn)—— 我們的 ArchUnit 是 AST 級,不是缺口。ddd-lite 那支還有三個洞:沒 BC 就 exit 0、訊息說走 `public_api` 但 script 從沒讀那格、invariant / pre / post / 詞彙表沒有任何東西讀。
 - 一次 commit 檔數上限(aht `check-surgical-changes`)—— 幕四是 bare dir 一次交付,沒有 commit 粒度可管。
 
+---
+
+## 10. 落地之後再對一次帳(2026-08-25 晚)
+
+§9 的 10 條:7 張票(13、21–26)當天合進 main(`233201e`),pytest 236 → 457;#3 成 ADR 0007;
+#6 + #7 成 ADR 0008 + 票 27,blocked。
+
+### §3 那 20 條的現況
+
+| 結果 | 條 | 內容 |
+|---|---|---|
+| ✅ 補上 | 8 | 1 不准跳幕(票 21)、3 時序改用 git(24)、4 佔位符(23)、5 測試↔規格對譯(13 `@covers`)、6 驗收→實作落點(13)、12 harness 自己的 lint(22)、13 test-first(24)、17 的「跳過比率」那半(26) |
+| 🔶 一半 | 3 | 2 轉移前置條件(21 只查「跑過沒」不查內容 —— 與 fspec 同一上限)、7 blocked 守衛(22 只查票號存在,不擋「blocked 未 done 不准開工」)、10 生命週期 mover(22 只 lint 詞彙,沒有 mover) |
+| ❌ 刻意不做 | 6 | 14 commit 檔數、15 mutation 門檻當閘門、16 安全掃描、18 工具白名單、19 分數比基線、以及 Agentheim 的 LLM verifier(§9 尾) |
+| ⬜ 還沒做 | 3 | 8 spec yaml canonical-format(→ 票 31)、11 不該 commit 的不准進 stage、17 的 stop hook 那半 |
+
+### §4「我們有他們沒有」:14 → 17
+
+原 14 條全在。新增:(15) **閘門把不適用當不通過** —— 三個對照組的 gate 沒東西可查都 exit 0,
+我們的閘門判 `exit == 0`,3 擋住(票 21,驗過);(16) **機械檢查器有考卷且考卷驗過有牙** ——
+Agentheim 的 eval 只給 LLM verifier,我們 31 case 蓋六支檢查器,弄壞兩支考卷都抓到(票 25,驗過);
+(17) **不適用有跨跑儀表**(票 26;Harmonist 同款只有 README 宣稱)。
+
+### 還輸的地方
+
+1. **閘門有洞**(驗過,21-RESULT):直接跑 `gen_*.py` 繞得過(閘門在 `run_act3.sh`,因 `test_harness.py`
+   釘死 `main()` 的離開碼);幕四閘門在本 repo 走不通(`acceptance_gwt` 第一段要 `4567d31`,不在),
+   真跑只能 `ACT_GATE_SKIP` + 理由。fspec 沒這種洞,因為狀態只有一個入口。→ 票 29。
+2. **閘門要讀的證據住在不能動的地方**:`check.py` 把帳本寫進 run 目錄,而 `examples/**/runs/` 是歷史素材。
+   對舊 run 補帳本 = 動歷史;不補 = 舊 run 永遠不適用。→ 票 29 (c)。
+3. **領域那兩格沒動**:今天補的全是流程,Aggregate-invariant 判準與 BC 對外 API / 整合模式在票 27,blocked。
+4. **零真跑**:七樣新東西對真 claude 的行為零證據;heredoc 新句「`@covers`」會不會被形式滿足,沒驗。
+5. PIT 資料裡有兩個 `vacuous_tests` 不印的影子(`OrderStatus.java` 0 mutant、`Order.restore` NO_COVERAGE)→ 票 30。
+
+一句話:**驗收與「不適用」拉更開;順序追平但有洞;領域沒動;真跑欠著。**
+
