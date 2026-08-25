@@ -379,6 +379,35 @@ agent 對 `harness/act4.git` 做 `--amend`、改寫歷史、連 `run-meta.json` 
 **沒驗過的**:真的 claude 跑一次 —— agent 的環境從此多了 `harness/act4.git`,
 跟 2026-08-19 那跑不完全同環境;agent 自己 `git commit` 不會進這份歷史,檢查分不出它內部的先後。
 
+**內圈測試的落點檢查 + 恆真分診**(票 13,2026-08-25;兩個都不是判決):
+
+```bash
+python3 tools/harness/innertest_landing_check.py <spec.db> <workdir>   # 契約 → 內圈測試落點,三段分開印
+```
+
+契約 → 內圈測試這層以前只有 prompt 裡一句「方法名要帶契約編號」,沒有東西在讀。現在宣告改在
+**測試檔頭**:`src/innerTest/**/*.java` 每支 class 的 javadoc 帶 `@covers C8, C9`(契約編號)或
+`@covers G16`(情境編號;**編號從 store 讀,不寫死前綴** —— 2026-08-19 那份的情境是 G 不是 S),
+一支檔可掛多條。三段:(1) **落點** —— 每條契約有沒有內圈測試 `@covers` 它,**契約決定離開碼**,
+情境只印參考(它們的落點是幕三生成的驗收);(2) **反向** —— 每個 `@covers` 指到的編號 store 裡
+存不存在,指了不存在的 = 漂;(3) **打在哪個入口** —— 印 `第 4 階,人讀`,列 `Type.method(` /
+`new Type(` / `Type.class` 三種 token,**不判斷**。舊約定(方法名帶編號)**不算落點**,只計數。
+離開碼:**0** 每條契約有落點且沒有漂 / **1** 任一契約無落點或任一宣告漂(**目錄在但零個檔、零個
+`@covers` 也是 1** —— runner 自己會 mkdir 那層,空的正是 agent 什麼都沒寫的長相)/ **2** 用法錯誤 /
+**3 不適用**:沒有 `src/innerTest/` 目錄,或 store 契約與情境都 0 條。恆真分診(副)**不在這支裡跑**,
+仍交 `vacuous_tests`;第三類「範圍不足」(票 13 陽性一)**兩支都抓不到**,印成固定提醒。
+heredoc 第四節加了一句「檔頭必須 `@covers C<n>` / `@covers S<n>`」(`prompt.txt` blob
+`d4a17c9a` → `c4444978`,diff 只有那一段;舊的「方法名帶編號」那句**留著**,兩種約定並存)。
+**驗過的**(`.scratch/ddd-harness/13-RESULT.md`):對 `runs/2026-08-19-act4/` 跑 → **1**,契約
+17/17 無落點、舊約定 9 條、`OrderImmutabilityTest` 那格列出 `Order.class`;考卷 5 case(clean 0 /
+舊約定無落點 1,片段抽自那跑的 `MoneyTest.java` / 不適用 3 / 漂 1 / 用法錯誤 2)全命中;
+16 條 pytest(`test_innertest_landing.py`)。在 scratchpad 複本上加 PIT 跑 `vacuous_tests`:
+71 mutant、佇列 5/9,**陽性一不在佇列、陽性二的 C9 / C17 在佇列** —— 但它們進佇列是因為兩條殺的
+是同一組 7 個 mutant(互相支配,`vacuous_tests` 檔頭的 (b) 重複),不是恆真;`RECEIVED -> null`
+那個漏 PIT 沒生 mutant(`OrderStatus.java` 0 個);`Order.restore` 是 NO_COVERAGE(陽性一的
+「範圍不足」PIT 資料裡有,`vacuous_tests` 只看測試所以沒印)。
+**沒驗過的**:真的 claude 照新 prompt 跑一次(要錢);`@covers` 這條約定是否會被形式滿足(上限印在報表)。
+
 `acceptance_gwt` 三段,**三態**(過 / 沒過 / **不適用**):
 
 1. **空骨架 → 全紅** —— 證明驗收不是恆真。與被測規格是哪份無關,**永遠適用**
