@@ -371,6 +371,12 @@ def _skeleton(tmp_path: Path) -> tuple[Path, Path]:
     skel = tmp_path / "skeleton"
     skel.mkdir()
     (skel / "build.gradle").write_text("// 骨架\n", encoding="utf-8")
+    # 票 24 合併後 dry run 也跑 order_check:三支生成測試要在基線裡,不然回 1(不是閘門的事)
+    for rel in ("src/test/java/acceptance/OrderAcceptanceTest.java",
+                "src/test/java/acceptance/OrderProxyAcceptanceTest.java",
+                "src/test/java/architecture/ArchitectureTest.java"):
+        (skel / rel).parent.mkdir(parents=True, exist_ok=True)
+        (skel / rel).write_text("// 生成物(測試用假檔)\n", encoding="utf-8")
     spec = tmp_path / "SPEC.md"
     spec.write_text("# 規格\n", encoding="utf-8")
     return skel, spec
