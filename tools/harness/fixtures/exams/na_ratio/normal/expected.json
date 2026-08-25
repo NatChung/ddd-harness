@@ -1,0 +1,17 @@
+{
+  "note": "合成:landing_check 跑 3 次、不適用 1 次(33%),但跑過 < min-runs(5)→ 不警告;離開碼 0。舊 run 1 張只印張數。",
+  "source": "合成帳本,形狀照 check.py 每行五個欄位。",
+  "args": [
+    "examples"
+  ],
+  "exit": 0,
+  "must_print": [
+    "帳本 4 份、6 筆;舊 run(沒帳本)1 張",
+    "沒有超過門檻的"
+  ],
+  "must_not_print": [
+    "⚠️ landing_check",
+    "整份不適用",
+    "讀不動 1 行"
+  ]
+}

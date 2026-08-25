@@ -83,6 +83,33 @@ python3 tools/harness/check.py --gate act2|act3|act4 <dir> [<dir>…]  # runner 
   → 它在本 repo 一跑就炸(exit 1)。就算搬過來,綁非 `shop-frozen-v1` 合約的 spec 第 2、3 段
   不適用 → 整支回 3 → 閘門照樣拒絕。修法要動檢查器本體(讓第一段能單獨回報),不在票 21。
 
+### 不適用比率儀表(票 26,2026-08-25)
+
+閘門把「3 不算通過」擋住了,但連續十跑都不適用,今天還是沒人會注意 —— 「不適用」被看見的前提是
+有人在看。`na_ratio.py` 讀上面那些帳本跨跑統計,**它是儀表不是閘門**:離開碼只有 0 / 2 / 3,
+超過門檻印 ⚠️ 不回 1(升成閘門要另開票)。
+
+```bash
+python3 tools/harness/na_ratio.py examples                                   # 表:列 = 檢查器,欄 = 跑過 / 0 / 1 / 3 / 其他 / skip / 不適用率 / 連續不適用
+python3 tools/harness/na_ratio.py --brief --checker landing_check examples   # 一行,runner 開頭用
+#   --warn-threshold 0.25 --min-runs 5 預設:跑過 ≥ 5 且不適用率 > 25% 才 ⚠️(抄 Harmonist 的形狀,門檻沒量過)
+```
+
+- `run_act2.sh` / `run_act4.sh` 在閘門判定**之後**、`rm -rf` 之前各印一行
+  (`上 N 跑 landing_check 不適用 M 次` / `acceptance_gwt`);`|| true`,儀表失敗不得讓 runner 失敗。
+  預設掃 `examples/`,`NA_RATIO_ROOT` 可換(測試用)。**不要改掃 repo root** —— 會把
+  `tools/harness/fixtures/` 的合成帳本掃進去(驗過:12 份,`landing_check` 被考卷頂成 ⚠️)。
+- 沒帳本的 `runs/<name>`(票 21 之前的舊 run)只印張數,**不進分母**;讀不動的行跳過並計數印出,
+  不 crash;**一份帳本都沒有 → 3,不是 0**(帳本在但一筆都讀不動也是 3)。
+- `skip` 欄是**推斷**:`run-meta.json` 有 `gate_skipped: true` 的跑,幕別從欄位形狀猜
+  (`skeleton` → act4、`spec_db` → act3、`spec` → act2),對到 `check.GATES` 那幕要求的檢查器。
+- 帳本格式仍歸票 21,這支只讀。`run_act3.sh` 沒有那一行(票只點名 act2 / act4)。
+
+**驗過沒有(2026-08-25,`.scratch/ddd-harness/26-RESULT.md`,預測 7 條命中 7)**:
+- ✅ 對現有 18 張 run:一份帳本都沒有 → exit 3、印「舊 run 18 張」;runner 那行在「上一幕的檢查證據齊了」之後印出同一句(opus-rerun 的 scratchpad 複本,dry-run)
+- ✅ 儀器行為靠合成帳本釘:`fixtures/exams/na_ratio/` 6 case(正常 / 超門檻仍 exit 0 / 零帳本 3 / 讀不動的行 / 全讀不動 3 / 用法錯誤)+ `test_na_ratio.py`
+- ❌ **趨勢本身在真實素材上量不到** —— 帳本要等票 21 之後的跑累積;門檻 0.25 / 5 對本 repo 合不合適沒量過
+
 ---
 
 ## 幕一:訪談
