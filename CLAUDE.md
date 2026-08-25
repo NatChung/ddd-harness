@@ -67,6 +67,8 @@ DDD × AI Agent 的 development harness(五幕管線)+ 十一課教材。立論�
 - **`tools/harness/interview-prompt.md` 是第一幕的正本,而且是唯一一份**。
   `.claude/skills/spec-authoring/SKILL.md` 2026-08-25 刪了(它是落後的副本,兩份散文講
   同一條規則會漂)。`runs/` 與 `NOTES.md` 裡對它的引用是歷史,不要去修。
+  **`interview-brownfield.md` 是補充檔,只載差量**(ADR 0009):正本已有的段落**不准**在它裡面重講;
+  brownfield 才載入。`hub-bootstrap.md` 同理:hub 用 submodule 引,不複製。
 - **`examples/returns/interview-prompt.md` 一個字都不要動** —— 那是跨模型實驗的凍結受測品
   (blob `71c1eb7d6eb6`)。改它會毀掉實驗基準。
 - **`examples/` 底下所有 `runs/` 是歷史素材,不要改、也不要刪**(⚠️ 有四個,而且
