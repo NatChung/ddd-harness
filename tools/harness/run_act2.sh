@@ -22,6 +22,25 @@
 set -u
 SPEC="$1"; WORK="$2"; MODEL="${3:-opus}"
 HARNESS="$(cd "$(dirname "$0")" && pwd)"
+[ -f "$SPEC" ] || { echo "找不到散文規格:$SPEC" >&2; exit 66; }
+
+# ---- 閘門(票 21):幕一的檢查證據 -----------------------------------------
+# 帳本住在幕一的 run 目錄(check.py 寫的 check-ledger.jsonl);散文規格在那個目錄裡,
+# 或在它的 interviewer/ 子目錄 —— 所以往上找兩層。要求 landing_check 有一筆 exit 0。
+# ⚠️ 離開碼 3(不適用)不算通過。閘門在 rm -rf "$WORK" **之前**:拒絕的話什麼都不動。
+# 逃生口 ACT_GATE_SKIP=1 要附 ACT_GATE_SKIP_REASON,沒理由不准跳;跳了寫進 run-meta.json。
+SPEC_DIR="$(cd "$(dirname "$SPEC")" && pwd)"
+if [ "${ACT_GATE_SKIP:-0}" = "1" ]; then
+  [ -n "${ACT_GATE_SKIP_REASON:-}" ] || {
+    echo "ACT_GATE_SKIP=1 需要 ACT_GATE_SKIP_REASON(沒理由不准跳)" >&2; exit 2; }
+  echo "⚠️ 閘門跳過(ACT_GATE_SKIP=1):$ACT_GATE_SKIP_REASON"
+  GATE_SKIPPED=true
+else
+  python3 "$HARNESS/check.py" --gate act2 "$SPEC_DIR" "$(dirname "$SPEC_DIR")" || exit $?
+  GATE_SKIPPED=false
+fi
+GATE_REASON_JSON="$(python3 -c 'import json,sys; print(json.dumps(sys.argv[1], ensure_ascii=False))' \
+  "${ACT_GATE_SKIP_REASON:-}")"
 
 rm -rf "$WORK"; mkdir -p "$WORK/spec" "$WORK/tools/harness"
 cp "$SPEC" "$WORK/spec/SPEC.md"
@@ -181,12 +200,14 @@ blob() {
   git hash-object "$1" 2>/dev/null || echo unknown
 }
 SPEC_ABS="$(cd "$(dirname "$SPEC")" && pwd)/$(basename "$SPEC")"
-# 註:路徑或 model 名含 `"` 或 `\` 會拼出壞 JSON。本 repo 的路徑不長那樣,
-# 為此拉一個 python3 進來不划算 —— 這支 script 全程沒有其他 python 相依。
+# 註:路徑或 model 名含 `"` 或 `\` 會拼出壞 JSON。本 repo 的路徑不長那樣。
+# 跳閘門的理由是人打的自由文字,那格用 python3 的 json.dumps 逃脫(閘門本來就要 python3)。
 cat > "$WORK/run-meta.json" <<META
 {
   "model": "$MODEL",
   "spec": "$SPEC_ABS",
+  "gate_skipped": $GATE_SKIPPED,
+  "gate_skip_reason": $GATE_REASON_JSON,
   "input_blobs": {
     "prompt.txt": "$(blob "$WORK/prompt.txt")",
     "tools/harness/schema.sql": "$(blob "$WORK/tools/harness/schema.sql")",
@@ -195,6 +216,16 @@ cat > "$WORK/run-meta.json" <<META
   }
 }
 META
+
+# 只組工作目錄、不呼叫 claude(不花錢)—— 閘門與 run-meta.json 的測試靠這條路。
+if [ "${ACT2_DRY_RUN:-0}" = "1" ]; then
+  echo "dry-run:工作目錄組好了,沒有呼叫 claude"
+  echo "  spec     : $WORK/spec/SPEC.md"
+  echo "  prompt   : $WORK/prompt.txt"
+  echo "  run-meta : $WORK/run-meta.json"
+  echo "  model    : $MODEL(未使用)"
+  exit 0
+fi
 
 cd "$WORK" || exit 90
 env -i HOME="$HOME" PATH="$HOME/.local/bin:/opt/homebrew/bin:/usr/bin:/bin" \
