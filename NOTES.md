@@ -1247,3 +1247,31 @@ MISSION「不靠主觀判斷」方向不同,不併。
 值得抄的 10 條整理在報告 §9,依成本排,標了「動檢查器」還是「動受測品」。
 副產品:三個對照組都把「不適用」折進「通過」,是 CONTEXT.md 那條警語的活標本。
 
+## 2026-08-25(續)—— survey §9 落地:七張票並行做完,五幕之間第一次有東西在擋
+
+Nat 拍板「10 條都抄」。分兩堆:動檢查器的開票(21–26 + 票 13 定形狀),動受測品的寫 ADR 0008
+並 blocked(票 27,等 opus 跑一次幕一或 Nat 放棄那跑);mechanize-or-drop 成 ADR 0007。
+
+做法:票先寫好 commit 進 main,再開 subagent 各自 worktree 並行(第一波 21–25 五個,第二波 13、26)。
+每個都先寫 PREDICTION 再跑真實素材、測試放新檔、在自己分支 commit,我逐個 merge、每合一個跑
+pytest + lint + exam。pytest 236 → **457**。
+
+**這一天量到的**(全部驗過,細節在各票 RESULT):
+- 21:閘門判準 `exit == 0`;幕四閘門在本 repo **走不通**(`acceptance_gwt` 要 `4567d31`,不在),
+  真實素材只能 `ACT_GATE_SKIP` + 理由留痕。閘門沒放水,是儀器少一段。
+- 22:九條規則對真 repo零待處理;`convention-undecided` 佇列 12 條全是判準太窄,0 條真的忘了決定。
+  祖父日含當天,lint 從票 29 起才咬。
+- 23:三份真實 yaml 第 0 階零命中;**schema 對「只有空白」沒擋**(→ 票 28)。
+- 24:git 歷史放 `harness/act4.git` 不放 `.git`(run 目錄帶 `.git` 進不了主 repo)。
+- 25:20 case 全命中;突變兩支檢查器都被考卷抓到。`package_landing_check` 無考卷。
+- 26:零帳本 → 3;掃 repo root 會把 fixture 帳本算進去,寫成上限。
+- 13:8/19 那跑 17/17 無落點(舊約定);PIT 跑了:`OrderStatus.java` **0 個 mutant**,所以
+  `RECEIVED -> null` 那個漏 PIT 碰不到;`Order.restore` NO_COVERAGE 有影子但 `vacuous_tests` 不印。
+
+**我自己踩的**:合併 21 後 pytest 2 紅(21 的測試骨架沒三支生成測試檔,合併 24 後 `order_check` 判 1),
+輸出被 rtk 截走,報了「全綠」。`a99f2b3` 修。教訓跟這個 repo 一樣:看數字,不看尾巴那行。
+
+**沒做的**:真 claude 一次都沒跑(閘門過了之後那條路、新 heredoc 那句 agent 會不會形式滿足);
+票 27 / ADR 0008;heredoc 舊句「方法名帶編號」還留著(票 13 只加不改);`vacuous_tests` 印 NO_COVERAGE
+落在哪些方法(票 13 建議,沒開票)。
+
