@@ -89,6 +89,12 @@ fi
 GATE_REASON_JSON="$(python3 -c 'import json,sys; print(json.dumps(sys.argv[1], ensure_ascii=False))' \
   "${ACT_GATE_SKIP_REASON:-}")"
 
+# ---- 0b. 儀表(票 26):上 N 跑 acceptance_gwt 不適用幾次,只印一行,不擋 ----------
+# 讀 examples/**/runs/*/check-ledger.jsonl 跨跑統計(NA_RATIO_ROOT 可換掃描根,測試用)。
+# 它是儀表不是閘門:沒帳本(3)、python 炸了,都不得讓 runner 失敗 —— 所以 || true。
+python3 "$HARNESS/na_ratio.py" --brief --checker acceptance_gwt \
+  "${NA_RATIO_ROOT:-$HARNESS/../../examples}" || true
+
 # ---- 1. 組隔離工作目錄:骨架 + 散文規格,別的都不放 ------------------------
 rm -rf "$WORK"; mkdir -p "$WORK"
 WORK_ABS="$(cd "$WORK" && pwd)"

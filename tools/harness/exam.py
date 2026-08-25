@@ -56,7 +56,8 @@ SPEC_STORE = HERE / "spec_store.py"
 # 哪些 script 算「檢查器」——跟 PIPELINE.md 離開碼表的那一排對齊:`*_check.py` 與 `*_triage.py`。
 # `acceptance_gwt.py` / `vacuous_tests.py` / `verify_generated.py` 也是檢查,但名字不在這個
 # 形狀裡,這一版**不掃**;要納入就是改這一行,而改了這一行它們會出現在「無考卷」佇列。
-CHECKER_GLOBS = ("*_check.py", "*_triage.py")
+# `na_ratio.py`(票 26)名字也不在那個形狀裡,但它有考卷 —— 點名納入,不然考卷會被列成「指不到檢查器」。
+CHECKER_GLOBS = ("*_check.py", "*_triage.py", "na_ratio.py")
 
 
 @dataclass
