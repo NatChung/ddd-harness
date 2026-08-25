@@ -1,0 +1,10 @@
+domain_contracts:
+  - id: C1
+    kind: invariant
+    statement: 總額等於各明細的乘加
+    provenance: Qn
+    provenance_ref: "[Q1]"
+    guarded_in: 訂單 Order(自足)
+    enforcement: none
+    ladder_note: 算術型,今天的驗收詞彙表達不出來;S1 只證明了建構當下算對了
+    named_tests: [S1]

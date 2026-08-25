@@ -1,0 +1,24 @@
+{
+  "note": "已知陽性(13-PREDICTION P1 的最小片段):2026-08-19 那跑的內圈測試用舊約定 —— javadoc 寫「契約 C4」散文、方法名 `C4_…`,**沒有 `@covers`** → C4 無落點、離開碼 1;舊約定計數 1 條印出來,讓它讀起來是「舊約定」不是「偷懶」。",
+  "source": "MoneyTest.java 檔頭與方法名逐字抽自 examples/shop/harness/runs/2026-08-19-act4/src/innerTest/java/com/shop/domain/ordering/MoneyTest.java(斷言本體截掉);C4 抽自 runs/2026-08-19-act2/contracts.yaml。",
+  "store": [
+    "contracts.yaml",
+    "acceptance.yaml"
+  ],
+  "args": [
+    "{db}",
+    "work"
+  ],
+  "exit": 1,
+  "must_print": [
+    "其中檔頭帶 `@covers` 的 0 支;舊約定方法名帶編號 1 條(不算落點)",
+    "❌ C4(invariant)守在:金額(Value Object 自身) —— **無落點**",
+    "無落點 1 條:C4",
+    "(沒有任何宣告,所以沒有東西可以漂)",
+    "MoneyTest.java  @covers:(無)  舊約定方法 1 條"
+  ],
+  "must_not_print": [
+    "整份不適用",
+    "✅ C4"
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "note": "一條契約 C1、一條情境 S1;一支內圈測試檔頭 `@covers C1, S1` → 0。釘住:情境有宣告時也印出檔名(參考欄),反向段印「全部存在」。",
+  "source": "合成;contracts.yaml / acceptance.yaml 抄 contract_triage/clean。",
+  "store": [
+    "contracts.yaml",
+    "acceptance.yaml"
+  ],
+  "args": [
+    "{db}",
+    "work"
+  ],
+  "exit": 0,
+  "must_print": [
+    "有落點 1 / 1;無落點 0 條:(無)",
+    "✅ C1(invariant)守在:訂單 Order(自足) —— src/innerTest/java/com/shop/ATest.java",
+    "· S1 —— src/innerTest/java/com/shop/ATest.java",
+    "(全部存在)",
+    "第 4 階,人讀",
+    "Type.method(:Order.place、OrderId.of"
+  ],
+  "must_not_print": [
+    "整份不適用",
+    "❌"
+  ]
+}
