@@ -10,7 +10,7 @@ DDD × AI Agent 的 development harness(五幕管線)+ 十一課教材。立論�
 ## 非標準位置(先讀這段,不然會找錯地方)
 
 - **票在 `.scratch/ddd-harness/issues/`**,markdown 一檔一票,不是 GitHub Issues。
-  27 張,18 張還活著(2026-08-25)。詳細規約見下面〈票怎麼開、怎麼關〉。
+  27 張,17 張還活著(2026-08-25)。詳細規約見下面〈票怎麼開、怎麼關〉。
 - **ADR 從 `0003` 開始**,不是掉了東西:`0001` / `0002` 是原 repo(`kc-log`)自己的決策,
   沒有跟著搬。這裡的 `0003`–`0006` 編號**刻意不重編**——`schema.sql`、`spec_store.py`、
   `gen_acceptance.py`、多支檢查器與三份 `build.gradle` 的註解都逐字引用這些編號,重編會斷
@@ -46,8 +46,16 @@ DDD × AI Agent 的 development harness(五幕管線)+ 十一課教材。立論�
 **改一張票的 Status = 整格重寫**,不要在後面追加——狀態欄只放最新狀態,歷史寫進票的內文。
 
 **新立慣例要二選一(ADR 0007)**:同票交 lint(`tools/harness/harness_lint.py`,票 22),
-或在票裡逐字寫「prose-only, unenforced」+ 為什麼。以上規約由 `harness_lint.py` 守,
-規則名見票 22;票 22 合併前這一段是散文。
+或在票裡逐字寫「prose-only, unenforced」+ 為什麼。以上規約由 `harness_lint.py` 守
+(`python3 tools/harness/harness_lint.py .`;驗過:2026-08-25 對真 repo 跑 exit 0,見
+`.scratch/ddd-harness/22-RESULT.md`),規則名:`ticket-filename`(檔名)、`status-vocabulary`
+(開頭詞;**新票只放行前五個**,`resolved` 對新票算命中)、`status-single-cell`(整格重寫)、
+`prediction-before-result` / `prediction-before-run`(預測先於結果 / 先於跑)、
+`referenced-run-exists`(引用的 run 目錄在)、`blocked-by-resolvable`(Blocked by 的票號存在)、
+`ticket-count-in-docs`(上面「N 張」的總數與「目前到 N」)、`convention-undecided`
+(ADR 0007 §4 的佇列,**不是判決**,不計入離開碼)。祖父條款 `ADOPTION_DATE = 2026-08-25`:
+**含當天**以前首次 commit 的票不追溯(看 git 日期,不看 mtime),所以票 21–27 也是祖父票。
+⚠️ 「N 張還活著 / 已完成」lint **不查**(「活著」的定義沒拍板),關票時記得手改三份文件。
 
 **預測檔**:動 harness 之前先把「我預期會看到什麼」寫進
 `.scratch/ddd-harness/NN-PREDICTION.md`(**跟票是兄弟檔,不是票的一節**),跑完再寫

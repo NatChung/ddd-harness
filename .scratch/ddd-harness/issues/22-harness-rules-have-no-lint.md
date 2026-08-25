@@ -5,7 +5,7 @@
 
 **Blocked by:** None(ADR 0007 已 accepted)
 
-**Status:** needs-triage —— 2026-08-25 Nat 拍板要做(survey §9 #2,ADR 0007 的落地),尚未開工。
+**Status:** done —— 2026-08-25 `tools/harness/harness_lint.py` 九條規則 + `test_harness_lint.py` 50 支(全套 286 綠)+ `fixtures/lint/`(clean 一份 + 每條規則一個 overlay,新舊用 `GIT-DATES.txt` 假裝 git);對真 repo 跑 exit 0:待處理 0、`status-vocabulary` 祖父豁免 3(06、08、09)、`convention-undecided` 佇列 12(全祖父,人讀後 0 條是真「忘了決定」—— 判準只認 `harness_lint` 規則名與 `prose-only`,13/24/25/26 交給自己的檢查器守也進佇列,是判準的假陽性)。預測命中 8 / 落空 1(佇列數我只手算了 21–27),全文 `22-RESULT.md`。⚠️ 祖父日**含當天**,所以 21–27 也是祖父票,lint 對它們沒有牙;「N 張還活著」刻意不查(定義沒拍板),關票手改。沒接進 `orchestrate.py` / 離開碼表(不在本票)。
 
 ## 哪裡壞了
 

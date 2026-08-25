@@ -1,0 +1,9 @@
+# 假裝 git:<相對路徑> <首次 commit 日期|uncommitted>。fixture 本身的 git 日期全是同一天,分不出新舊。
+.scratch/ddd-harness/issues/01-old-ticket.md 2026-08-19
+.scratch/ddd-harness/issues/02-new-ticket.md 2026-08-26
+.scratch/ddd-harness/01-PREDICTION.md 2026-08-19
+.scratch/ddd-harness/01-RESULT.md 2026-08-20
+.scratch/ddd-harness/02-PREDICTION.md 2026-08-26
+examples/demo/harness/runs/2026-08-18-act1 2026-08-19
+examples/demo/harness/runs/2026-08-27-act2 2026-08-27
+CLAUDE.md 2026-08-19
