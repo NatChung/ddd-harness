@@ -194,8 +194,14 @@ def scan_sources(src_root: Path) -> dict[str, list[str]]:
 
 # ── 判定 ─────────────────────────────────────────────────────────────────
 
-def check(src_root: Path, spec_paths: list[str | Path]) -> dict:
-    """回傳報表用的資料。**「不適用」自成一類,絕不折進通過。**"""
+def check(src_root: Path, spec_paths: list[str | Path], root: str | None = None) -> dict:
+    """回傳報表用的資料。**「不適用」自成一類,絕不折進通過。**
+
+    ⚠️ **`main()` 走的就是這一支**,不是它自己的複本。原本 `main()` 裡有一段
+    逐行相同的 store→SQL→`judge` —— 只差把 `root` 傳下去 —— 而 `check()`
+    生產路徑上零呼叫者。於是 `test_package_landing.py` 那 10 個 `plc.check(...)`
+    測到的**不是跑出來的那段**:兩份會各自漂,而漂了不會有人發現。
+    """
     with tempfile.TemporaryDirectory() as tmp:
         db = Path(tmp) / "spec.db"
         build_store(db, load_specs(list(spec_paths)))
@@ -204,7 +210,7 @@ def check(src_root: Path, spec_paths: list[str | Path]) -> dict:
             rows = conn.execute(DECLARED_SQL).fetchall()
         finally:
             conn.close()
-    return judge(src_root, rows)
+    return judge(src_root, rows, root=root)
 
 
 def judge(src_root: Path, rows: list[tuple[str, str, str]], root: str | None = None) -> dict:
@@ -422,15 +428,10 @@ def main(argv: list[str]) -> int:
         print(__doc__, file=sys.stderr)
         return 2
     try:
-        with tempfile.TemporaryDirectory() as tmp:
-            db = Path(tmp) / "spec.db"
-            build_store(db, load_specs(list(args[1:])))
-            conn = sqlite3.connect(db)
-            try:
-                rows = conn.execute(DECLARED_SQL).fetchall()
-            finally:
-                conn.close()
-        rep = judge(Path(args[0]), rows, root=root)
+        # ⚠️ **這裡呼叫 `check()`,不要再抄一份。** 原本這一段是 `check()` 的
+        #    逐行複本(只差 `spec_paths` / `args[1:]`),而 `check()` 生產路徑上
+        #    沒有呼叫者 —— 測試測的是複本以外的那一份。
+        rep = check(Path(args[0]), list(args[1:]), root=root)
     except SpecError as exc:
         print("spec 本身沒過驗證,無從比對:", file=sys.stderr)
         for problem in exc.problems:

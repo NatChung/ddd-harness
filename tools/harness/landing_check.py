@@ -74,6 +74,16 @@ TABLE_SEP = re.compile(r"^\s*\|[\s:|-]+\|\s*$")
 ROUND_FILE = re.compile(r"^r(\d+)-questions\.md$")
 
 
+class UsageError(Exception):
+    """呼叫方式錯了 / 吃錯目錄 —— **錯誤,不是不適用**(離開碼 2)。
+
+    刻意**不**用 `SystemExit`:Python 對**字串型** `SystemExit` 一律離開碼 **1**,
+    於是「吃錯目錄」跟「有漏接」撞在同一個離開碼上 —— 上面的離開碼表寫著 2,
+    實測卻是 1,**文件與行為對不起來**。形狀照抄 `verify_generated.py` 的
+    `UsageError`:由 `main()` 捕捉、`return 2`。
+    """
+
+
 def _qn(n: int) -> re.Pattern[str]:
     """題號的比對要卡邊界 —— `Q1` **不准**被 `Q11` 滿足。
 
@@ -87,7 +97,7 @@ def round_questions(run_dir: Path) -> dict[int, Path]:
     """`rounds/` 底下的逐輪提問檔,依輪次**數字**排(不是字典序 —— r10 < r2 的坑)。"""
     rounds = run_dir / "rounds"
     if not rounds.is_dir():
-        raise SystemExit(f"找不到 {rounds} —— 這支要吃 orchestrate.py 的逐輪產物")
+        raise UsageError(f"找不到 {rounds} —— 這支要吃 orchestrate.py 的逐輪產物")
     out: dict[int, Path] = {}
     for p in rounds.iterdir():
         m = ROUND_FILE.match(p.name)
@@ -276,7 +286,11 @@ def main(argv: list[str]) -> int:
         print(__doc__, file=sys.stderr)
         return 2
     run_dir = Path(argv[1])
-    rep = check(run_dir)
+    try:
+        rep = check(run_dir)
+    except UsageError as exc:
+        print(exc, file=sys.stderr)
+        return 2
 
     print(f"\n=== 答案落點檢查:{rep['run']} ===")
     print("判準:第 N 輪的每個題號,要出現在 r(N+1)-questions.md 開頭那張落點表的某一列裡。\n")

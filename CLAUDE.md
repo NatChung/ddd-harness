@@ -60,7 +60,18 @@ DDD × AI Agent 的 development harness(五幕管線)+ 十一課教材。立論�
   不是 bug —— **不要為了「讓它們一致」就自己去改 skill**。
 - **`examples/returns/interview-prompt.md` 一個字都不要動** —— 那是跨模型實驗的凍結受測品
   (blob `71c1eb7d6eb6`)。改它會毀掉實驗基準。
-- **`examples/shop/harness/runs/` 底下是歷史素材,不要改**。要跑新的就開新的 run 目錄。
+- **`examples/` 底下所有 `runs/` 是歷史素材,不要改、也不要刪**(⚠️ 有四個,而且
+  `examples/returns/runs/` **沒有 `harness/` 那層** —— 寫成 `examples/*/harness/runs/`
+  會漏掉它)。要跑新的就開新的 run 目錄。
+  **全 repo** 18 個 run 目錄裡有 12 個被 `.scratch/ddd-harness/issues/` 的票引用著,
+  刪掉一個還被引著的 run = 把開著的票的證據抽掉。**退役某一跑之前先跑
+  `grep -rl <run 目錄名> .scratch/ddd-harness/issues/`,有命中就不能動。**
+  ⚠️ **沒命中不等於可刪**:`2026-08-18-act2-opus` 零票引用,但 `PIPELINE.md` 引著它;
+  `returns/runs/2026-08-17-*` 零票引用,但 `examples/returns/README.md` 與
+  `interview-prompt-rationale.md` 引著它。全 repo 真正零引用的只有
+  `timesheet/harness/runs/2026-08-21-act1-human-abandoned`。
+  唯一豁免:`examples/shop/runs/`(**沒有 `harness/`** 的那個)是 harness 之前的舊實驗,
+  但被 `NOTES.md` 與 `reference/0003-*.html` 當教材引用著。
 - **生成物不要手改**:`gen_acceptance.py` / `gen_archunit.py` 產的 Java 是決定性的,
   `verify_generated.py` 會重新生成一次逐位元組比。手改 = 紅燈。
   ⚠️ 它的 `GENERATORS` 是白名單、不掃目錄——**沒有生成器認領的 `.java` 對它完全隱形**。

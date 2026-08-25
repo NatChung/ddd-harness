@@ -427,6 +427,28 @@ def test_參數不足與不認得的選項都回二(tmp_path: Path) -> None:
     assert plc.main(["x", str(SKELETON_SRC), str(ARCH_YAML), "--nope"]) == 2
 
 
+def test_main真的走check_不是自己抄一份(monkeypatch: pytest.MonkeyPatch) -> None:
+    """**上面那 10 個 `plc.check(...)` 要測得到生產路徑,前提是 `main()` 真的呼叫它。**
+
+    原本 `main()` 裡是一段 `check()` 的**逐行複本**(store→SQL→`judge`,只差
+    `spec_paths` / `args[1:]`),而 `check()` 生產路徑上零呼叫者 —— 於是這份測試
+    檔測的是**沒人跑的那一份**,兩份各自漂而漂了不會有人發現。這條把它釘住:
+    換掉 `check` 就要看得到 `main` 的結果跟著變。
+
+    順便釘 `--root` 有傳下去 —— 那正是複本與 `check()` 唯一的差異,
+    也是「合而為一時最容易掉的那一格」。
+    """
+    seen: dict = {}
+
+    def fake_check(src_root, spec_paths, root=None):
+        seen["args"] = (Path(src_root), [str(p) for p in spec_paths], root)
+        return plc.judge(SKELETON_SRC, _arch_rows(), root=root)
+
+    monkeypatch.setattr(plc, "check", fake_check)
+    assert plc.main(["x", str(SKELETON_SRC), str(ARCH_YAML), "--root", "com.shopp"]) == 3
+    assert seen["args"] == (SKELETON_SRC, [str(ARCH_YAML)], "com.shopp")
+
+
 def test_root兩種寫法都吃() -> None:
     assert plc.parse_argv(["src", "a.yaml", "--root", "com.shop"]) == (["src", "a.yaml"], "com.shop")
     assert plc.parse_argv(["src", "--root=com.shop", "a.yaml"]) == (["src", "a.yaml"], "com.shop")

@@ -4,7 +4,7 @@
 
 **Blocked by:** None
 
-**Status:** **done**(2026-08-19,commit `215ae8c`)—— 兩個缺陷已修,離開碼語意統一成一張跨四支檢查的表。檔末另記三條回報未修的。
+**Status:** **done**(2026-08-19 修掉)—— 兩個缺陷已修,離開碼語意統一成一張跨**六**支檢查的表(不是四支;`42c61d6` 把 `acceptance_gwt` 也補齊了,哪六支、哪幾支不照,見檔末 2026-08-24 那節)。⚠️ 舊 Status 引的 commit `215ae8c` **在本 repo 查不到** —— 它是搬過來之前 `kc-log` 的 hash,要看 commit message 得去 `~/projects/kc-log`。檔末另記三條回報未修的,其中 (c) 仍未修。
 
 ## 缺陷一:`verify_generated.py` 對「沒有架構規則的 store」整支 crash
 
@@ -76,3 +76,34 @@ vs 呼叫方式錯了(應該是錯誤)。**不要把它們折成同一個結果*
 - **(c) drift check 看不見「沒有任何生成器認領的 `.java`」** —— ⚠️ **仍未修**。
   `GENERATORS` 是白名單、不掃目錄。**這條要決定**(要不要改成掃目錄),不是照先例就能做,
   所以票 18 沒碰。票 18 順帶把它寫進了 `PIPELINE.md` 幕三的「已知盲區」。
+
+---
+
+## 2026-08-24 · 稽核:上面兩處宣稱與現況對不上
+
+**(1) 兩個 commit hash 在本 repo 都指不到。**(**驗過**)`git cat-file -t 215ae8c` 與
+`9c49fb2`(檔末引的票 18)在這個 repo 都是 `not a valid object name` —— 這裡是從 `kc-log`
+整包搬過來的,`git rev-list --count HEAD` 只有 17 個 commit,舊 hash 沒跟著來。
+兩個 hash **在 `~/projects/kc-log` 裡都還在**(`215ae8c` =「票 14:兩個會靜默放行的檢查缺陷
+—— drift check 整支 crash、--root 打錯翻綠」、`9c49fb2` =「票 18:gen_archunit 最後一個
+SystemExit + README/PIPELINE 對齊現況」,同為 2026-08-19)。所以本票所有「見 commit message」
+的指路**在本 repo 走不通**,要跨 repo 才看得到 —— 這是兩張票的共同問題,不只本票。
+
+**(2) 離開碼表是跨五支,不是四支。**(**驗過**,基準 = HEAD `38263fd`;逐支讀 `main()` 的
+每一條 return / exit,不是靠 grep 猜)完整實作 `0/1/2/3` 的是 **5 支**:`contract_triage`、
+`glossary_check`、`landing_check`、`package_landing_check`、`verify_generated`。
+**沒照這張表的**:
+
+- `provenance_check` 只有 `0/1/2`,**沒有 exit 3** —— 它沒有「整份不適用」這條路。
+- `vacuous_tests` 只有 `0/1/2`,**也沒有 exit 3**;而且「mutation matrix 是空的」
+  (`vacuous_tests.py:193-196`)這種其實是**不適用**的情況被折進 `2`(用法錯誤)。
+- ⚠️ 順帶查到的:驗收側的 `acceptance_gwt`、`acceptance_archunit` 也只有 `0/1/2`。
+  其中 `acceptance_gwt` 對「跑到的都通過,但有 N 項不適用」直接 `return 0` ——
+  **報表分得開、離開碼分不開**,正是本票〈紀律〉最後一條在講的失效。
+
+以上三條都**不在本票範圍**,先記著免得只活在對話裡。
+
+⚠️ **這是 HEAD `38263fd` 的快照。** 查證當下(2026-08-24 21:25)working tree 有另一個
+agent 正在動 `tools/harness/`,已經把 `provenance_check`(整份不適用 → 3)與
+`acceptance_gwt`(有項目不適用 → 3)改掉了。**上面「沒照表」那份清單會隨那批改動失效
+—— 之後要重數,以 commit 為準,不要照抄這一節。**

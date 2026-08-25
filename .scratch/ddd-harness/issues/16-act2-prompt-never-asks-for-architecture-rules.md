@@ -5,7 +5,7 @@
 
 **Blocked by:** None
 
-**Status:** **done**(2026-08-19,commit `18bf044` + `6c85992`)—— `run_act2.sh` 的 prompt 加第四份 `architecture.yaml`(受測品變更)。⚠️ 預測 `.scratch/ddd-harness/16-PREDICTION.md` **還沒驗** —— 要下次真跑第二幕才驗得了,下一個跑的人請回來對那張表。
+**Status:** **done**(2026-08-19,commit `18bf044` + `6c85992`)—— `run_act2.sh` 的 prompt 加第四份 `architecture.yaml`(受測品變更)。預測已於 2026-08-24 用 `examples/timesheet/harness/runs/2026-08-21-act2/` 對過答案,全文在 `.scratch/ddd-harness/16-RESULT.md`:**命中 3 / 落空 0 / 不適用 11**(分母 3,不適用不進分母)—— 主預測(非 none < 6)實際 **1/10**、`authorized_template` 0 筆、`模板既定` 0 筆,三條 SQL 條件都成立;但 **R1–R10 那十格逐條猜是對 shop §9 寫的,跑的是 timesheet §10,不適用**,而且 timesheet 的散文一條 ArchUnit 測試名都沒指名,**主預測的門檻在這份規格上幾乎不咬人**。另外量到副預測 2 的一半**驗不了**:`--output-format json` 不留逐 turn 紀錄,「trigger 擋過人」與「agent 根本沒試」分不出來。**下一步(不在本票):以現行 prompt 重跑 shop 那份 SPEC,才驗得到 R1–R10。**
 
 ## 量到了(2026-08-19 全鏈跑通那次)
 

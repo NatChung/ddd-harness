@@ -21,6 +21,11 @@
 ⚠️ **它是分診佇列,不是判決。** 最大的漏抓是單位換算與同義改寫:
 答案說「一百二十元」、規格寫 `12000`,字串比對必漏。上限寫在報表裡。
 
+離開碼:
+    0  掃到了東西(標出來的筆數印在報表裡 —— **這是佇列不是判決**,有標記不等於紅)
+    2  用法錯誤(參數個數不對 / 吃錯目錄:沒有 `rounds/`、底下沒有 `*-answers.md`)
+    3  **整份不適用** —— 一筆 [Qn]-帶值 都沒掃到,沒有東西可查。不是通過。
+
 用法:
     python3 provenance_check.py <run_dir> <spec.md>
 """
@@ -56,9 +61,20 @@ NOISE = {"200", "201", "400", "401", "403", "404", "500", "2026", "2025"}
 # 不是需求方講的內容,濾掉是有依據的,不是為了讓數字好看。
 LABEL = re.compile(r"^(?:R\d+-)?Q\d+$|^S\d+$|^C\d+$")
 
+
 # 標準編號不是資料值(「ISO 8601」的 8601)。用**上下文**濾而不是把數字加進黑名單
 # —— 黑名單會愈長愈像在調參數,而調到剛好讓已知陽性活著就是自欺。
 STANDARD = re.compile(r"(?:ISO|RFC|UTF|HTTP|IEEE|ANSI)[\s-]*$", re.I)
+
+
+class UsageError(Exception):
+    """呼叫方式錯了 / 吃錯目錄 —— **錯誤,不是不適用**(離開碼 2)。
+
+    刻意**不**用 `SystemExit`:Python 對**字串型** `SystemExit` 一律離開碼 **1**,
+    而這支的離開碼表裡**根本沒有 1**(見檔頭:0 / 2 / 3)—— 吃錯目錄會落在一個
+    沒有定義的碼上,自動化讀不出它是什麼。形狀照抄 `verify_generated.py` 的
+    `UsageError`:由 `main()` 捕捉、`return 2`。
+    """
 
 
 def answers_corpus(run_dir: Path) -> str:
@@ -70,10 +86,10 @@ def answers_corpus(run_dir: Path) -> str:
     """
     rounds = run_dir / "rounds"
     if not rounds.is_dir():
-        raise SystemExit(f"找不到答案語料:{rounds}(這支要吃 orchestrate.py 的產物)")
+        raise UsageError(f"找不到答案語料:{rounds}(這支要吃 orchestrate.py 的產物)")
     parts = [p.read_text(encoding="utf-8") for p in sorted(rounds.glob("*-answers.md"))]
     if not parts:
-        raise SystemExit(f"{rounds} 底下沒有 *-answers.md")
+        raise UsageError(f"{rounds} 底下沒有 *-answers.md")
     return "\n".join(parts)
 
 
@@ -115,17 +131,27 @@ def main(argv: list[str]) -> int:
         return 2
     run_dir, spec_path = Path(argv[1]), Path(argv[2])
     total = len(claims(spec_path.read_text(encoding="utf-8")))
-    flagged = check(run_dir, spec_path)
+    try:
+        flagged = check(run_dir, spec_path)
+    except UsageError as exc:
+        print(exc, file=sys.stderr)
+        return 2
 
     print(f"\n=== 來源標記分診:{spec_path.name} ===")
     print(f"標 [Qn] 且帶具體值的:{total} 筆;**答案語料裡找不到的:{len(flagged)} 筆**\n")
+
+    # ── 不適用印在最上面,自成一類(ADR 0005 §6)────────────────────────
+    if total == 0:
+        # 「找不到東西所以沒問題」是最廉價的假綠燈。
+        print("【不適用】—— 不是通過,這份規格這次沒有被檢查過")
+        print("  ❌ 一筆都沒掃到 —— 不是乾淨,是這份規格沒有標 [Qn] 的具體值,或格式對不上")
+        print("\n     **整份不適用,不是通過**(ADR 0005 §6)—— 離開碼 3,"
+              "跟「吃錯目錄」(2)分得開。")
+        return 3
+
     for f in flagged:
         print(f"  ⚠️ L{f['line']}  值 {f['value']!r} 沒出現在需求方的任何回答裡")
         print(f"      {f['text'][:110]}")
-    if total == 0:
-        # 「找不到東西所以沒問題」是最廉價的假綠燈。
-        print("  ❌ 一筆都沒掃到 —— 不是乾淨,是這份規格沒有標 [Qn] 的具體值,或格式對不上")
-        return 1
     print(f"""
 --- 這份佇列的上限(讀之前先看)---
 * **這是分診佇列,不是判決。** 標出來的要人去讀逐字稿確認。

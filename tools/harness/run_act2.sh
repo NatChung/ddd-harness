@@ -6,6 +6,9 @@
 # ⚠️ **底下那段 heredoc prompt 是受測品。** 改了它,後續的跑就不能跟先前比 ——
 #    跟 interview-prompt.md / act1/ 三份是同一種性質,先前這裡沒有警語(已知缺口)。
 #    每次改都要在 run 目錄留下 prompt.txt,寫報告前 diff 上一跑那份。
+#    ⚠️ 靠自律記不住(shop 那跑與 timesheet 那跑的 prompt 差 43 行,沒有任何機械記錄
+#    講得出這件事),所以每跑另外落一份 run-meta.json,把 prompt.txt 與其他受測輸入的
+#    git blob 雜湊寫進去 —— **兩跑的報告對得起來,以 run-meta.json 的 blob 為準。**
 #
 # ⚠️ **交得出來 ≠ 生得出來**(2026-08-19,票 16 加第四份 architecture.yaml 時記下):
 #    gen_archunit 只吃三種 kind,散文裡形狀不在那三種裡的架構規則,正確的落檔結果
@@ -165,6 +168,33 @@ enforcement / ladder_note,再加上該 kind 的參數。
 
 輸出繁體中文的註解即可,欄位名用 schema 的英文名。
 EOF
+
+# ---- 這一跑吃了什麼:run-meta.json ----------------------------------------
+# 形狀照第一幕的 orchestrate.py(input_blobs / 跑之前就寫),不另立一套。
+# **時機是重點**:prompt.txt 是上面那段 heredoc 剛寫出來的,SPEC.md / schema.sql /
+# spec_store.py 是開頭那幾行 cp 進去的 —— 四份都就位了才算得準,而且必須算在
+# 呼叫 claude **之前**:agent 在 $WORK 底下是 bypassPermissions,事後再算,算到的
+# 可能是它動過的版本,那就不是「受測輸入」了。
+blob() {
+  # 認不出來就寫 unknown —— 不要猜(同 orchestrate.py 的 input_blobs)。
+  # git hash-object 對 repo 外的任意檔案也算得出來,所以 $WORK 放哪都行。
+  git hash-object "$1" 2>/dev/null || echo unknown
+}
+SPEC_ABS="$(cd "$(dirname "$SPEC")" && pwd)/$(basename "$SPEC")"
+# 註:路徑或 model 名含 `"` 或 `\` 會拼出壞 JSON。本 repo 的路徑不長那樣,
+# 為此拉一個 python3 進來不划算 —— 這支 script 全程沒有其他 python 相依。
+cat > "$WORK/run-meta.json" <<META
+{
+  "model": "$MODEL",
+  "spec": "$SPEC_ABS",
+  "input_blobs": {
+    "prompt.txt": "$(blob "$WORK/prompt.txt")",
+    "tools/harness/schema.sql": "$(blob "$WORK/tools/harness/schema.sql")",
+    "tools/harness/spec_store.py": "$(blob "$WORK/tools/harness/spec_store.py")",
+    "spec/SPEC.md": "$(blob "$WORK/spec/SPEC.md")"
+  }
+}
+META
 
 cd "$WORK" || exit 90
 env -i HOME="$HOME" PATH="$HOME/.local/bin:/opt/homebrew/bin:/usr/bin:/bin" \
