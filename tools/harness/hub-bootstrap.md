@@ -38,11 +38,21 @@
 ```bash
 git submodule add git@github-NatChung:NatChung/ddd-harness.git harness
 git submodule update --init
+# 只顯示 hub 用得到的四樣:工具、詞彙、硬規則、ADR;測試要 examples/shop(fixture),一起留。
+# 十一課、reference、learning-records、.scratch 不進 hub 的樹(歷史還在 .git 裡,3 MB)。
+git -C harness sparse-checkout set --no-cone \
+    tools/harness CONTEXT.md CLAUDE.md docs/adr examples/shop
 pip install pytest pyyaml                      # 只這兩個
 (cd harness/tools/harness && python3 -m pytest -q)   # 應全綠;紅了先停,回報
 # kc-hub 專用:codebases 共用 kc-knowledge 的 clone 與 codegraph 索引
 ln -s ../kc-knowledge/codebases codebases
 ```
+
+sparse-checkout 是**每個 clone 自己的設定**(存在 `.git/modules/harness/info/sparse-checkout`),
+不進 hub 的 git。所以 hub 的 setup 腳本 / `AGENTS.md` 要把上面那行 `sparse-checkout set` 寫進去,
+不然下一台機器 `submodule update` 會拿到整包。要更新 harness:`git -C harness pull`,sparse 設定不變。
+
+已經加成整包的(2026-08-26 kc-hub 第一次就是):不用重加,直接跑 `sparse-checkout set` 那行,樹會縮。
 
 codegraph:product repo 已有 `.codegraph/` 的直接用(`codegraph_explore` 帶 `projectPath`);沒有的**不要自己 init**,回報 Nat 決定。
 
