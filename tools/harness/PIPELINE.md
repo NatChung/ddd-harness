@@ -23,7 +23,7 @@
                     │ SPEC-draft.md(散文)
    ┌────────────────▼─────────────────────────────────────────┐
    │ 幕二 落檔        run_act2.sh → agent → acceptance.yaml     │
-   │   檢查:spec_store.py import(schema 擋 + 跨列不變式)       │
+   │   檢查:spec_store.py import(佔位符 + schema 擋 + 跨列不變式)│
    │   檢查:provenance_check.py(來源標記的分診佇列)            │
    └────────────────┬─────────────────────────────────────────┘
                     │ spec.db(結構化,唯一真相)
@@ -156,12 +156,18 @@ python3 tools/harness/provenance_check.py <run_dir> <散文規格.md>
 **生成器、驗收 harness、既有的 acceptance.yaml 都不在裡面** —— 那些是答案卷。
 它的完成定義是「`import` 印 ok」,一個它自己跑得動的迴圈。
 
-**檢查兩層**(不要混):
+**檢查三層**(不要混;2026-08-25 之前是兩層,票 23 補了第 0 階):
 
 | 層 | 誰擋 | 例 |
 |---|---|---|
-| 第 1 階 | `schema.sql` 的 CHECK / FK / TRIGGER | 五格來源標記寫不進第六格;違法 fixture 只掛得上預期被拒的情境 |
+| 第 0 階 | `spec_store.py` 的佔位符守衛(`check_placeholders`,在 schema **之前**跑) | 整格是 `TODO` / `[待補]` / `<customer id>` / `???` / `""` 的匯不進去,逐格印路徑;`[Q7] …` 引用與句中的 TODO 放行(判準是「整格只有」不是「含有」);**只有空白 `"   "` 不歸這階**,歸第 1 階 |
+| 第 1 階 | `schema.sql` 的 CHECK / FK / TRIGGER | 五格來源標記寫不進第六格;違法 fixture 只掛得上預期被拒的情境;空白格(`length(trim(x)) > 0`,**⚠️ 不是每欄都有**:`acceptance_scenario.id` / `proxy_for` 驗過是缺口,見票 23 RESULT) |
 | 第 2 階 | `spec_store.py` 的跨列不變式 | 總額 ≠ Σ(數量×單價) 匯不進去;拒絕情境的客人不得借用成功情境的 |
+
+⚠️ **`spec_store.py` 是幕二 agent 拿得到的輸入。2026-08-25 起 `import` 有第 0 階,之後的第二幕跑
+不得與之前的比基線**(`run-meta.json` 記著輸入 blob,比之前先看那個)。第 0 階對既有三份真實 yaml
+(`2026-08-18-act2-opus` / `2026-08-18-act2-rerun` / `2026-08-19-act2`)**零命中,離開碼與訊息
+逐字不變**(驗過,`.scratch/ddd-harness/23-RESULT.md`),所以那三跑的紀錄本身沒有被改變意義。
 
 **加上第三個檢查(2026-08-18 新增)**:`provenance_check.py` —— 宣稱出自需求方的具體值,
 他真的說過嗎。**分診佇列不是判決**,抓得到「訪談者餵值再標成親口確認」,

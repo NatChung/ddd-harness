@@ -5,7 +5,7 @@
 
 **Blocked by:** None
 
-**Status:** needs-triage —— 2026-08-25 Nat 拍板要做(survey §9 #4),尚未開工。
+**Status:** done —— 2026-08-25 守衛落在 `spec_store.py` 的 `check_placeholders`(`build_store` 開頭、schema 之前),`test_prefill.py` 32 條,pytest 236 → 268 全綠;三份真實 yaml 第 0 階 0 / 0 / 0 命中、離開碼與訊息逐字不變(`23-PREDICTION.md` → `23-RESULT.md`,五條預測全命中)。兩處偏離票文:「空字串」只收 `""`、`[Qn]` 整格放行,都是儀器自己的測試語料逼出來的,理由見檔末〈落地〉。順手驗到 `acceptance_scenario.id` / `proxy_for` 的空白 CHECK 缺口,那是第 1 階的事,另開票。
 
 ## 哪裡壞了
 
@@ -43,3 +43,33 @@
   且列出格的路徑(`scenarios[2].given[0]` 這種)。
 - `23-PREDICTION.md` → `23-RESULT.md`(三份真實 yaml 零命中那條)。
 - `PIPELINE.md` 幕二「檢查兩層」表加第 0 階一列。
+
+---
+
+## 2026-08-25 · 落地
+
+守衛:`spec_store.py` 頂端 `PLACEHOLDER_PATTERNS`(五條,每條頭尾錨)+ `EMPTY_ALLOWED_AT`
+(唯一豁免:`acceptance_scenarios[*].rejected_requests[*].customer_id` 可以是 `""`,S7 未登入)
++ `check_placeholders(spec)`;`build_store` 第一件事就呼叫它,有命中就單獨 raise,
+`_check_shape` 與 schema 都還沒跑到。訊息每行 `第 0 階 佔位符:<路徑> = <值>(<哪一種>)`,
+最後一行印整份清單。離開碼維持 1。
+
+**完成定義逐條**:`test_prefill.py` ✅(14 種寫法各一例被拒、`[Q7] 介面…` / 句中 TODO / 句中 `<orderId>`
+放行、訊息含「第 0 階」與 `acceptance_scenarios[i].steps[0].items[0].product_id` 這種路徑、
+第 2 階訊息**不含**「第 0 階」、`"   "` 是「schema 擋下來了」不是第 0 階);
+PREDICTION → RESULT ✅(三份 0 / 0 / 0);PIPELINE 幕二表 ✅(「兩層」改「三層」,圖那行也補了)。
+
+**兩處偏離票文,都是儀器自己的測試語料抓到的(不是真實 yaml)**:
+
+1. **「空字串」只收恰好 `""`,「只有空白」不收。** `test_harness.py::test_來源為空寫不進去`
+   (本票不准動)斷言 `provenance_ref: "   "` 的訊息是「schema 擋下來了」—— 空白格 = 第 1 階,
+   這條邊界在本票之前就釘死了。第 0 階再收一次是同一條規則兩份載體。代價:沒有
+   `length(trim)` CHECK 的欄(`acceptance_scenario.id`、`proxy_for` 驗過;`expected_text` /
+   `field` 推斷)寫 `"   "` 會靜默進庫 —— 那是第 1 階缺口,另開票補 schema。
+2. **`[Qn]` 整格放行。** 票釘的 regex `^\s*\[[^\]]*\]\s*$` 把 `provenance_ref: "[Q1]"` 判成佔位符,
+   而 `test_glossary.py` / `test_domain_contract.py` 有 40 格拿它當合法值 —— 它是來源標記的寫法,
+   是引用不是便條。改成 `^\s*\[(?!Q\d+\])[^\]]*\]\s*$`。對三份真實 yaml,原 regex 與新 regex
+   都是 0 命中(真實 yaml 的 `[Q12]` 後面都接本文),差別只在儀器語料。
+
+**慣例(ADR 0007)**:佔位符清單是 prose-only, unenforced —— 清單本身沒有 lint 守,
+漏了哪一種寫法只能靠下一次 RESULT 補;守衛本身由 `test_prefill.py` 守。
