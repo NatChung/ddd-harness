@@ -1,0 +1,30 @@
+# 抽自 examples/shop/harness/acceptance.yaml:wire_contract 整段 + S1 一條
+# (wire_contract 只在有 acceptance_scenarios 時才有意義,所以 S1 得跟著來)。
+wire_contract:
+  name: shop-frozen-v1
+  req_customer_field: customerId
+  req_items_field: items
+  req_product_field: productId
+  req_quantity_field: quantity
+  req_price_field: unitPriceCents
+  req_currency_field: currency
+  req_total_field: null
+  res_order_id_field: orderId
+  res_customer_id_field: null
+  res_total_field: totalCents
+  list_fields: [orderId, customerName, statusLabel, totalCents, placedAt]
+
+acceptance_scenarios:
+  - id: S1
+    given_when: 一位存在的顧客送出一筆含單一明細的訂單
+    then_expect: 回 201 並帶回 orderId
+    provenance: 推導自
+    provenance_ref: examples/shop/spec/SPEC.md L44-45
+    steps:
+      - alias: order
+        customer_id: C-001
+        items:
+          - {product_id: P-100, quantity: 2, unit_price_cents: 1500, currency: TWD}
+    assertions:
+      - {kind: status_is, target: order, expected_number: 201}
+      - {kind: order_id_not_blank, target: order}

@@ -1,0 +1,18 @@
+{
+  "note": "第二種不適用(更難看見):詞彙表有東西、甚至宣告了對外欄位名,但這份 store 沒有對外合約可比 → 3。PIPELINE 幕二表格第三列:訪談那份的情境本輪一份都沒落檔,不跨 run 硬配。",
+  "source": "examples/shop/harness/runs/2026-08-18-act1-opus-rerun/glossary.yaml 前兩條(訂單 Order、訂單品項 OrderLine);沒有合約檔。",
+  "store": [
+    "glossary.yaml"
+  ],
+  "args": [
+    "{db}"
+  ],
+  "exit": 3,
+  "must_print": [
+    "對外合約 0 份",
+    "不適用(不是通過)"
+  ],
+  "must_not_print": [
+    "對譯檢查(列表欄位)"
+  ]
+}

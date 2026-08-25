@@ -1,0 +1,16 @@
+{
+  "note": "haiku roleplay 那份規格:標了 [Qn] 的行一個具體值都沒有(欄位名是小寫底線、值都是散文)→ 一筆都沒掃到 = 整份不適用 3,不是乾淨。",
+  "source": "examples/shop/harness/runs/2026-08-18-act1-haiku-roleplay/roleplay/SPEC-draft.md L15–L24(端點 1.1 那張表)+ rounds/r1-answers.md(Q1、Q2)。",
+  "args": [
+    "run",
+    "SPEC.md"
+  ],
+  "exit": 3,
+  "must_print": [
+    "一筆都沒掃到",
+    "整份不適用,不是通過"
+  ],
+  "must_not_print": [
+    "沒出現在需求方的任何回答裡"
+  ]
+}

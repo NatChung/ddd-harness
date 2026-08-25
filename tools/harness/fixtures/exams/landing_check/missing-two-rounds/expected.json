@@ -1,0 +1,19 @@
+{
+  "note": "haiku roleplay 那跑:r2 與 r4 開頭連一張表都沒有(散文寫「收到了 Q8 到 Q11 的回答」不算),整整兩輪 8 題消失;r3 開頭有表,Q5–Q7 通過;r4 是最後一輪(不適用)。預期 1。",
+  "source": "examples/shop/harness/runs/2026-08-18-act1-haiku-roleplay/roleplay/rounds/r1–r4-questions.md,題目正文截短、結構逐字(r2/r4 的散文開頭、r3 的落點表、r1 問完才出現的盤點表都保留)。",
+  "args": [
+    "run"
+  ],
+  "exit": 1,
+  "must_print": [
+    "【漏接】—— 問出去了,下一輪的落點表裡找不到:**8 題**",
+    "第 1 輪:Q1、Q2、Q3、Q4 —— r2-questions.md 開頭**沒有任何落點表**",
+    "第 3 輪:Q8、Q9、Q10、Q11 —— r4-questions.md 開頭**沒有任何落點表**",
+    "第 2 輪:3/3  Q5、Q6、Q7",
+    "小計:可比對 3 輪 / 11 題;通過 3、漏接 8"
+  ],
+  "must_not_print": [
+    "【題號寫法可能漂了】",
+    "整份不適用"
+  ]
+}

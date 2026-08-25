@@ -1,0 +1,13 @@
+glossary_terms:
+  - term: 訂單 Order
+    definition: 客人一次送出、已經成立的一筆採購。系統裡存得下來的訂單只有已成立的
+    ddd_type: Aggregate Root
+    provenance: Qn
+    provenance_ref: "[Q1][Q13] — SPEC-draft.md L20;對外欄位名那格寫的是註記(整個回應物件),不是欄位名"
+
+  - term: 訂單品項 OrderLine
+    definition: 訂單裡的一列:哪個商品、買幾個、當時單價多少
+    ddd_type: Value Object
+    wire_field: items
+    provenance: Qn
+    provenance_ref: "[Q1] — SPEC-draft.md L21;同一格另標 推導自 [Q6];欄位名原文帶型態記號,轉寫去掉"

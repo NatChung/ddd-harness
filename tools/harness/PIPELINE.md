@@ -132,6 +132,10 @@ python3 tools/harness/landing_check.py <run_dir> [<run_dir>/SPEC-draft.md]
   20 個近似寫法逐輪印出來 —— 而近似偵測在四份真實語料上**一次都不吵**。
   **同一支既印得出 0 也印得出 8** —— 而這三份的 `relay_ledger.verify` 都是綠的:
   **轉交了 ≠ 記下來了**
+- ✅ **考卷:5 case**(票 25,`fixtures/exams/landing_check/`,`python3 exam.py` 跑、
+  `test_exam.py` 每 case 一支)—— clean(0)/ `**Q1:` 寫法漂掉(3)/ 漏兩輪 8 題(1)/
+  只有答案檔的舊 run(3)/ 吃錯目錄(2),離開碼與報表字串都釘;片段抽自上面那幾份真實 run。
+  改了這支之後有東西會自動再比一次;**考卷抓得到壞掉的閘門,突變驗過**(`25-RESULT.md`)
 - ✅ **真人需求方那一跑(2026-08-19,`runs/2026-08-19-act1-human-stakeholder/`)**:
   需求方是**真人(Nat)**、訪談者是 bare dir 裡的 subagent,六輪 30 題 →
   42,601 B 的 `SPEC-draft.md`,帳本六輪 asked/answered/relayed 全成對。
@@ -202,10 +206,19 @@ python3 tools/harness/glossary_check.py  <spec.db>   # 詞彙:§1 詞彙表 ↔ 
 裡 —— **做對了,而且沒有留下任何機器看得見的痕跡。** 這正是票 08 要抓的東西:
 自律換個模型就沒了,而且連「上一個模型做對了」都證明不了。
 
+- ✅ **考卷:`contract_triage` 4 case、`glossary_check` 6 case**(票 25,`fixtures/exams/`)——
+  兩支都釘 clean(0)/ 已知陽性(1:凍結那組的「5 欄對不到 4、唯一對得到的是撞名」;
+  訪談那份的 C12 跨聚合根 + 指不出測試)/ 兩種不適用(3)/ 吃錯目錄(2)。
+  ⚠️ 兩支的 clean 是**合成**的:真實語料裡沒有一份對譯 0 差額、或契約全部指得到測試。
+
 **驗過沒有**:
 - ✅ agent 交得出可用的結構化 spec,判定完全機械(`runs/2026-08-18-act2-opus/`)
 - ✅ 訪談產出的規格:**落檔 4/12 → 12/12,真實覆蓋 3 → 8**(`runs/2026-08-18-act2-rerun/`)
 - ✅ `provenance_check` 抓到已知陽性(opus 那場的 100/120),0 假陽性
+- ✅ **考卷:`provenance_check` 5 case**(票 25)—— 100/120 那個形狀 B(0 + 兩個值都印)/
+  clean(0)/ 一筆都沒掃到(3)/ 吃錯目錄(2)/ **票 03 reopened 的三筆已知假陽性釘成
+  「今天會印」**(推導值 120、`YYYY-MM-DD`、`QUANTITY_OUT_OF_RANGE`):票 03 修好那天這個
+  case 會翻紅,到時改 expected,不是靜靜地過
 - ✅ **真人訪談那份規格首次落檔(2026-08-19,`runs/2026-08-19-act2/RESULT.md`)** ——
   Opus,21 turns / 15.2 分 / $6.21,三份 yaml 都交:**17 條 GWT → 5 條情境**、
   17 條契約 `no_named_test_reason` **17/17 非空**、31 個詞落檔(14 個宣告對外欄位名)。
@@ -381,7 +394,8 @@ wire shape 措辭,**全部等 opus 那跑的資料再決定**。
 `contract_triage.py`)/ 08-A 詞彙進 store(`glossary_term` + `glossary_check.py`)/
 09 幕四方法論(→ `docs/adr/0006`)/ 10 骨架(`examples/shop/app-from-interview/`)/
 11 package 落點檢查(`package_landing_check.py`)/ 12 幕四 runner(`run_act4.sh`)/
-14 兩個檢查缺陷 / 16 第二幕加交架構規則 / 18 本檔與 README 對齊現況。
+14 兩個檢查缺陷 / 16 第二幕加交架構規則 / 18 本檔與 README 對齊現況 /
+25 檢查器考卷(`exam.py` + `fixtures/exams/`,20 case;`package_landing_check` 仍在無考卷佇列)。
 
 **要 grill 才動得了**(形狀未定,動 schema 或動受測品):
 - **01** 動詞不夠 —— step 只表達得了「送出一筆訂單」。**卡著 06-B/C**

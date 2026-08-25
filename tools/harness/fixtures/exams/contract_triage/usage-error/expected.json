@@ -1,0 +1,14 @@
+{
+  "note": "store 不存在 → 用法錯誤 2。",
+  "source": "合成:args 指向不存在的 missing.db。",
+  "args": [
+    "missing.db"
+  ],
+  "exit": 2,
+  "must_print": [
+    "找不到 store"
+  ],
+  "must_not_print": [
+    "不適用(不是通過)"
+  ]
+}

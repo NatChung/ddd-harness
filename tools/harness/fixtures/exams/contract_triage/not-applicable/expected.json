@@ -1,0 +1,18 @@
+{
+  "note": "這份 store 沒有 domain_contracts 那段 → 契約 0 條 = 不適用 3,不是通過。",
+  "source": "acceptance.yaml 抽自 examples/shop/harness/acceptance.yaml;沒有契約檔。",
+  "store": [
+    "acceptance.yaml"
+  ],
+  "args": [
+    "{db}"
+  ],
+  "exit": 3,
+  "must_print": [
+    "契約:0 條",
+    "不適用(不是通過)"
+  ],
+  "must_not_print": [
+    "分診佇列一"
+  ]
+}

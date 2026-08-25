@@ -1,0 +1,85 @@
+# 合成(不是任何一份真實 run 的產出):凍結合約的 11 個欄位每個都有一個詞宣告對譯。
+# 真實語料裡沒有一份對得到 0 差額 —— 這個 case 只證明「全對得到」那條路真的會回 0。
+glossary_terms:
+  - term: 詞1
+    definition: 對應欄位 orderId 的那個概念
+    ddd_type: Value Object
+    wire_field: orderId
+    provenance: Qn
+    provenance_ref: "[Q1]"
+
+  - term: 詞2
+    definition: 對應欄位 customerName 的那個概念
+    ddd_type: Value Object
+    wire_field: customerName
+    provenance: Qn
+    provenance_ref: "[Q2]"
+
+  - term: 詞3
+    definition: 對應欄位 statusLabel 的那個概念
+    ddd_type: Value Object
+    wire_field: statusLabel
+    provenance: Qn
+    provenance_ref: "[Q3]"
+
+  - term: 詞4
+    definition: 對應欄位 totalCents 的那個概念
+    ddd_type: Value Object
+    wire_field: totalCents
+    provenance: Qn
+    provenance_ref: "[Q4]"
+
+  - term: 詞5
+    definition: 對應欄位 placedAt 的那個概念
+    ddd_type: Value Object
+    wire_field: placedAt
+    provenance: Qn
+    provenance_ref: "[Q5]"
+
+  - term: 詞6
+    definition: 對應欄位 customerId 的那個概念
+    ddd_type: Value Object
+    wire_field: customerId
+    provenance: Qn
+    provenance_ref: "[Q6]"
+
+  - term: 詞7
+    definition: 對應欄位 items 的那個概念
+    ddd_type: Value Object
+    wire_field: items
+    provenance: Qn
+    provenance_ref: "[Q7]"
+
+  - term: 詞8
+    definition: 對應欄位 productId 的那個概念
+    ddd_type: Value Object
+    wire_field: productId
+    provenance: Qn
+    provenance_ref: "[Q8]"
+
+  - term: 詞9
+    definition: 對應欄位 quantity 的那個概念
+    ddd_type: Value Object
+    wire_field: quantity
+    provenance: Qn
+    provenance_ref: "[Q9]"
+
+  - term: 詞10
+    definition: 對應欄位 unitPriceCents 的那個概念
+    ddd_type: Value Object
+    wire_field: unitPriceCents
+    provenance: Qn
+    provenance_ref: "[Q10]"
+
+  - term: 詞11
+    definition: 對應欄位 currency 的那個概念
+    ddd_type: Value Object
+    wire_field: currency
+    provenance: Qn
+    provenance_ref: "[Q11]"
+  - term: 孤兒詞
+    definition: 宣稱上線,但合約沒有這個欄位
+    ddd_type: Value Object
+    wire_field: fieldThatNoContractHas
+    provenance: Qn
+    provenance_ref: "[Q99]"

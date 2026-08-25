@@ -1,0 +1,22 @@
+{
+  "note": "訪談那份契約(PIPELINE 幕二):C12 跨聚合根、守在 application 層(佇列一);C1 與 C12 都指不出測試 —— 情境本輪沒落檔,FK 指不到(佇列二,理由逐字印)。→ 1。",
+  "source": "examples/shop/harness/runs/2026-08-18-act1-opus-rerun/contracts.yaml 的 C1 與 C12 兩條(20 條留 2 條,內文逐字)。",
+  "store": [
+    "contracts.yaml"
+  ],
+  "args": [
+    "{db}"
+  ],
+  "exit": 1,
+  "must_print": [
+    "契約:2 條",
+    "有指名測試的:0 條;指不出任何測試的:2 條",
+    "在自己那個物件內守不住的(跨聚合根):1 條",
+    "⚠️ C12(precondition)守在:application 層的 PlaceOrderService",
+    "不新增聚合根。這條前置檢查移到 application 層的 PlaceOrderService",
+    "散文指名 S1, S2, S3, S5;這場訪談的情境本輪一份都沒落檔,FK 指不到。"
+  ],
+  "must_not_print": [
+    "不適用(不是通過)"
+  ]
+}

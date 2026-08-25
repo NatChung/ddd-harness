@@ -5,7 +5,7 @@
 
 **Blocked by:** None
 
-**Status:** needs-triage —— 2026-08-25 Nat 拍板要做(survey §9 #9),尚未開工。
+**Status:** done —— 2026-08-25 `tools/harness/exam.py` + `fixtures/exams/` 20 case(landing 5 / provenance 5 / glossary 6 / contract 4)+ `test_exam.py`(每 case 一支 + 11 支機制),第一跑 20/20 命中、pytest 267;預測對答案在 `25-PREDICTION.md` / `25-RESULT.md`(落空的是 exam.py 自己:`*_check.py` 把 `test_landing_check.py` 也認成檢查器,已修)。無考卷佇列剩 `package_landing_check`。慣例那一半:「有檢查器沒考卷」由 `exam.py` 佇列守(不是判決);「每支至少 clean / 陽性 / 不適用」只對第一批四支有 `test_exam.py` 守,新檢查器那半 prose-only, unenforced —— exam.py 只認離開碼,認不出哪個 case 是哪一種。
 
 ## 哪裡壞了
 

@@ -1,0 +1,21 @@
+{
+  "note": "一條契約,指名測試 S1、不跨聚合根 → 沒有待處理項目 0。同時釘住兩欄分開印:有指名測試 1 條、宣稱有機械檢查 0 條(值域只有 none)。",
+  "source": "合成;acceptance.yaml 抽自 examples/shop/harness/acceptance.yaml(S1 供 FK 指名)。",
+  "store": [
+    "contracts.yaml",
+    "acceptance.yaml"
+  ],
+  "args": [
+    "{db}"
+  ],
+  "exit": 0,
+  "must_print": [
+    "契約:1 條",
+    "有指名測試的:1 條;指不出任何測試的:0 條",
+    "宣稱有機械檢查的(enforcement <> none):0 條"
+  ],
+  "must_not_print": [
+    "⚠️ C1",
+    "不適用(不是通過)"
+  ]
+}

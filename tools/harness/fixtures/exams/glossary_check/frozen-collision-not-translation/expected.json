@@ -1,0 +1,22 @@
+{
+  "note": "凍結那組(PIPELINE 幕二表格第一列):列表 5 欄對不到 4,唯一對得到的 orderId 是**撞名**(詞本身就叫 OrderId),不是對譯 —— 那份詞彙表管的是類名,wire 欄位是另一組詞。→ 1。",
+  "source": "glossary.yaml 抽自 examples/shop/harness/glossary.yaml(15 條留 5 條 + 1 條禁用);acceptance.yaml 抽自 examples/shop/harness/acceptance.yaml。",
+  "store": [
+    "glossary.yaml",
+    "acceptance.yaml"
+  ],
+  "args": [
+    "{db}"
+  ],
+  "exit": 1,
+  "must_print": [
+    "詞彙表:5 條",
+    "5 個欄位:對得到 1 個、**對不到 4 個**",
+    "✅ orderId —— 撞名:OrderId",
+    "❌ customerName —— 對不到詞彙表的任何一個詞",
+    "6 個欄位:對得到 2 個、**對不到 4 個**"
+  ],
+  "must_not_print": [
+    "不適用(不是通過)"
+  ]
+}

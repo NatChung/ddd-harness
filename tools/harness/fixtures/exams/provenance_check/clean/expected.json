@@ -1,0 +1,16 @@
+{
+  "note": "兩行標 [Qn] 的具體值(100)都在需求方的回答裡(Q11「超過 100 這種我覺得就該擋下來」、Q19「剛好 100 件是可以的」)。掃到 2 筆、找不到 0 筆 → 0。",
+  "source": "examples/shop/harness/runs/2026-08-18-act1-opus-rerun/SPEC-draft.md L25、L86 + rounds/r3-answers.md(Q11)、r4-answers.md(Q18–Q20)。這兩行是那份規格 60 筆 claim 裡沒被標的 8 筆之中的兩筆。",
+  "args": [
+    "run",
+    "SPEC.md"
+  ],
+  "exit": 0,
+  "must_print": [
+    "標 [Qn] 且帶具體值的:2 筆;**答案語料裡找不到的:0 筆**"
+  ],
+  "must_not_print": [
+    "沒出現在需求方的任何回答裡",
+    "整份不適用"
+  ]
+}

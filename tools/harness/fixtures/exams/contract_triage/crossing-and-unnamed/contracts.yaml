@@ -1,0 +1,34 @@
+domain_contracts:
+
+  - id: C1
+    kind: invariant
+    statement: >-
+      totalAmount = 所有品項 unitPrice × quantity 的加總;任何改變明細的操作,
+      總額必須在同一個方法內重算
+    provenance: Qn
+    provenance_ref: "[Q1](轉寫自 SPEC-draft.md L330)"
+    guarded_in: 訂單 Order(自足)
+    enforcement: none
+    ladder_note: >-
+      算術型 invariant。要驗「任何改變明細的操作都重算」,必須能在一個情境裡
+      建單 → 改明細 → 再看總額,而 schema 沒有「改明細」這個動作(卡票 01)。
+    no_named_test_reason: >-
+      散文指名 S1, S2, S3, S5;這場訪談的情境本輪一份都沒落檔,FK 指不到。
+
+  - id: C12
+    kind: precondition
+    statement: customerId 必須在會員系統中對得到一個人,否則訂單不得成立
+    provenance: Qn
+    provenance_ref: "[Q10](SPEC-draft.md L342)"
+    guarded_in: application 層的 PlaceOrderService(§9-A9;訂單本身不宣稱保證這一條)
+    crosses_aggregate: 1
+    disposition: >-
+      不新增聚合根。這條前置檢查移到 application 層的 PlaceOrderService,
+      在建構 Order 之前完成;Order 本身不宣稱保證它。理由是會員為界外 context,
+      本案無權把它納入聚合,新增聚合根等於複製別人的資料,與「即時查、不抄一份」衝突。
+    enforcement: none
+    ladder_note: >-
+      跨聚合根的前置條件,在訂單內部守不住;移出去之後也沒有任何機械檢查在看
+      「它有沒有真的在建構之前被呼叫」。
+    no_named_test_reason: >-
+      散文指名 S14;這場訪談的情境本輪一份都沒落檔,FK 指不到。
