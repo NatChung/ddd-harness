@@ -1,0 +1,15 @@
+# 抽自 examples/shop/harness/runs/2026-08-19-act2/contracts.yaml 的 C4(statement / guarded_in /
+# ladder_note 逐字);named_tests 改指本考卷 acceptance.yaml 的 S1(原本指 G17,那是被拒情境,
+# fixture 太大,不抽)。
+domain_contracts:
+  - id: C4
+    kind: invariant
+    statement: 金額的幣別恆為 TWD,數值為非負整數
+    provenance: Qn
+    provenance_ref: SPEC.md L298:幣別來源 [Q12](逐字見 L530);非負整數為 本案自決 §6 A-1(L370)
+    guarded_in: 金額(Value Object 自身)
+    enforcement: none
+    ladder_note: >-
+      還沒有機械檢查。這條守在 Value Object 自己身上,搬得上去的形式同樣是型別層:
+      金額的工廠方法拒收負數與非 TWD 幣別。
+    named_tests: [S1]

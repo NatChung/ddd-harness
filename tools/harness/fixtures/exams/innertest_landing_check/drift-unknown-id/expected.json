@@ -1,0 +1,21 @@
+{
+  "note": "落點那半全過(C1 有),但 `@covers C7` 指到 store 沒有的編號 → 反向段點名、離開碼 1。兩段分開:第一段仍印「有落點 1 / 1」。",
+  "source": "合成。",
+  "store": [
+    "contracts.yaml",
+    "acceptance.yaml"
+  ],
+  "args": [
+    "{db}",
+    "work"
+  ],
+  "exit": 1,
+  "must_print": [
+    "有落點 1 / 1;無落點 0 條:(無)",
+    "❌ `C7` ← src/innerTest/java/com/shop/ATest.java —— store 裡沒有這個編號"
+  ],
+  "must_not_print": [
+    "整份不適用",
+    "(全部存在)"
+  ]
+}

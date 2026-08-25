@@ -298,6 +298,9 @@ usecase 不得依賴框架,domain 不得依賴 usecase/adapter,usecase 不得依
 指不出來的那幾條,寫進 `ASSUMPTIONS.md` 說明為什麼(例如它守在別的地方、
 或它是被規格擋掉的)。
 
+**內圈測試檔頭(class 的 javadoc)必須帶 `@covers C<n>` / `@covers S<n>`**,宣告這支
+測試在驗哪幾條契約 / 情境(一支檔可以掛多條,例如 `@covers C8, C9`);沒宣告的算無落點。
+
 ---
 
 ## 五、seam 由規格指定,不是問人

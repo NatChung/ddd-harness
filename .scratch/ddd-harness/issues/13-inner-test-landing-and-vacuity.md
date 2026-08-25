@@ -4,7 +4,7 @@
 
 **Blocked by:** 票 10(要先有骨架跑得出內圈測試);內圈測試的位置由票 12 定
 
-**Status:** needs-triage —— 2026-08-25 形狀定了(檔末「2026-08-25 · 形狀」節,從 fspec 的 coverage sidecar 抄),Nat 拍板要做;**分兩半**:檢查器那半可開工,動 `run_act4.sh` heredoc(受測品)那半等票 24 合併後再做。
+**Status:** done —— 2026-08-25 兩半都落地:`tools/harness/innertest_landing_check.py`(三段分開印;`test_innertest_landing.py` 16 條;考卷 `fixtures/exams/innertest_landing_check/` 5 case)+ `run_act4.sh` heredoc 第四節加一句 `@covers`(`prompt.txt` blob `d4a17c9a` → `c4444978`,diff 只有那一段;舊的「方法名帶編號」那句**留著**,兩種約定並存,「廢掉」那半這次不落地)。對答案在 `13-RESULT.md`:P1 命中(2026-08-19-act4 → 1,17/17 無落點)、P2 **落空一半**(`vacuous_tests` 佇列不含陽性一,但含陽性二的 C9 / C17 —— 兩條殺同一組 mutant 互相支配,是重複不是恆真;`OrderStatus.java` PIT 0 個 mutant,`Order.restore` NO_COVERAGE);PIT 在 scratchpad 複本跑的,真 claude 沒重跑。慣例(ADR 0007):「內圈測試檔頭必須 `@covers`」由 `innertest_landing_check` 守(沒宣告 = 無落點,1),不進 `harness_lint`。
 
 ## 主:落點檢查
 

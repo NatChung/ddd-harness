@@ -1,0 +1,20 @@
+{
+  "note": "工作目錄沒有 src/innerTest/(沒經過 run_act4.sh 注入)→ 整份不適用 3,不是通過、也不是「每條無落點」。",
+  "source": "合成。",
+  "store": [
+    "contracts.yaml",
+    "acceptance.yaml"
+  ],
+  "args": [
+    "{db}",
+    "work"
+  ],
+  "exit": 3,
+  "must_print": [
+    "沒有 `src/innerTest/` 目錄 → **整份不適用(不是通過)**"
+  ],
+  "must_not_print": [
+    "--- 第一段",
+    "❌ C1"
+  ]
+}
